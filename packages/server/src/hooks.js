@@ -69,6 +69,17 @@ const CLAUDIA_HOOKS = {
       ],
     },
   ],
+  SessionEnd: [
+    {
+      matcher: ".*",
+      hooks: [
+        {
+          type: "command",
+          command: hookCommand("state:'stopped'"),
+        },
+      ],
+    },
+  ],
 };
 
 function isClaudiaHook(hook) {
