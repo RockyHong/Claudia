@@ -71,7 +71,8 @@ async function runInit() {
   try {
     await writeSettings(merged);
     console.log("\nHooks installed successfully.");
-    console.log("Run `claudia` or `npx claudia` to start the receptionist.");
+    console.log("Restart any running Claude Code sessions to pick up the hooks.");
+    console.log("Then run `claudia` or `npx claudia` to start the receptionist.");
   } catch (err) {
     console.error(`Error writing settings: ${err.message}`);
     process.exit(1);
