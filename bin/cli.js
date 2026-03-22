@@ -15,6 +15,7 @@ import {
 } from "../packages/server/src/hooks.js";
 
 const command = process.argv[2];
+const forceYes = process.argv.includes("--yes") || process.argv.includes("-y");
 
 switch (command) {
   case "init":
@@ -43,8 +44,10 @@ async function runInit() {
     console.log("Claudia hooks are already installed.");
     console.log(`  ${getSettingsPath()}`);
     console.log("\nRe-running will update them to the latest version.");
-    const ok = await confirm("Update hooks?");
-    if (!ok) return;
+    if (!forceYes) {
+      const ok = await confirm("Update hooks?");
+      if (!ok) return;
+    }
   }
 
   const merged = mergeHooks(settings);
@@ -62,10 +65,12 @@ async function runInit() {
     }
   }
 
-  const ok = await confirm("\nApply changes?");
-  if (!ok) {
-    console.log("Aborted.");
-    return;
+  if (!forceYes) {
+    const ok = await confirm("\nApply changes?");
+    if (!ok) {
+      console.log("Aborted.");
+      return;
+    }
   }
 
   try {

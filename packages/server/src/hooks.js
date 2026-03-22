@@ -17,28 +17,60 @@ function hookCommand(fields) {
 const CLAUDIA_HOOKS = {
   PreToolUse: [
     {
-      command: hookCommand("state:'working',tool:process.env.CLAUDE_TOOL_NAME"),
+      matcher: "",
+      hooks: [
+        {
+          type: "command",
+          command: hookCommand("state:'working',tool:process.env.CLAUDE_TOOL_NAME"),
+        },
+      ],
     },
   ],
   PostToolUse: [
     {
-      command: hookCommand("state:'idle'"),
+      matcher: "",
+      hooks: [
+        {
+          type: "command",
+          command: hookCommand("state:'idle'"),
+        },
+      ],
     },
   ],
   Notification: [
     {
-      command: hookCommand("state:'pending',message:process.env.CLAUDE_NOTIFICATION"),
+      matcher: "",
+      hooks: [
+        {
+          type: "command",
+          command: hookCommand("state:'pending',message:process.env.CLAUDE_NOTIFICATION"),
+        },
+      ],
     },
   ],
   Stop: [
     {
-      command: hookCommand("state:'stopped'"),
+      matcher: "",
+      hooks: [
+        {
+          type: "command",
+          command: hookCommand("state:'stopped'"),
+        },
+      ],
     },
   ],
 };
 
 function isClaudiaHook(hook) {
-  return hook && typeof hook.command === "string" && hook.command.includes(CLAUDIA_MARKER);
+  if (!hook) return false;
+  // Match new nested format: { matcher, hooks: [{ type, command }] }
+  if (Array.isArray(hook.hooks)) {
+    return hook.hooks.some(
+      (h) => typeof h.command === "string" && h.command.includes(CLAUDIA_MARKER),
+    );
+  }
+  // Match old bare format: { command }
+  return typeof hook.command === "string" && hook.command.includes(CLAUDIA_MARKER);
 }
 
 export async function readSettings() {
