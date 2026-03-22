@@ -55,7 +55,7 @@ Terminal 3 (claude code)  ──┘
                     Browser dashboard
 ```
 
-Claude Code [hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) fire on every tool use and notification, sending a small JSON payload to Claudia's local server. Claudia tracks session state, detects idle/working/pending/thinking transitions, and pushes updates to your browser via Server-Sent Events.
+Claude Code [hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) fire on tool use, notification, and session stop, sending a small JSON payload to Claudia's local server. Claudia tracks session state, detects idle/working/pending/thinking transitions, and pushes updates to your browser via Server-Sent Events.
 
 All localhost. Nothing leaves your machine.
 

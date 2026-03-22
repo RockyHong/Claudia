@@ -89,6 +89,31 @@ describe("session-tracker", () => {
       tracker.handleEvent({ session: "s1", state: "working", cwd: "/proj/frontend" });
       expect(tracker.getSessions()[0].displayName).toBe("frontend");
     });
+
+    it("removes session on stopped event", () => {
+      tracker.handleEvent({ session: "s1", state: "working", cwd: "/proj/api" });
+      tracker.handleEvent({ session: "s2", state: "working", cwd: "/proj/web" });
+      expect(tracker.getSessions()).toHaveLength(2);
+
+      tracker.handleEvent({ session: "s1", state: "stopped" });
+      const sessions = tracker.getSessions();
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0].id).toBe("s2");
+    });
+
+    it("notifies on stopped event", () => {
+      tracker.handleEvent({ session: "s1", state: "working", cwd: "/proj" });
+      stateChanges.length = 0;
+
+      tracker.handleEvent({ session: "s1", state: "stopped" });
+      expect(stateChanges).toHaveLength(1);
+      expect(stateChanges[0].sessions).toHaveLength(0);
+    });
+
+    it("handles stopped event for unknown session", () => {
+      tracker.handleEvent({ session: "unknown", state: "stopped" });
+      expect(tracker.getSessions()).toHaveLength(0);
+    });
   });
 
   describe("display name extraction", () => {

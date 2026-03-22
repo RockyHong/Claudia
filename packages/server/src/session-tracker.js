@@ -80,6 +80,15 @@ export function createSessionTracker({ onStateChange } = {}) {
 
     if (!sessionId || !state) return;
 
+    if (state === "stopped") {
+      if (sessions.has(sessionId)) {
+        clearTimers(sessionId);
+        sessions.delete(sessionId);
+        notify();
+      }
+      return;
+    }
+
     if (!sessions.has(sessionId)) {
       sessions.set(sessionId, createSession(sessionId, cwd));
     }

@@ -23,6 +23,11 @@ const CLAUDIA_HOOKS = {
       command: `curl -s -X POST http://localhost:7890/event -H 'Content-Type: application/json' -d '{"session": "'"$CLAUDE_SESSION_ID"'", "state": "pending", "message": "'"$CLAUDE_NOTIFICATION"'", "cwd": "'"$(pwd)"'", "ts": '$(date +%s)'}'`,
     },
   ],
+  Stop: [
+    {
+      command: `curl -s -X POST http://localhost:7890/event -H 'Content-Type: application/json' -d '{"session": "'"$CLAUDE_SESSION_ID"'", "state": "stopped", "cwd": "'"$(pwd)"'", "ts": '$(date +%s)'}'`,
+    },
+  ],
 };
 
 function isClaudiaHook(hook) {
