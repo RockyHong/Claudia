@@ -3,6 +3,7 @@ import path from "node:path";
 import express from "express";
 import { createSessionTracker } from "./session-tracker.js";
 import { getStatusMessage } from "./personality.js";
+import { focusTerminal } from "./focus.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIST = path.resolve(__dirname, "../../web/dist");
@@ -82,15 +83,15 @@ app.get("/api/sessions", (req, res) => {
 app.use(express.static(WEB_DIST));
 
 // Trigger terminal focus for a session
-app.post("/focus/:sessionId", (req, res) => {
+app.post("/focus/:sessionId", async (req, res) => {
   const session = tracker
     .getSessions()
     .find((s) => s.id === req.params.sessionId);
   if (!session) {
     return res.status(404).json({ error: "Session not found" });
   }
-  // TODO: call focus.js strategy
-  res.json({ ok: true, message: "Focus not yet implemented" });
+  const focused = await focusTerminal(session.displayName);
+  res.json({ ok: true, focused });
 });
 
 export function startServer(port = PORT) {

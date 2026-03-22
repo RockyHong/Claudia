@@ -62,7 +62,7 @@ The UI. Display session state in a browser tab.
 ### Focus Button
 - [x] `POST /focus/:id` route on server
 - [x] Wire focus button click to POST request
-- [ ] Server calls `focus.js` strategy for the target session (wired but TODO)
+- [x] Server calls `focus.js` strategy for the target session
 - [x] Graceful failure: show "couldn't focus" message, never crash
 
 ### Browser Notifications
@@ -135,12 +135,12 @@ The character. Claudia isn't a dashboard, she's a receptionist.
 The last 20%. Native features that a browser tab can't provide.
 
 ### Terminal Focus (`packages/server/src/focus.js`)
-- [ ] Define `focusTerminal(identifier)` interface
-- [ ] Windows: PowerShell — find terminal window by title, `SetForegroundWindow`
-- [ ] macOS: osascript — match terminal by window title
-- [ ] Linux: xdotool/wmctrl — `windowactivate` by name
-- [ ] Fallback: bring terminal app to front (no specific window match)
-- [ ] Platform detection and strategy selection
+- [x] Define `focusTerminal(identifier)` interface
+- [x] Windows: PowerShell — find terminal window by title, `SetForegroundWindow`
+- [x] macOS: osascript — match terminal by window title
+- [x] Linux: xdotool/wmctrl — `windowactivate` by name
+- [x] Fallback: bring terminal app to front (no specific window match)
+- [x] Platform detection and strategy selection
 - [ ] Test on each platform
 
 ### Future (Not Planned for v1)
@@ -160,5 +160,5 @@ The last 20%. Native features that a browser tab can't provide.
 | 1. Server Core | **Done** | curl in, SSE out |
 | 2. Web Dashboard | **Done** | Live dashboard in browser |
 | 3. CLI & Hooks | **Done** | `npx claudia` works end-to-end |
-| 4. Personality | Not started | Claudia has character |
-| 5. OS Integration | Not started | Terminal focus works |
+| 4. Personality | **Done** | Claudia has character |
+| 5. OS Integration | **Done** | Terminal focus works |
