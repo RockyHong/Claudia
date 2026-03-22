@@ -100,29 +100,22 @@ One glance at Claudia tells you if you need to do anything or not.
 
 **1. Hook Configuration (Claude Code side)**
 
-All Claude Code instances on the machine share the same `~/.claude/settings.json`. Hooks fire automatically for every session — no per-terminal setup required.
+All Claude Code instances on the machine share the same `~/.claude/settings.json`. Hooks fire automatically for every session — no per-terminal setup required. Run `claudia init` to configure them automatically.
+
+Hooks use `node -e` instead of `curl` to avoid shell injection — `JSON.stringify` safely escapes all env var content (notification messages, paths with special characters, etc.).
 
 ```json
 {
   "hooks": {
-    "PreToolUse": [
-      {
-        "command": "curl -s -X POST http://localhost:7890/event -H 'Content-Type: application/json' -d '{\"session\": \"'\"$CLAUDE_SESSION_ID\"'\", \"state\": \"working\", \"tool\": \"'\"$CLAUDE_TOOL_NAME\"'\", \"cwd\": \"'\"$(pwd)\"'\", \"ts\": '$(date +%s)'}'"
-      }
-    ],
-    "PostToolUse": [
-      {
-        "command": "curl -s -X POST http://localhost:7890/event -H 'Content-Type: application/json' -d '{\"session\": \"'\"$CLAUDE_SESSION_ID\"'\", \"state\": \"idle\", \"cwd\": \"'\"$(pwd)\"'\", \"ts\": '$(date +%s)'}'"
-      }
-    ],
-    "Notification": [
-      {
-        "command": "curl -s -X POST http://localhost:7890/event -H 'Content-Type: application/json' -d '{\"session\": \"'\"$CLAUDE_SESSION_ID\"'\", \"state\": \"pending\", \"message\": \"'\"$CLAUDE_NOTIFICATION\"'\", \"cwd\": \"'\"$(pwd)\"'\", \"ts\": '$(date +%s)'}'"
-      }
-    ]
+    "PreToolUse": [{ "command": "node -e \"...JSON.stringify({session, state:'working', tool, cwd, ts})...\"" }],
+    "PostToolUse": [{ "command": "node -e \"...JSON.stringify({session, state:'idle', cwd, ts})...\"" }],
+    "Notification": [{ "command": "node -e \"...JSON.stringify({session, state:'pending', message, cwd, ts})...\"" }],
+    "Stop": [{ "command": "node -e \"...JSON.stringify({session, state:'stopped', cwd, ts})...\"" }]
   }
 }
 ```
+
+See `packages/server/src/hooks.js` for the full commands.
 
 **2. Express Server (`packages/server/src/index.js`)**
 
