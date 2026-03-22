@@ -1,0 +1,37 @@
+{
+  "name": "claudia",
+  "version": "0.1.0",
+  "description": "A personal receptionist for all your Claude Code agents",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/server",
+    "packages/web"
+  ],
+  "bin": {
+    "claudia": "./bin/cli.js"
+  },
+  "scripts": {
+    "dev": "npm run dev --workspace=packages/server",
+    "build": "npm run build --workspace=packages/web",
+    "test": "vitest run",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write ."
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RockyHong/Claudia.git"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "receptionist",
+    "session-monitor",
+    "system-tray"
+  ]
+}
