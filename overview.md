@@ -332,16 +332,31 @@ Monorepo using npm workspaces. `packages/server` and `packages/web` are the only
 
 ### Hook → Claudia (HTTP POST to localhost:7890/event)
 
+Claude Code passes hook context via **stdin as JSON** (not environment variables).
+Hooks read stdin, extract `session_id`, `tool_name`, `cwd`, etc., and POST to Claudia.
+
+Hooks are installed in `~/.claude/settings.json` under a `"hooks"` wrapper key.
+
 ```json
 {
   "session": "abc123",
-  "state": "working" | "idle" | "pending",
+  "state": "working" | "idle" | "pending" | "stopped",
   "tool": "Edit",
   "cwd": "/home/user/projects/api-server",
   "message": "Permission needed for file edit",
   "ts": 1711100000
 }
 ```
+
+#### Hook events used
+
+| Claude Code Event | Claudia State | Purpose |
+|-------------------|---------------|---------|
+| `SessionStart`    | `idle`        | Register session immediately on start |
+| `PreToolUse`      | `working`     | Session is executing a tool |
+| `PostToolUse`     | `idle`        | Tool finished |
+| `Notification`    | `pending`     | Permission prompt (matcher: `permission_prompt`) |
+| `Stop`            | `idle`        | Claude finished responding (session stays visible) |
 
 ### Claudia Internal State (per session)
 
@@ -396,7 +411,7 @@ Solution: when a session transitions from `Working` to `Idle`, wait 2 seconds be
 
 ### Session Naming
 
-Sessions are identified by `CLAUDE_SESSION_ID` (opaque string). For display, Claudia derives a human-readable name from the `cwd`:
+Sessions are identified by `session_id` from Claude Code's stdin JSON (opaque string). For display, Claudia derives a human-readable name from the `cwd`:
 
 - `/home/user/projects/api-server` → **api-server**
 - `/home/user/projects/frontend` → **frontend**

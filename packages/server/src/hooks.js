@@ -7,28 +7,38 @@ import os from "node:os";
 const SETTINGS_PATH = path.join(os.homedir(), ".claude", "settings.json");
 const CLAUDIA_MARKER = "port:7890,path:'/event'";
 
-// Hook commands use node instead of curl to avoid shell injection.
-// JSON.stringify safely escapes all env var content (quotes, metacharacters).
+// Hook commands read session context from stdin (JSON piped by Claude Code).
+// Stdin includes session_id, tool_name, cwd, etc.
 function hookCommand(fields) {
-  const payload = `{session:process.env.CLAUDE_SESSION_ID,${fields},cwd:process.cwd(),ts:Math.floor(Date.now()/1e3)}`;
-  return `node -e "const h=require('http'),d=JSON.stringify(${payload});const r=h.request({hostname:'localhost',port:7890,path:'/event',method:'POST',headers:{'Content-Type':'application/json'}},()=>{});r.on('error',()=>{});r.end(d)"`;
+  return `node -e "let b='';process.stdin.on('data',c=>b+=c);process.stdin.on('end',()=>{try{const i=JSON.parse(b),h=require('http'),d=JSON.stringify({session:i.session_id,${fields},cwd:i.cwd,ts:Math.floor(Date.now()/1e3)});const r=h.request({hostname:'localhost',port:7890,path:'/event',method:'POST',headers:{'Content-Type':'application/json'}},()=>{});r.on('error',()=>{});r.end(d)}catch(e){}})"`;
 }
 
 const CLAUDIA_HOOKS = {
-  PreToolUse: [
+  SessionStart: [
     {
-      matcher: "",
+      matcher: ".*",
       hooks: [
         {
           type: "command",
-          command: hookCommand("state:'working',tool:process.env.CLAUDE_TOOL_NAME"),
+          command: hookCommand("state:'idle'"),
+        },
+      ],
+    },
+  ],
+  PreToolUse: [
+    {
+      matcher: ".*",
+      hooks: [
+        {
+          type: "command",
+          command: hookCommand("state:'working',tool:i.tool_name"),
         },
       ],
     },
   ],
   PostToolUse: [
     {
-      matcher: "",
+      matcher: ".*",
       hooks: [
         {
           type: "command",
@@ -39,22 +49,22 @@ const CLAUDIA_HOOKS = {
   ],
   Notification: [
     {
-      matcher: "",
+      matcher: "permission_prompt",
       hooks: [
         {
           type: "command",
-          command: hookCommand("state:'pending',message:process.env.CLAUDE_NOTIFICATION"),
+          command: hookCommand("state:'pending',message:i.notification||''"),
         },
       ],
     },
   ],
   Stop: [
     {
-      matcher: "",
+      matcher: ".*",
       hooks: [
         {
           type: "command",
-          command: hookCommand("state:'stopped'"),
+          command: hookCommand("state:'idle'"),
         },
       ],
     },

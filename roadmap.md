@@ -143,6 +143,12 @@ The last 20%. Native features that a browser tab can't provide.
 - [x] Platform detection and strategy selection
 - [ ] Test on each platform
 
+### Known Limitations
+- **No "generating" state** — Claude Code only fires hooks around tool use. When Claude is thinking or writing text between tools, no events fire, so the session shows as idle. A lightweight background poller or a future `Generating` hook event from Claude Code would solve this.
+- **Node process cold-start latency** — Each hook spawns a fresh `node` process to POST to Claudia. On Windows this adds 100-500ms per event. A persistent daemon/sidecar would eliminate this but adds complexity.
+- **Hook data via stdin** — Claude Code passes session context (session_id, tool_name, cwd) to hooks via stdin as JSON, not environment variables. This was undocumented and discovered empirically.
+- **Settings.json hook format** — Hooks must be under a `"hooks"` wrapper key in `~/.claude/settings.json`. The top-level format documented for user settings did not work in testing (v2.1.81).
+
 ### Future (Not Planned for v1)
 - [ ] Native system tray (Tauri — Tier 2/3)
 - [ ] Sound cues on Pending
@@ -150,6 +156,7 @@ The last 20%. Native features that a browser tab can't provide.
 - [ ] Quick actions (approve/deny from Claudia)
 - [ ] Multi-machine monitoring
 - [ ] Theme/skin support
+- [ ] Persistent hook daemon to eliminate per-event node startup cost
 
 ---
 

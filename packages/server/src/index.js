@@ -52,7 +52,6 @@ const VALID_STATES = new Set(["working", "idle", "pending", "stopped"]);
 // Receive hook events from Claude Code
 app.post("/event", (req, res) => {
   const event = req.body;
-
   if (
     !event ||
     typeof event.session !== "string" ||

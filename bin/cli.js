@@ -54,7 +54,7 @@ async function runInit() {
 
   console.log("\nChanges to apply:");
   console.log(`  File: ${getSettingsPath()}`);
-  console.log("  Adding hooks: PreToolUse, PostToolUse, Notification");
+  console.log("  Adding hooks: SessionStart, PreToolUse, PostToolUse, Notification, Stop");
   if (settings.hooks) {
     const userHooks = Object.entries(settings.hooks)
       .flatMap(([event, hooks]) =>
