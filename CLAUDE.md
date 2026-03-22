@@ -23,6 +23,8 @@ Monorepo using npm workspaces. `packages/server` is the backend, `packages/web` 
 - **Linting**: Biome
 - **Package manager**: npm (no pnpm/yarn)
 
+Production has one dependency: `express`. This is intentional — hand-roll before reaching for a library.
+
 See `techstack.md` for full reasoning behind each choice.
 
 ## Design Principles
@@ -127,3 +129,27 @@ Hook POST to `localhost:7890/event`:
 SSE stream at `GET /events` pushes state updates to the browser.
 
 See `overview.md` for the full protocol specification.
+
+## Planning
+
+- `roadmap.md` — Phase-by-phase plan with checkboxes (source of truth for what's done/TODO)
+- `overview.md` — Full architecture, event protocol, and design decisions
+- `techstack.md` — Technology choices with rationale
+
+## Skills
+
+Invoke these installed skills to reinforce quality and consistency:
+
+- **`frontend-design:frontend-design`** — When building or modifying UI components, pages, or layouts in `packages/web/`.
+- **`ui-ux-pro-max:ui-ux-pro-max`** — When making design decisions: color, typography, spacing, accessibility, animation, or interaction states.
+- **`fullstack-dev-skills:javascript-pro`** — When writing or refactoring JavaScript in either package.
+- **`fullstack-dev-skills:fullstack-guardian`** — When a change spans both `packages/server` and `packages/web` (e.g., event protocol changes).
+- **`fullstack-dev-skills:cli-developer`** — When modifying `bin/cli.js` or adding CLI commands.
+- **`fullstack-dev-skills:api-designer`** — When changing the HTTP or SSE event protocol.
+- **`fullstack-dev-skills:test-master`** — When writing or designing test strategies.
+- **`fullstack-dev-skills:debugging-wizard`** — When investigating errors or unexpected behavior.
+- **`fullstack-dev-skills:code-reviewer`** — When reviewing PRs or auditing code quality.
+- **`fullstack-dev-skills:architecture-designer`** — When making structural or architectural decisions.
+- **`fullstack-dev-skills:secure-code-guardian`** — When touching authentication, input validation, or anything security-sensitive.
+
+After every implementation task, run `/simplify` to review changed code for reuse, quality, and efficiency.

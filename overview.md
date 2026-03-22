@@ -71,21 +71,29 @@ One glance at Claudia tells you if you need to do anything or not.
        │                 │                 │
        ▼                 ▼                 ▼
 ┌──────────────────────────────────────────────────┐
-│  Claudia (Tauri menubar app)                     │
+│  Claudia (Node.js server + browser dashboard)    │
 │                                                  │
 │  ┌────────────────┐  ┌────────────────────────┐  │
-│  │ Event Server   │  │ Session Tracker        │  │
+│  │ Express Server │  │ Session Tracker        │  │
 │  │ localhost:7890 │──│ state per session       │  │
 │  │ receives hooks │  │ timestamps, metadata   │  │
-│  └────────────────┘  └───────────┬────────────┘  │
-│                                  │               │
-│  ┌────────────────┐  ┌───────────▼────────────┐  │
-│  │ Window Focus   │  │ UI Layer              │  │
-│  │ (OS native)    │◄─│ session list + avatar  │  │
-│  │ AppleScript /  │  │ notifications         │  │
-│  │ wmctrl / Win32 │  └────────────────────────┘  │
-│  └────────────────┘                              │
-└──────────────────────────────────────────────────┘
+│  └────────┬───────┘  └───────────┬────────────┘  │
+│           │                      │               │
+│  ┌────────▼───────┐  ┌──────────▼─────────────┐  │
+│  │ SSE Stream     │  │ Terminal Focus         │  │
+│  │ GET /events    │  │ (shell commands)       │  │
+│  └────────┬───────┘  │ osascript / wmctrl /   │  │
+│           │          │ PowerShell             │  │
+│           │          └────────────────────────┘  │
+└───────────┼──────────────────────────────────────┘
+            │  SSE (EventSource)
+            ▼
+   Browser tab (localhost:7890)
+            │
+            ├── Session list (Svelte 5)
+            ├── Avatar video (HTML <video>)
+            ├── Status messages (personality)
+            └── Browser Notification API
 ```
 
 ### Components
@@ -116,34 +124,30 @@ All Claude Code instances on the machine share the same `~/.claude/settings.json
 }
 ```
 
-**2. Event Server (Claudia backend — Rust/Tauri)**
+**2. Express Server (`packages/server/src/index.js`)**
 
 A minimal HTTP server on `localhost:7890` that:
 
-- Receives POST events from hooks
-- Maintains a session registry (session ID → state, last event, cwd, timestamps)
-- Automatically prunes stale sessions (no events for configurable timeout, e.g. 10 min)
-- Emits state change events to the frontend via Tauri's event system
+- Receives POST events from hooks at `/event`
+- Maintains a session registry via the session tracker
+- Broadcasts state changes to connected browsers via SSE at `/events`
+- Serves the built Svelte dashboard at `/`
+- Provides REST fallback at `/api/sessions` for initial state load
+- Accepts focus requests at `/focus/:sessionId`
 
-**3. Session Tracker**
+**3. Session Tracker (`packages/server/src/session-tracker.js`)**
 
-In-memory state store:
+In-memory state store using plain JavaScript objects:
 
-```rust
-struct Session {
-    id: String,
-    state: State,          // Working | Idle | Pending | Thinking
-    cwd: String,           // working directory (used as display name)
-    last_tool: Option<String>,
-    last_event: Instant,
-    pending_message: Option<String>,
-}
-
-enum State {
-    Idle,
-    Working,
-    Pending,   // needs user attention
-    Thinking,  // no output for >5s after last tool
+```javascript
+// Session shape
+{
+  id,              // CLAUDE_SESSION_ID
+  state,           // 'idle' | 'working' | 'pending' | 'thinking'
+  cwd,             // working directory (used as display name)
+  lastTool,        // most recent tool name
+  lastEvent,       // timestamp of last event
+  pendingMessage,  // message from Notification hook
 }
 ```
 
@@ -157,33 +161,27 @@ State inference logic:
 | No event for >5s after `Working` | → **Thinking** |
 | No event for >10min | → session pruned from list |
 
-**4. UI Layer (Tauri webview)**
+**4. Svelte Dashboard (`packages/web/src/`)**
 
-A small popdown panel from the system tray:
+A browser-based dashboard served by Express:
 
-- **Session list** — one row per active Claude Code session, showing:
-  - Display name (derived from `cwd`, e.g. `~/projects/api-server` → `api-server`)
-  - Current state with visual indicator (color dot, icon, or text)
-  - Time in current state
-  - `[Focus]` button to bring that terminal to front
-- **Avatar panel** (optional) — displays a looping video reflecting aggregate state
-- **Notification badge** on the tray icon when any session is in `Pending` state
+- **App.svelte** — Root component: layout, reactive state, notification permissions, document title updates
+- **SessionList.svelte** — Renders list of active sessions, empty state
+- **SessionCard.svelte** — Single session: display name, state dot, elapsed time, last tool, focus button
+- **StatusBar.svelte** — Footer with aggregate state, personality message, session count
+- **sse.js** — EventSource client with auto-reconnect (3s retry)
 
-**5. Terminal Focus (OS native)**
+Uses Svelte 5 runes (`$state`, `$derived`, `$effect`) for reactivity. Browser Notification API fires when any session enters Pending.
 
-When the user clicks `[Focus]` on a session row, Claudia needs to find and raise the correct terminal window. Strategy:
+**5. Terminal Focus (`packages/server/src/focus.js`)**
 
-- **macOS**: AppleScript or `NSRunningApplication` API. Most terminals put the cwd or process in the title bar. Match by window title containing the session's cwd or a known identifier.
-  ```applescript
-  tell application "System Events"
-    set frontmost of (first process whose name is "Terminal" ¬
-      and title of window 1 contains "api-server") to true
-  end tell
-  ```
-- **Linux**: `wmctrl -a <window_title>` or `xdotool search --name "api-server" windowactivate`
-- **Windows**: Win32 `FindWindow` + `SetForegroundWindow`, or PowerShell equivalent
+When the user clicks `[Focus]` on a session row, Claudia finds and raises the correct terminal window via platform shell commands:
 
-Fallback: if window matching fails, Claudia can simply bring the terminal *application* to front and let the user pick the tab/window.
+- **macOS**: `osascript` — match terminal by window title
+- **Linux**: `wmctrl -a` or `xdotool search --name` — activate by window name
+- **Windows**: PowerShell — find process by window title, `SetForegroundWindow`
+
+Fallback: if window matching fails, bring the terminal application to front and let the user pick the tab/window. Focus is best-effort — failure is silent, never crashes.
 
 ---
 
@@ -222,44 +220,16 @@ These messages are generated from templates based on state transitions, not from
 
 Claudia is an open source tool for personal use. The distribution strategy prioritizes zero-friction adoption: one command to configure, one command to run.
 
-### Tier 1: `npx claudia` (universal, zero install)
+### `npx claudia` (zero install)
 
 ```bash
 npx claudia init    # patches ~/.claude/settings.json with hooks
 npx claudia         # starts the receptionist
 ```
 
-This is the default and recommended path. It starts a Node.js server on `localhost:7890` and opens a dashboard in the user's default browser. No cloning, no building, no global install. The only prerequisite is Node.js, which anyone running Claude Code already has.
+This is the product. It starts a Node.js server on `localhost:7890` and opens a dashboard in the user's default browser. No cloning, no building, no global install. The only prerequisite is Node.js, which anyone running Claude Code already has.
 
-**What you get:** full session dashboard, browser Notification API alerts when a session enters `Pending`, avatar display, personality messages. Covers ~80% of Claudia's value.
-
-**What you don't get:** native system tray icon, terminal focus (`[Focus]` button). A browser tab cannot raise other OS windows — this is a platform limitation, not a Claudia limitation.
-
-### Tier 2: `claudia --native` (full features, global install)
-
-```bash
-npm install -g claudia
-claudia --native
-```
-
-Everything in Tier 1, plus:
-
-- System tray icon with notification badge
-- Native OS notifications (not browser-based)
-- Terminal focus via platform APIs (AppleScript / wmctrl / PowerShell)
-- Runs as a background process, no browser tab needed
-
-Uses optional native dependencies. If they're missing or unsupported on the current OS, Claudia gracefully falls back to Tier 1 behavior.
-
-### Tier 3: Standalone binary (GitHub Releases)
-
-For users who want a fully native app without Node.js:
-
-- Platform-specific binaries built with Tauri (.dmg for macOS, .msi for Windows, .AppImage for Linux)
-- Published on GitHub Releases with each tagged version
-- Optional: Homebrew tap (`brew install claudia`), Scoop bucket, or AUR package — maintained only if community demand warrants it
-
-This is the most polished experience but the highest distribution overhead. Not the priority for v1.
+**What you get:** full session dashboard, browser Notification API alerts when a session enters `Pending`, avatar display, personality messages, terminal focus via platform shell commands.
 
 ### The `claudia init` Command
 
@@ -288,27 +258,37 @@ Uninstall is equally clean: `npx claudia teardown` removes only the hooks Claudi
 
 If Claudia is not running, the `curl` commands in the hooks fail silently (`-s` flag, fire-and-forget, no timeout blocking). Claude Code is completely unaffected. Claudia is purely additive — removing it changes nothing about the CLI experience.
 
+### Future: Native Tier
+
+If community demand warrants it, a native tier could add:
+
+- System tray icon with notification badge
+- Native OS notifications (not browser-based)
+- Standalone binary distribution (Tauri — .dmg, .msi, .AppImage)
+
+This is not planned for v1. The browser dashboard covers the core value proposition.
+
 ---
 
 ## Technology Stack
 
 | Component | Choice | Rationale |
 |---|---|---|
-| **App shell** | Tauri v2 | Lightweight (~5-10MB vs Electron's ~150MB), Rust backend with full OS access, system tray support built-in |
-| **UI** | HTML/CSS/JS (or Svelte/React) in Tauri webview | Simple, easy to style, hot-reloadable during dev |
-| **Event server** | Axum or Actix-web (Rust, inside Tauri) | Already in the Rust process, no extra dependency |
+| **Runtime** | Node.js 18+ | Claude Code already requires it — zero extra ask from users |
+| **Server** | Express 5 | Universal knowledge, boring in the best way, 4 routes |
+| **Real-time** | SSE (Server-Sent Events) | Unidirectional data flow → unidirectional primitive. Zero client library (native EventSource) |
+| **UI** | Svelte 5 + Vite | Compiles to tiny vanilla JS, built-in reactivity via runes, near-zero config |
+| **Testing** | Vitest | Vite-native, fast, Jest-compatible API |
+| **Linting** | Biome | Single tool replaces ESLint + Prettier |
 | **Video playback** | HTML `<video>` element with `loop` attribute | Native browser support, no extra libraries |
-| **Video format** | WebM (VP9) for transparency, MP4 (H.264) for solid backgrounds | WebM allows avatar overlay on UI; MP4 for simpler side panel |
-| **OS integration** | Tauri commands calling platform APIs | Window focus, system tray, native notifications |
-| **State file fallback** | `~/.claudia/state.json` | Optional: for other tools to read Claudia's aggregated state |
+| **OS integration** | Platform shell commands | osascript (macOS), wmctrl/xdotool (Linux), PowerShell (Windows) — already installed, no native addons |
+| **Package manager** | npm workspaces | Ships with Node, `npx` is npm-native. No pnpm/yarn overhead |
 
-### Why This Tiered Approach?
+### Why Browser-First?
 
-The core insight: **a browser tab covers 80% of the value with 0% install friction.** The session dashboard and notifications work perfectly in a browser. The only thing a browser *can't* do is focus other OS windows — and knowing *which* terminal needs you (then alt-tabbing to it) is almost as good as auto-focusing.
+**A browser tab covers 80% of the value with 0% install friction.** The session dashboard and notifications work perfectly in a browser. The only thing a browser *can't* do is focus other OS windows — and knowing *which* terminal needs you (then alt-tabbing to it) is almost as good as auto-focusing.
 
-Tauri (Tier 2/3) adds the remaining 20% — system tray, native notifications, terminal focus — for users who want the full experience. But it should never be a prerequisite.
-
-Electron is ruled out entirely. Claudia is a menubar utility. ~150MB for 5 rows of text and a video is indefensible when Tauri does the same at ~5-10MB, and the browser tier does it at 0MB.
+Production has one dependency: `express`. This is intentional. See `techstack.md` for full reasoning behind each choice.
 
 ---
 
@@ -316,41 +296,42 @@ Electron is ruled out entirely. Claudia is a menubar utility. ~150MB for 5 rows 
 
 ```
 claudia/
-├── packages/
-│   ├── core/                        # Shared logic (both tiers use this)
-│   │   ├── server.js                # Express event server on localhost:7890
-│   │   ├── session-tracker.js       # Session state management & debouncing
-│   │   ├── personality.js           # Status message templates
-│   │   └── hooks.js                 # Claude Code hook config read/write/merge
-│   │
-│   ├── web/                         # Tier 1: browser UI
-│   │   ├── index.html               # Dashboard served by Express
-│   │   ├── app.js                   # UI logic, WebSocket state updates
-│   │   ├── style.css                # Styling
-│   │   └── assets/
-│   │       ├── avatar-idle.webm
-│   │       ├── avatar-working.webm
-│   │       ├── avatar-pending.webm
-│   │       └── avatar-thinking.webm
-│   │
-│   └── native/                      # Tier 2/3: Tauri native shell
-│       ├── src-tauri/
-│       │   ├── src/
-│       │   │   ├── main.rs          # Tauri app entry, system tray
-│       │   │   ├── window_focus.rs  # OS-specific terminal focus
-│       │   │   └── notifications.rs # Native OS notifications
-│       │   ├── Cargo.toml
-│       │   └── tauri.conf.json
-│       └── src/                     # Reuses web/ UI with native extensions
-│           └── native-bridge.js     # Tauri invoke calls for focus, tray, etc.
-│
 ├── bin/
-│   └── cli.js                       # Entry point: `npx claudia`, `claudia init`, etc.
-├── package.json
-└── README.md
+│   └── cli.js                       # Entry point: npx claudia, claudia init
+│
+├── packages/
+│   ├── server/                      # Express event server & session tracking
+│   │   ├── package.json             # @claudia/server
+│   │   └── src/
+│   │       ├── index.js             # Express server, SSE, HTTP routes
+│   │       ├── session-tracker.js   # Session registry, state machine, debouncing
+│   │       ├── session-tracker.test.js
+│   │       ├── personality.js       # Status message templates (Phase 4)
+│   │       ├── hooks.js             # Hook config management (Phase 3)
+│   │       └── focus.js             # Terminal focus strategy (Phase 5)
+│   │
+│   └── web/                         # Svelte 5 browser dashboard
+│       ├── package.json             # @claudia/web
+│       ├── index.html
+│       ├── vite.config.js
+│       ├── svelte.config.js
+│       └── src/
+│           ├── main.js              # Svelte app mount point
+│           ├── App.svelte           # Root component: layout, state, notifications
+│           └── lib/
+│               ├── sse.js           # SSE client with auto-reconnect
+│               ├── SessionList.svelte
+│               ├── SessionCard.svelte
+│               └── StatusBar.svelte
+│
+├── package.json                     # Workspace root
+├── CLAUDE.md
+├── overview.md
+├── roadmap.md
+└── techstack.md
 ```
 
-The `core/` and `web/` packages are all that's needed for `npx claudia`. The `native/` package is only built for Tier 2/3 distribution.
+Monorepo using npm workspaces. `packages/server` and `packages/web` are the only packages needed — no native tier required for v1.
 
 ---
 
@@ -395,7 +376,9 @@ The `core/` and `web/` packages are all that's needed for `npx claudia`. The `na
 }
 ```
 
-### Claudia → UI (Tauri event)
+### Claudia → Browser (SSE at GET /events)
+
+Each SSE message is a `state_update` event with JSON data:
 
 ```json
 {
@@ -405,6 +388,8 @@ The `core/` and `web/` packages are all that's needed for `npx claudia`. The `na
   "statusMessage": "The frontend crew needs your sign-off."
 }
 ```
+
+The browser connects via native `EventSource` API with automatic reconnection.
 
 ---
 
