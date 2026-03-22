@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import express from "express";
 import { createSessionTracker } from "./session-tracker.js";
+import { getStatusMessage } from "./personality.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIST = path.resolve(__dirname, "../../web/dist");
@@ -11,7 +12,9 @@ const PORT = process.env.CLAUDIA_PORT || 7890;
 const sseClients = new Set();
 
 const tracker = createSessionTracker({
-  onStateChange: (update) => broadcast(update),
+  onStateChange: (update) => {
+    broadcast({ ...update, statusMessage: getStatusMessage(update.sessions) });
+  },
 });
 
 function broadcast(update) {
@@ -55,9 +58,11 @@ app.get("/events", (req, res) => {
   res.flushHeaders();
 
   // Send current state immediately on connect
+  const sessions = tracker.getSessions();
   const initial = JSON.stringify({
-    sessions: tracker.getSessions(),
+    sessions,
     aggregateState: tracker.getAggregateState(),
+    statusMessage: getStatusMessage(sessions),
   });
   res.write(`data: ${initial}\n\n`);
 

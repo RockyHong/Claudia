@@ -1,20 +1,12 @@
 <script>
-  let { aggregateState = "idle", sessionCount = 0 } = $props();
+  let { aggregateState = "idle", statusMessage = "", sessionCount = 0 } = $props();
 
-  const messages = {
-    idle: "All quiet. Go grab a coffee.",
-    working: "Agents are busy. You can relax.",
-    pending: "Someone needs your attention.",
-    thinking: "Pondering the deep questions...",
-  };
-
-  let message = $derived(messages[aggregateState] || messages.idle);
   let dotClass = $derived(`dot-${aggregateState}`);
 </script>
 
 <div class="status-bar">
   <span class="dot {dotClass}"></span>
-  <span class="message">{message}</span>
+  <span class="message">{statusMessage}</span>
   <span class="count">{sessionCount} session{sessionCount !== 1 ? "s" : ""}</span>
 </div>
 

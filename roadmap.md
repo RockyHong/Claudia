@@ -79,24 +79,24 @@ The UI. Display session state in a browser tab.
 The glue. One command to configure, one command to run.
 
 ### `claudia init`
-- [ ] Read `~/.claude/settings.json` (create if missing)
-- [ ] Merge Claudia hook config into existing hooks (preserve user hooks)
-- [ ] Show diff of changes, ask for confirmation before writing
+- [x] Read `~/.claude/settings.json` (create if missing)
+- [x] Merge Claudia hook config into existing hooks (preserve user hooks)
+- [x] Show diff of changes, ask for confirmation before writing
 - [ ] Validate config by sending test event (if server is running)
-- [ ] Handle edge cases: malformed JSON, read-only file, missing directory
+- [x] Handle edge cases: malformed JSON, read-only file, missing directory
 
 ### `claudia teardown`
-- [ ] Read `~/.claude/settings.json`
-- [ ] Remove only Claudia-added hooks (identify by curl target URL)
-- [ ] Show diff, confirm before writing
-- [ ] No-op if hooks aren't present
+- [x] Read `~/.claude/settings.json`
+- [x] Remove only Claudia-added hooks (identify by curl target URL)
+- [x] Show diff, confirm before writing
+- [x] No-op if hooks aren't present
 
 ### `claudia` (default — start)
-- [ ] Start Express server on `localhost:7890`
-- [ ] Detect port conflict, suggest alternative or show what's using it
-- [ ] Open `http://localhost:7890` in default browser
-- [ ] Clean shutdown on SIGINT/SIGTERM
-- [ ] Print startup banner with URL and status
+- [x] Start Express server on `localhost:7890`
+- [x] Detect port conflict, suggest alternative or show what's using it
+- [x] Open `http://localhost:7890` in default browser
+- [x] Clean shutdown on SIGINT/SIGTERM
+- [x] Print startup banner with URL and status
 
 **Shippable after Phase 3:** `npx claudia init && npx claudia` — full zero-to-running experience.
 
@@ -107,12 +107,12 @@ The glue. One command to configure, one command to run.
 The character. Claudia isn't a dashboard, she's a receptionist.
 
 ### Personality Messages (`packages/server/src/personality.js`)
-- [ ] Define message templates for state transitions
-- [ ] Session finishes task: "Terminal 2 just wrapped up the API refactor."
-- [ ] Multiple pending: "You're popular — both teams need you."
-- [ ] All idle: "All quiet. Go grab a coffee."
-- [ ] Session enters pending: "The api-server team needs your sign-off."
-- [ ] Include personality messages in SSE state updates
+- [x] Define message templates for state transitions
+- [x] Session finishes task: "Terminal 2 just wrapped up the API refactor."
+- [x] Multiple pending: "You're popular — both teams need you."
+- [x] All idle: "All quiet. Go grab a coffee."
+- [x] Session enters pending: "The api-server team needs your sign-off."
+- [x] Include personality messages in SSE state updates
 
 ### Avatar Panel
 - [ ] Add `<video>` element to dashboard UI
@@ -121,9 +121,9 @@ The character. Claudia isn't a dashboard, she's a receptionist.
 - [ ] Create or source placeholder avatar videos
 
 ### UI Polish
-- [ ] Favicon changes based on aggregate state
+- [x] Favicon changes based on aggregate state
 - [x] Page title reflects state: "(1 pending) Claudia"
-- [ ] Responsive layout: works on narrow and wide windows
+- [x] Responsive layout: works on narrow and wide windows
 - [x] Dark/light mode (system preference)
 
 **Shippable after Phase 4:** A polished, characterful receptionist experience.
@@ -159,6 +159,6 @@ The last 20%. Native features that a browser tab can't provide.
 |---|---|---|
 | 1. Server Core | **Done** | curl in, SSE out |
 | 2. Web Dashboard | **Done** | Live dashboard in browser |
-| 3. CLI & Hooks | Not started | `npx claudia` works end-to-end |
+| 3. CLI & Hooks | **Done** | `npx claudia` works end-to-end |
 | 4. Personality | Not started | Claudia has character |
 | 5. OS Integration | Not started | Terminal focus works |

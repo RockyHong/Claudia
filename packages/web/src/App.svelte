@@ -5,11 +5,13 @@
 
   let sessions = $state([]);
   let aggregateState = $state("idle");
+  let statusMessage = $state("");
   let previousPendingIds = $state(new Set());
 
   const sseClient = createSSEClient("/events", (update) => {
     sessions = update.sessions;
     aggregateState = update.aggregateState;
+    statusMessage = update.statusMessage || "";
     checkForPendingNotifications(update.sessions);
     updateDocumentTitle(update.aggregateState, update.sessions);
   });
@@ -50,6 +52,34 @@
     } else {
       document.title = "Claudia";
     }
+    updateFavicon(state);
+  }
+
+  let lastFaviconState = "";
+
+  function updateFavicon(state) {
+    if (state === lastFaviconState) return;
+    lastFaviconState = state;
+
+    const style = getComputedStyle(document.documentElement);
+    const colorMap = {
+      idle: style.getPropertyValue("--gray").trim(),
+      working: style.getPropertyValue("--blue").trim(),
+      pending: style.getPropertyValue("--orange").trim(),
+      thinking: style.getPropertyValue("--purple").trim(),
+    };
+
+    const color = colorMap[state] || colorMap.idle;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="${color}"/></svg>`;
+    const url = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+
+    let link = document.querySelector("link[rel='icon']");
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "icon";
+      document.head.appendChild(link);
+    }
+    link.href = url;
   }
 
   function requestNotificationPermission() {
@@ -71,7 +101,7 @@
     <SessionList {sessions} />
   </main>
 
-  <StatusBar {aggregateState} sessionCount={sessions.length} />
+  <StatusBar {aggregateState} {statusMessage} sessionCount={sessions.length} />
 </div>
 
 <style>
@@ -115,11 +145,17 @@
   }
 
   .app {
-    max-width: 480px;
+    max-width: 600px;
     margin: 0 auto;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+  }
+
+  @media (max-width: 480px) {
+    .app {
+      max-width: 100%;
+    }
   }
 
   header {
