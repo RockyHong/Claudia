@@ -9,29 +9,29 @@ Phased build plan for Claudia. Each phase is a shippable increment — you can s
 The backbone. Receive hook events, manage session state, broadcast via SSE.
 
 ### Session Tracker (`packages/server/src/session-tracker.js`)
-- [ ] Define session data model (id, state, cwd, lastTool, lastEvent, pendingMessage)
-- [ ] Define state enum (Idle, Working, Pending, Thinking)
-- [ ] Implement `handleEvent(event)` — state transitions from hook events
-- [ ] Implement idle debounce — wait 2s before transitioning Working to Idle
-- [ ] Implement Thinking detection — no event for >5s after Working
-- [ ] Implement stale session pruning — remove after 10min of silence
-- [ ] Implement `getSessionDisplayName(cwd)` — extract directory name, handle duplicates
-- [ ] Implement `getSessions()` — return current session list
-- [ ] Implement `getAggregateState()` — Pending > Working > Thinking > Idle priority
-- [ ] Write tests for all state transitions
-- [ ] Write tests for debounce timing
-- [ ] Write tests for pruning logic
+- [x] Define session data model (id, state, cwd, lastTool, lastEvent, pendingMessage)
+- [x] Define state enum (Idle, Working, Pending, Thinking)
+- [x] Implement `handleEvent(event)` — state transitions from hook events
+- [x] Implement idle debounce — wait 2s before transitioning Working to Idle
+- [x] Implement Thinking detection — no event for >5s after Working
+- [x] Implement stale session pruning — remove after 10min of silence
+- [x] Implement `getSessionDisplayName(cwd)` — extract directory name, handle duplicates
+- [x] Implement `getSessions()` — return current session list
+- [x] Implement `getAggregateState()` — Pending > Working > Thinking > Idle priority
+- [x] Write tests for all state transitions
+- [x] Write tests for debounce timing
+- [x] Write tests for pruning logic
 
 ### Express Server (`packages/server/src/index.js`)
-- [ ] Set up Express 5 app
-- [ ] `POST /event` — receive hook data, validate, pass to session tracker
-- [ ] `GET /events` — SSE stream, push state updates to connected browsers
-- [ ] `GET /` — serve built web assets (static files from `packages/web/dist`)
-- [ ] `GET /api/sessions` — REST fallback for initial state load
-- [ ] Wire session tracker state changes to SSE broadcast
-- [ ] Handle SSE client connect/disconnect cleanly
-- [ ] Add CORS for local development (Vite dev server on different port)
-- [ ] Manual smoke test: curl POST events, observe SSE output
+- [x] Set up Express 5 app
+- [x] `POST /event` — receive hook data, validate, pass to session tracker
+- [x] `GET /events` — SSE stream, push state updates to connected browsers
+- [x] `GET /` — serve built web assets (static files from `packages/web/dist`)
+- [x] `GET /api/sessions` — REST fallback for initial state load
+- [x] Wire session tracker state changes to SSE broadcast
+- [x] Handle SSE client connect/disconnect cleanly
+- [x] Add CORS for local development (Vite dev server on different port)
+- [x] Manual smoke test: curl POST events, observe SSE output
 
 **Shippable after Phase 1:** A running server that receives curl events and broadcasts state via SSE. Testable from terminal alone.
 
@@ -42,33 +42,33 @@ The backbone. Receive hook events, manage session state, broadcast via SSE.
 The UI. Display session state in a browser tab.
 
 ### Svelte App Setup
-- [ ] Configure Vite with Svelte 5 plugin
-- [ ] Set up `main.js` to mount `App.svelte`
-- [ ] Configure dev proxy to server (Vite proxy for `/event`, `/events`, `/api`)
+- [x] Configure Vite with Svelte 5 plugin
+- [x] Set up `main.js` to mount `App.svelte`
+- [x] Configure dev proxy to server (Vite proxy for `/event`, `/events`, `/api`)
 
 ### SSE Client
-- [ ] Create `sse.js` — EventSource connection to `/events`
-- [ ] Handle auto-reconnect (native EventSource behavior)
-- [ ] Parse incoming state updates into reactive Svelte state
-- [ ] Fetch initial state from `/api/sessions` on load
+- [x] Create `sse.js` — EventSource connection to `/events`
+- [x] Handle auto-reconnect (native EventSource behavior)
+- [x] Parse incoming state updates into reactive Svelte state
+- [x] Fetch initial state from `/api/sessions` on load
 
 ### Session List
-- [ ] `SessionList.svelte` — renders list of active sessions
-- [ ] `SessionCard.svelte` — single session row: name, state dot, time, focus button
-- [ ] State indicator colors: gray (idle), blue (working), orange (pending), purple (thinking)
-- [ ] Time-in-state display, updating every second
-- [ ] Empty state: "No active sessions" message
+- [x] `SessionList.svelte` — renders list of active sessions
+- [x] `SessionCard.svelte` — single session row: name, state dot, time, focus button
+- [x] State indicator colors: gray (idle), blue (working), orange (pending), purple (thinking)
+- [x] Time-in-state display, updating every second
+- [x] Empty state: "No active sessions" message
 
 ### Focus Button
-- [ ] `POST /focus/:id` route on server
-- [ ] Wire focus button click to POST request
-- [ ] Server calls `focus.js` strategy for the target session
-- [ ] Graceful failure: show "couldn't focus" message, never crash
+- [x] `POST /focus/:id` route on server
+- [x] Wire focus button click to POST request
+- [ ] Server calls `focus.js` strategy for the target session (wired but TODO)
+- [x] Graceful failure: show "couldn't focus" message, never crash
 
 ### Browser Notifications
-- [ ] Request notification permission on first visit
-- [ ] Fire browser notification when any session enters Pending
-- [ ] Notification click focuses the Claudia tab
+- [x] Request notification permission on first visit
+- [x] Fire browser notification when any session enters Pending
+- [x] Notification click focuses the Claudia tab
 
 **Shippable after Phase 2:** Open browser, see live session states, get notified when Claude needs you.
 
@@ -122,9 +122,9 @@ The character. Claudia isn't a dashboard, she's a receptionist.
 
 ### UI Polish
 - [ ] Favicon changes based on aggregate state
-- [ ] Page title reflects state: "(1 pending) Claudia"
+- [x] Page title reflects state: "(1 pending) Claudia"
 - [ ] Responsive layout: works on narrow and wide windows
-- [ ] Dark/light mode (system preference)
+- [x] Dark/light mode (system preference)
 
 **Shippable after Phase 4:** A polished, characterful receptionist experience.
 
@@ -157,8 +157,8 @@ The last 20%. Native features that a browser tab can't provide.
 
 | Phase | Status | Milestone |
 |---|---|---|
-| 1. Server Core | Not started | curl in, SSE out |
-| 2. Web Dashboard | Not started | Live dashboard in browser |
+| 1. Server Core | **Done** | curl in, SSE out |
+| 2. Web Dashboard | **Done** | Live dashboard in browser |
 | 3. CLI & Hooks | Not started | `npx claudia` works end-to-end |
 | 4. Personality | Not started | Claudia has character |
 | 5. OS Integration | Not started | Terminal focus works |
