@@ -36,5 +36,8 @@ npm-debug.log*
 # Tauri (future)
 src-tauri/target/
 
+# Claude Code local settings (personal, not shared)
+.claude/settings.local.json
+
 # Claudia runtime state
 .claudia/
