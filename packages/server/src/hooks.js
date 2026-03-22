@@ -5,27 +5,34 @@ import path from "node:path";
 import os from "node:os";
 
 const SETTINGS_PATH = path.join(os.homedir(), ".claude", "settings.json");
-const CLAUDIA_MARKER = "localhost:7890/event";
+const CLAUDIA_MARKER = "port:7890,path:'/event'";
+
+// Hook commands use node instead of curl to avoid shell injection.
+// JSON.stringify safely escapes all env var content (quotes, metacharacters).
+function hookCommand(fields) {
+  const payload = `{session:process.env.CLAUDE_SESSION_ID,${fields},cwd:process.cwd(),ts:Math.floor(Date.now()/1e3)}`;
+  return `node -e "const h=require('http'),d=JSON.stringify(${payload});const r=h.request({hostname:'localhost',port:7890,path:'/event',method:'POST',headers:{'Content-Type':'application/json'}},()=>{});r.on('error',()=>{});r.end(d)"`;
+}
 
 const CLAUDIA_HOOKS = {
   PreToolUse: [
     {
-      command: `curl -s -X POST http://localhost:7890/event -H 'Content-Type: application/json' -d '{"session": "'"$CLAUDE_SESSION_ID"'", "state": "working", "tool": "'"$CLAUDE_TOOL_NAME"'", "cwd": "'"$(pwd)"'", "ts": '$(date +%s)'}'`,
+      command: hookCommand("state:'working',tool:process.env.CLAUDE_TOOL_NAME"),
     },
   ],
   PostToolUse: [
     {
-      command: `curl -s -X POST http://localhost:7890/event -H 'Content-Type: application/json' -d '{"session": "'"$CLAUDE_SESSION_ID"'", "state": "idle", "cwd": "'"$(pwd)"'", "ts": '$(date +%s)'}'`,
+      command: hookCommand("state:'idle'"),
     },
   ],
   Notification: [
     {
-      command: `curl -s -X POST http://localhost:7890/event -H 'Content-Type: application/json' -d '{"session": "'"$CLAUDE_SESSION_ID"'", "state": "pending", "message": "'"$CLAUDE_NOTIFICATION"'", "cwd": "'"$(pwd)"'", "ts": '$(date +%s)'}'`,
+      command: hookCommand("state:'pending',message:process.env.CLAUDE_NOTIFICATION"),
     },
   ],
   Stop: [
     {
-      command: `curl -s -X POST http://localhost:7890/event -H 'Content-Type: application/json' -d '{"session": "'"$CLAUDE_SESSION_ID"'", "state": "stopped", "cwd": "'"$(pwd)"'", "ts": '$(date +%s)'}'`,
+      command: hookCommand("state:'stopped'"),
     },
   ],
 };

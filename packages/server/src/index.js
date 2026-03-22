@@ -26,12 +26,19 @@ function broadcast(update) {
 }
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "10kb" }));
 
-// CORS for local Vite dev server
+const ALLOWED_ORIGINS = [
+  `http://localhost:${PORT}`,
+  "http://localhost:5173",
+];
+
 app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    res.set("Access-Control-Allow-Origin", origin);
+  }
   res.set({
-    "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
   });
@@ -39,12 +46,37 @@ app.use((req, res, next) => {
   next();
 });
 
+const MAX_SESSIONS = 100;
+const VALID_STATES = new Set(["working", "idle", "pending", "stopped"]);
+
 // Receive hook events from Claude Code
 app.post("/event", (req, res) => {
   const event = req.body;
-  if (!event || !event.session || !event.state) {
-    return res.status(400).json({ error: "Missing session or state" });
+
+  if (
+    !event ||
+    typeof event.session !== "string" ||
+    typeof event.state !== "string"
+  ) {
+    return res.status(400).json({ error: "Missing or invalid session/state" });
   }
+
+  if (!VALID_STATES.has(event.state)) {
+    return res.status(400).json({ error: "Invalid state" });
+  }
+
+  if (event.session.length > 100 || (event.message && event.message.length > 2000)) {
+    return res.status(400).json({ error: "Field too long" });
+  }
+
+  if (
+    event.state !== "stopped" &&
+    !tracker.getSessions().some((s) => s.id === event.session) &&
+    tracker.getSessions().length >= MAX_SESSIONS
+  ) {
+    return res.status(429).json({ error: "Too many sessions" });
+  }
+
   tracker.handleEvent(event);
   res.json({ ok: true });
 });
@@ -98,7 +130,7 @@ export function startServer(port = PORT) {
   tracker.start();
 
   return new Promise((resolve) => {
-    const server = app.listen(port, () => {
+    const server = app.listen(port, "127.0.0.1", () => {
       console.log(`Claudia listening on http://localhost:${port}`);
       resolve(server);
     });
