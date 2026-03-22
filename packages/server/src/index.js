@@ -1,5 +1,10 @@
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 import express from "express";
 import { createSessionTracker } from "./session-tracker.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const WEB_DIST = path.resolve(__dirname, "../../web/dist");
 
 const PORT = process.env.CLAUDIA_PORT || 7890;
 
@@ -67,6 +72,9 @@ app.get("/api/sessions", (req, res) => {
     aggregateState: tracker.getAggregateState(),
   });
 });
+
+// Serve built web UI
+app.use(express.static(WEB_DIST));
 
 // Trigger terminal focus for a session
 app.post("/focus/:sessionId", (req, res) => {
