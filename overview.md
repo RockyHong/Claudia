@@ -236,7 +236,6 @@ What it does:
 1. Reads `~/.claude/settings.json` (creates it if missing)
 2. Merges Claudia's hook configuration into the existing hooks (preserving any user-defined hooks already present)
 3. Confirms the changes to the user before writing
-4. Validates the config by sending a test event to `localhost:7890` (if Claudia is running)
 
 What it does NOT do:
 

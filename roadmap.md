@@ -82,7 +82,6 @@ The glue. One command to configure, one command to run.
 - [x] Read `~/.claude/settings.json` (create if missing)
 - [x] Merge Claudia hook config into existing hooks (preserve user hooks)
 - [x] Show diff of changes, ask for confirmation before writing
-- [ ] Validate config by sending test event (if server is running)
 - [x] Handle edge cases: malformed JSON, read-only file, missing directory
 
 ### `claudia teardown`
@@ -118,8 +117,6 @@ The character. Claudia isn't a dashboard, she's a receptionist.
 - [x] Add `<video>` element to dashboard UI
 - [x] Map aggregate state to video source (idle/working/pending/thinking)
 - [x] Smooth video transitions on state change
-- [ ] Create or source placeholder avatar videos
-
 ### UI Polish
 - [x] Favicon changes based on aggregate state
 - [x] Page title reflects state: "(1 pending) Claudia"
