@@ -47,7 +47,7 @@ describe("mergeHooks", () => {
     expect(result.hooks.Notification).toHaveLength(1);
     expect(result.hooks.Stop).toHaveLength(1);
     const hook = result.hooks.PreToolUse[0];
-    expect(hook.matcher).toBe("");
+    expect(hook.matcher).toBe(".*");
     expect(hook.hooks).toHaveLength(1);
     expect(hook.hooks[0].type).toBe("command");
     expect(hook.hooks[0].command).toContain(CLAUDIA_MARKER);
@@ -93,7 +93,7 @@ describe("mergeHooks", () => {
     };
     const result = mergeHooks(settings);
     expect(result.hooks.PreToolUse).toHaveLength(1);
-    expect(result.hooks.PreToolUse[0].matcher).toBe("");
+    expect(result.hooks.PreToolUse[0].matcher).toBe(".*");
     expect(result.hooks.PreToolUse[0].hooks[0].command).toContain(CLAUDIA_MARKER);
   });
 
