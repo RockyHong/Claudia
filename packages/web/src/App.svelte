@@ -122,7 +122,6 @@
     --gray: #6b7280;
     --blue: #3b82f6;
     --orange: #f59e0b;
-    --purple: #8b5cf6;
   }
 
   @media (prefers-color-scheme: light) {
@@ -135,7 +134,6 @@
       --gray: #9ca3af;
       --blue: #2563eb;
       --orange: #d97706;
-      --purple: #7c3aed;
     }
   }
 

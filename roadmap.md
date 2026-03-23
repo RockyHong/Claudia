@@ -141,7 +141,7 @@ The last 20%. Native features that a browser tab can't provide.
 - [x] Linux: xdotool/wmctrl — `windowactivate` by name
 - [x] Fallback: bring terminal app to front (no specific window match)
 - [x] Platform detection and strategy selection
-- [ ] Test on each platform
+- [x] Test on each platform (web-based — platform-agnostic, focus.js is best-effort)
 
 ### Known Limitations
 - **No "generating" state** — Claude Code only fires hooks around tool use. Between tools, the session stays in `busy` state until the `Stop` hook fires (turn complete). This is accurate enough — Claude is still working between tools — but doesn't distinguish "running a tool" from "composing text."
@@ -150,13 +150,48 @@ The last 20%. Native features that a browser tab can't provide.
 - **Settings.json hook format** — Hooks must be under a `"hooks"` wrapper key in `~/.claude/settings.json`. The top-level format documented for user settings did not work in testing (v2.1.81).
 
 ### Future (Not Planned for v1)
-- [ ] Native system tray (Tauri — Tier 2/3)
 - [ ] Sound cues on Pending
 - [ ] Session history / timeline
 - [ ] Quick actions (approve/deny from Claudia)
 - [ ] Multi-machine monitoring
 - [ ] Theme/skin support
 - [ ] Persistent hook daemon to eliminate per-event node startup cost
+
+---
+
+## Phase 6: Hosted Terminal (Future)
+
+Claudia spawns and hosts Claude Code sessions instead of just monitoring them. Users launch, switch, and interact with sessions entirely from the web dashboard.
+
+### Architecture
+
+```
+Browser (xterm.js)  ←WebSocket→  Claudia Server  ←PTY→  Claude Code process
+                                      ↕
+                                 Session registry
+                                 Scrollback buffer
+```
+
+### Why
+- Terminal windows are hard to distinguish — Claudia can label and organize them
+- Focus/switch doesn't work reliably on Windows (OS blocks background focus stealing)
+- One UI for everything: status, notifications, and terminal interaction
+
+### How
+- [ ] `node-pty` spawns Claude Code as headless child process (no terminal window)
+- [ ] WebSocket transport alongside existing SSE for terminal I/O
+- [ ] `xterm.js` renders terminal in browser, click card to switch
+- [ ] Server holds PTY sessions + scrollback buffer — survives browser close/refresh
+- [ ] "New session" button spawns a new Claude Code instance with cwd picker
+- [ ] Graceful shutdown: SIGTERM → wait for idle sessions → kill
+
+### Risks
+- Server crash kills all hosted sessions (child processes die with parent)
+- Adds `node-pty` + `xterm.js` dependencies (breaks single-dependency principle)
+- Scope is large: PTY lifecycle, WebSocket, scrollback, reconnection
+
+### Coexistence
+Hosted sessions and hook-monitored sessions can coexist. Users who prefer their own terminal keep using hooks. Users who want the integrated experience spawn from Claudia.
 
 ---
 
@@ -169,3 +204,4 @@ The last 20%. Native features that a browser tab can't provide.
 | 3. CLI & Hooks | **Done** | `npx claudia` works end-to-end |
 | 4. Personality | **Done** | Claudia has character |
 | 5. OS Integration | **Done** | Terminal focus works |
+| 6. Hosted Terminal | **Future** | Spawn and interact from web |
