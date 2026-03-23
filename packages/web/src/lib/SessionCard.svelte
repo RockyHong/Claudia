@@ -113,11 +113,11 @@
   }
 
   .dot-idle {
-    background: var(--gray);
+    background: var(--blue);
   }
   .dot-busy {
-    background: var(--blue);
-    animation: pulse 2s infinite;
+    background: var(--gray);
+    animation: pulse 3s infinite;
   }
   .dot-pending {
     background: var(--orange);

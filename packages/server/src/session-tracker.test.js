@@ -210,18 +210,18 @@ describe("session-tracker", () => {
       expect(tracker.getAggregateState()).toBe(State.PENDING);
     });
 
-    it("returns idle over busy (user can act on idle session)", () => {
+    it("returns busy over idle", () => {
       tracker.handleEvent({ session: "s1", state: "busy", cwd: "/a" });
       tracker.handleEvent({ session: "s2", state: "idle", cwd: "/b" });
 
-      expect(tracker.getAggregateState()).toBe(State.IDLE);
+      expect(tracker.getAggregateState()).toBe(State.BUSY);
     });
 
-    it("returns busy when all sessions are busy", () => {
-      tracker.handleEvent({ session: "s1", state: "busy", cwd: "/a" });
-      tracker.handleEvent({ session: "s2", state: "busy", cwd: "/b" });
+    it("returns idle when all sessions are idle", () => {
+      tracker.handleEvent({ session: "s1", state: "idle", cwd: "/a" });
+      tracker.handleEvent({ session: "s2", state: "idle", cwd: "/b" });
 
-      expect(tracker.getAggregateState()).toBe(State.BUSY);
+      expect(tracker.getAggregateState()).toBe(State.IDLE);
     });
   });
 

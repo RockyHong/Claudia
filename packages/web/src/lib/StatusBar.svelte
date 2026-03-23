@@ -28,8 +28,8 @@
     flex-shrink: 0;
   }
 
-  .dot-idle { background: var(--gray); }
-  .dot-busy { background: var(--blue); }
+  .dot-idle { background: var(--blue); }
+  .dot-busy { background: var(--gray); }
   .dot-pending { background: var(--orange); }
 
   .message {

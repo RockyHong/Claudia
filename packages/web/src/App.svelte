@@ -64,8 +64,8 @@
 
     const style = getComputedStyle(document.documentElement);
     const colorMap = {
-      idle: style.getPropertyValue("--gray").trim(),
-      busy: style.getPropertyValue("--blue").trim(),
+      idle: style.getPropertyValue("--blue").trim(),
+      busy: style.getPropertyValue("--gray").trim(),
       pending: style.getPropertyValue("--orange").trim(),
     };
 
