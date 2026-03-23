@@ -9,7 +9,6 @@
   let srcA = $state("");
   let srcB = $state("");
   let showA = $state(true);
-  let locked = $state(false);
 
   $effect(() => {
     checkAvailability();
@@ -51,59 +50,59 @@
     });
   }
 
-  let targetSrc = $derived.by(() => {
-    if (!available || !available[aggregateState]) return null;
-    const formats = available[aggregateState];
-    if (formats.webm) return `/avatar/${aggregateState}.webm`;
-    if (formats.mp4) return `/avatar/${aggregateState}.mp4`;
+  function getSrc(state) {
+    if (!available || !available[state]) return null;
+    const formats = available[state];
+    if (formats.webm) return `/avatar/${state}.webm`;
+    if (formats.mp4) return `/avatar/${state}.mp4`;
     return null;
-  });
+  }
+
+  let aspectRatio = $state("");
+
+  function captureAspect(el) {
+    if (!el || aspectRatio) return;
+    const w = el.videoWidth;
+    const h = el.videoHeight;
+    if (w && h) aspectRatio = `${w} / ${h}`;
+  }
 
   $effect(() => {
-    if (!targetSrc || locked) return;
+    const src = getSrc(aggregateState);
+    if (!src) return;
+
     const currentSrc = showA ? srcA : srcB;
-    if (targetSrc === currentSrc) return;
+    if (src === currentSrc) return;
 
-    if (!currentSrc && !srcA && !srcB) {
-      srcA = targetSrc;
-      showA = true;
-      return;
-    }
-
-    // Load into the hidden slot
+    // Load new source into the hidden slot and flip
     if (showA) {
-      srcB = targetSrc;
+      srcB = src;
+      requestAnimationFrame(() => {
+        videoB?.play().catch(() => {});
+        captureAspect(videoB);
+        showA = false;
+      });
     } else {
-      srcA = targetSrc;
+      srcA = src;
+      requestAnimationFrame(() => {
+        videoA?.play().catch(() => {});
+        captureAspect(videoA);
+        showA = true;
+      });
     }
   });
-
-  function handleCanPlay(slot) {
-    const incomingSlot = showA ? "B" : "A";
-    if (slot !== incomingSlot || locked) return;
-
-    const el = slot === "A" ? videoA : videoB;
-    el.play().catch(() => {});
-
-    locked = true;
-    showA = !showA;
-
-    setTimeout(() => {
-      locked = false;
-    }, 350);
-  }
 </script>
 
-{#if srcA || srcB}
-  <div class="avatar-panel">
+{#if available}
+  <div class="avatar-panel" style:aspect-ratio={aspectRatio}>
     <!-- svelte-ignore a11y_media_has_caption -->
     <video
       bind:this={videoA}
       src={srcA || undefined}
       class="slot"
       class:visible={showA}
-      oncanplay={() => handleCanPlay("A")}
-      autoplay={showA}
+      onloadedmetadata={() => captureAspect(videoA)}
+      autoplay
       loop
       muted
       playsinline
@@ -114,8 +113,8 @@
       src={srcB || undefined}
       class="slot"
       class:visible={!showA}
-      oncanplay={() => handleCanPlay("B")}
-      autoplay={!showA}
+      onloadedmetadata={() => captureAspect(videoB)}
+      autoplay
       loop
       muted
       playsinline
@@ -132,22 +131,15 @@
   }
 
   .slot {
-    display: block;
-    width: 100%;
-    height: auto;
-    border-radius: 12px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  .slot:first-child {
-    position: relative;
-  }
-
-  .slot:last-child {
     position: absolute;
     top: 0;
     left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
   }
 
   .slot.visible {
