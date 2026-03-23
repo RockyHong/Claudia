@@ -1,40 +1,3 @@
-const pendingMessages = [
-  (name) => `The ${name} team needs your sign-off.`,
-  (name) => `${name} is waiting on you.`,
-  (name) => `Hey — ${name} needs a moment of your time.`,
-];
-
-const multiPendingMessages = [
-  (names) => `You're popular — ${names} both need you.`,
-  (names) => `Heads up: ${names} are waiting on you.`,
-];
-
-const manyPendingMessages = [
-  (count) => `${count} sessions need your attention. Better check in.`,
-  (count) => `You've got ${count} waiting. Might want to make the rounds.`,
-];
-
-const allIdleMessages = [
-  "All quiet. Go grab a coffee.",
-  "Nothing happening. Take a breather.",
-  "Everyone's idle. Enjoy the calm.",
-];
-
-const busyMessages = [
-  (count) => `${count > 1 ? "Agents are" : "Agent is"} on it.`,
-  (names) => `${names} — heads down, working.`,
-];
-
-function pick(arr, seed) {
-  return arr[seed % arr.length];
-}
-
-function formatNames(names) {
-  if (names.length === 1) return names[0];
-  if (names.length === 2) return `${names[0]} and ${names[1]}`;
-  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
-}
-
 function stateKey(sessions) {
   return sessions
     .map((s) => `${s.id}:${s.state}`)
@@ -53,24 +16,20 @@ export function getStatusMessage(sessions) {
   const key = stateKey(sessions);
   if (key === lastKey) return lastMessage;
 
-  const seed = Math.floor(Math.random() * 1000);
   const pending = sessions.filter((s) => s.state === "pending");
   const busy = sessions.filter((s) => s.state === "busy");
+  const idle = sessions.filter((s) => s.state === "idle");
 
   let message;
 
-  if (pending.length > 2) {
-    message = pick(manyPendingMessages, seed)(pending.length);
-  } else if (pending.length === 2) {
-    const names = formatNames(pending.map((s) => s.displayName));
-    message = pick(multiPendingMessages, seed)(names);
-  } else if (pending.length === 1) {
-    message = pick(pendingMessages, seed)(pending[0].displayName);
+  if (pending.length > 0) {
+    message = `${pending.length} awaiting your response.`;
+  } else if (busy.length > 0 && idle.length > 0) {
+    message = "Some sessions standing by. Still working on the rest.";
   } else if (busy.length > 0) {
-    const names = formatNames(busy.map((s) => s.displayName));
-    message = pick(busyMessages, seed)(busy.length > 1 ? busy.length : names);
+    message = "All busy. Grab a coffee.";
   } else {
-    message = pick(allIdleMessages, seed);
+    message = "All sessions free — ready for tasks.";
   }
 
   lastKey = key;
