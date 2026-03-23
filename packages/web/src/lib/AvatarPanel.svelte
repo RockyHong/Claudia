@@ -4,6 +4,12 @@
   const STATES = ["idle", "working", "pending", "thinking"];
 
   let available = $state(null);
+  let videoA = $state(null);
+  let videoB = $state(null);
+  let srcA = $state("");
+  let srcB = $state("");
+  let showA = $state(true);
+  let locked = $state(false);
 
   $effect(() => {
     checkAvailability();
@@ -30,42 +36,106 @@
     }
   }
 
-  let videoSrc = $derived.by(() => {
+  let targetSrc = $derived.by(() => {
     if (!available || !available[aggregateState]) return null;
     const formats = available[aggregateState];
     if (formats.webm) return `/avatar/${aggregateState}.webm`;
     if (formats.mp4) return `/avatar/${aggregateState}.mp4`;
     return null;
   });
+
+  $effect(() => {
+    if (!targetSrc || locked) return;
+    const currentSrc = showA ? srcA : srcB;
+    if (targetSrc === currentSrc) return;
+
+    if (!currentSrc && !srcA && !srcB) {
+      srcA = targetSrc;
+      showA = true;
+      return;
+    }
+
+    // Load into the hidden slot
+    if (showA) {
+      srcB = targetSrc;
+    } else {
+      srcA = targetSrc;
+    }
+  });
+
+  function handleCanPlay(slot) {
+    const incomingSlot = showA ? "B" : "A";
+    if (slot !== incomingSlot || locked) return;
+
+    const el = slot === "A" ? videoA : videoB;
+    el.play().catch(() => {});
+
+    locked = true;
+    showA = !showA;
+
+    setTimeout(() => {
+      locked = false;
+    }, 350);
+  }
 </script>
 
-{#if videoSrc}
+{#if srcA || srcB}
   <div class="avatar-panel">
     <!-- svelte-ignore a11y_media_has_caption -->
-    {#key videoSrc}
-      <video
-        src={videoSrc}
-        autoplay
-        loop
-        muted
-        playsinline
-      ></video>
-    {/key}
+    <video
+      bind:this={videoA}
+      src={srcA || undefined}
+      class="slot"
+      class:visible={showA}
+      oncanplay={() => handleCanPlay("A")}
+      autoplay={showA}
+      loop
+      muted
+      playsinline
+    ></video>
+    <!-- svelte-ignore a11y_media_has_caption -->
+    <video
+      bind:this={videoB}
+      src={srcB || undefined}
+      class="slot"
+      class:visible={!showA}
+      oncanplay={() => handleCanPlay("B")}
+      autoplay={!showA}
+      loop
+      muted
+      playsinline
+    ></video>
   </div>
 {/if}
 
 <style>
   .avatar-panel {
-    padding: 16px 16px 0;
-    overflow: hidden;
+    position: relative;
+    margin: 16px 12px 0;
     border-radius: 12px;
-    margin: 0 12px;
+    overflow: hidden;
   }
 
-  video {
+  .slot {
     display: block;
     width: 100%;
     height: auto;
     border-radius: 12px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .slot:first-child {
+    position: relative;
+  }
+
+  .slot:last-child {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .slot.visible {
+    opacity: 1;
   }
 </style>
