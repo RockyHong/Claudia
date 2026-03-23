@@ -29,9 +29,8 @@
   }
 
   .dot-idle { background: var(--gray); }
-  .dot-working { background: var(--blue); }
+  .dot-busy { background: var(--blue); }
   .dot-pending { background: var(--orange); }
-  .dot-thinking { background: var(--purple); }
 
   .message {
     flex: 1;

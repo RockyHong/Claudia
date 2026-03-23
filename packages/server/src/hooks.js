@@ -31,7 +31,7 @@ const CLAUDIA_HOOKS = {
       hooks: [
         {
           type: "command",
-          command: hookCommand("state:'working',tool:i.tool_name"),
+          command: hookCommand("state:'busy',tool:i.tool_name"),
         },
       ],
     },
@@ -42,7 +42,7 @@ const CLAUDIA_HOOKS = {
       hooks: [
         {
           type: "command",
-          command: hookCommand("state:'idle'"),
+          command: hookCommand("state:'busy',tool:i.tool_name"),
         },
       ],
     },

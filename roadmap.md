@@ -144,7 +144,7 @@ The last 20%. Native features that a browser tab can't provide.
 - [ ] Test on each platform
 
 ### Known Limitations
-- **No "generating" state** — Claude Code only fires hooks around tool use. When Claude is thinking or writing text between tools, no events fire, so the session shows as idle. A lightweight background poller or a future `Generating` hook event from Claude Code would solve this.
+- **No "generating" state** — Claude Code only fires hooks around tool use. Between tools, the session stays in `busy` state until the `Stop` hook fires (turn complete). This is accurate enough — Claude is still working between tools — but doesn't distinguish "running a tool" from "composing text."
 - **Node process cold-start latency** — Each hook spawns a fresh `node` process to POST to Claudia. On Windows this adds 100-500ms per event. A persistent daemon/sidecar would eliminate this but adds complexity.
 - **Hook data via stdin** — Claude Code passes session context (session_id, tool_name, cwd) to hooks via stdin as JSON, not environment variables. This was undocumented and discovered empirically.
 - **Settings.json hook format** — Hooks must be under a `"hooks"` wrapper key in `~/.claude/settings.json`. The top-level format documented for user settings did not work in testing (v2.1.81).

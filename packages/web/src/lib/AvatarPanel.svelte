@@ -1,7 +1,7 @@
 <script>
   let { aggregateState = "idle" } = $props();
 
-  const STATES = ["idle", "working", "pending", "thinking"];
+  const STATES = ["idle", "busy", "pending"];
 
   let available = $state(null);
   let videoA = $state(null);
@@ -17,13 +17,17 @@
 
   async function checkAvailability() {
     const results = {};
+    const preloads = [];
     for (const state of STATES) {
       const webm = await probe(`/avatar/${state}.webm`);
       const mp4 = await probe(`/avatar/${state}.mp4`);
       if (webm || mp4) {
         results[state] = { webm, mp4 };
+        const src = webm ? `/avatar/${state}.webm` : `/avatar/${state}.mp4`;
+        preloads.push(preload(src));
       }
     }
+    await Promise.all(preloads);
     available = Object.keys(results).length > 0 ? results : null;
   }
 
@@ -34,6 +38,17 @@
     } catch {
       return false;
     }
+  }
+
+  function preload(src) {
+    return new Promise((resolve) => {
+      const video = document.createElement("video");
+      video.preload = "auto";
+      video.muted = true;
+      video.src = src;
+      video.oncanplaythrough = () => resolve();
+      video.onerror = () => resolve();
+    });
   }
 
   let targetSrc = $derived.by(() => {

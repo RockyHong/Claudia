@@ -39,7 +39,7 @@ You, working on something else
   │  ┌──────────┐  ┌───────────────────┐   │
   │  │  Avatar   │  │  Sessions        │   │
   │  │  (video/  │  │                  │   │
-  │  │   anim)   │  │  ● api   working │   │
+  │  │   anim)   │  │  ● api   busy    │   │
   │  │           │  │  ◉ web   NEEDS U │   │
   │  │   😌💬    │  │  ○ data  idle    │   │
   │  └──────────┘  │         [focus]   │   │
@@ -107,10 +107,10 @@ Hooks use `node -e` instead of `curl` to avoid shell injection — `JSON.stringi
 ```json
 {
   "hooks": {
-    "PreToolUse": [{ "command": "node -e \"...JSON.stringify({session, state:'working', tool, cwd, ts})...\"" }],
-    "PostToolUse": [{ "command": "node -e \"...JSON.stringify({session, state:'idle', cwd, ts})...\"" }],
+    "PreToolUse": [{ "command": "node -e \"...JSON.stringify({session, state:'busy', tool, cwd, ts})...\"" }],
+    "PostToolUse": [{ "command": "node -e \"...JSON.stringify({session, state:'busy', tool, cwd, ts})...\"" }],
     "Notification": [{ "command": "node -e \"...JSON.stringify({session, state:'pending', message, cwd, ts})...\"" }],
-    "Stop": [{ "command": "node -e \"...JSON.stringify({session, state:'stopped', cwd, ts})...\"" }]
+    "Stop": [{ "command": "node -e \"...JSON.stringify({session, state:'idle', cwd, ts})...\"" }]
   }
 }
 ```
@@ -136,22 +136,23 @@ In-memory state store using plain JavaScript objects:
 // Session shape
 {
   id,              // CLAUDE_SESSION_ID
-  state,           // 'idle' | 'working' | 'pending' | 'thinking'
+  state,           // 'idle' | 'busy' | 'pending'
   cwd,             // working directory (used as display name)
-  lastTool,        // most recent tool name
+  lastTool,        // most recent tool name (cleared on idle)
   lastEvent,       // timestamp of last event
   pendingMessage,  // message from Notification hook
 }
 ```
 
-State inference logic:
+State logic — three states from the user's perspective:
 
-| Hook Event | Resulting State |
-|---|---|
-| `PreToolUse` fires | → **Working** |
-| `PostToolUse` fires | → **Idle** (with debounce — wait 2s before displaying, in case next tool fires immediately) |
-| `Notification` fires | → **Pending** (needs user attention) |
-| No event for >5s after `Working` | → **Thinking** |
+| Hook Event | Resulting State | Rationale |
+|---|---|---|
+| `PreToolUse` fires | → **Busy** | Tool starting |
+| `PostToolUse` fires | → **Busy** | Claude is still working between tools |
+| `Notification` fires | → **Pending** | Needs user attention |
+| `Stop` fires | → **Idle** | Claude finished its turn, waiting for user input |
+| `SessionStart` fires | → **Idle** | Session just began |
 | No event for >10min | → session pruned from list |
 
 **4. Svelte Dashboard (`packages/web/src/`)**
@@ -180,18 +181,16 @@ Fallback: if window matching fails, bring the terminal application to front and 
 
 ## States & Avatar Mapping
 
-| State | Trigger | Avatar Behavior | Tray Icon |
+| State | Trigger | Avatar Behavior | Icon |
 |---|---|---|---|
-| **Idle** | No activity / waiting for user input | Relaxed, looking around, maybe reading | ○ gray |
-| **Working** | Tool calls firing, code streaming | Typing, focused, busy | ● blue |
-| **Pending** | Permission prompt / plan approval needed | Looking at you, waving, tapping desk | ◉ orange (+ OS notification) |
-| **Thinking** | Extended pause before response | Pondering, hand on chin | ◐ purple |
+| **Pending** | Permission prompt / plan approval needed | Looking at you, waving, tapping desk | ◉ orange (+ browser notification) |
+| **Busy** | Any tool use, or between tools during a turn | Typing, focused, busy | ● blue |
+| **Idle** | `Stop` hook — Claude finished, waiting for user input | Relaxed, looking around, maybe reading | ○ gray |
 
 Aggregate avatar logic (when multiple sessions are active):
 
 - If **any** session is `Pending` → avatar shows pending (highest priority — user needs to act)
-- Else if **any** session is `Working` → avatar shows working
-- Else if **any** session is `Thinking` → avatar shows thinking
+- Else if **any** session is `Busy` → avatar shows busy
 - Else → avatar shows idle
 
 ---
@@ -340,7 +339,7 @@ Hooks are installed in `~/.claude/settings.json` under a `"hooks"` wrapper key.
 ```json
 {
   "session": "abc123",
-  "state": "working" | "idle" | "pending" | "stopped",
+  "state": "busy" | "idle" | "pending" | "stopped",
   "tool": "Edit",
   "cwd": "/home/user/projects/api-server",
   "message": "Permission needed for file edit",
@@ -353,10 +352,10 @@ Hooks are installed in `~/.claude/settings.json` under a `"hooks"` wrapper key.
 | Claude Code Event | Claudia State | Purpose |
 |-------------------|---------------|---------|
 | `SessionStart`    | `idle`        | Register session immediately on start |
-| `PreToolUse`      | `working`     | Session is executing a tool |
-| `PostToolUse`     | `idle`        | Tool finished |
+| `PreToolUse`      | `busy`        | Tool starting |
+| `PostToolUse`     | `busy`        | Tool finished, Claude still working between tools |
 | `Notification`    | `pending`     | Permission prompt (matcher: `permission_prompt`) |
-| `Stop`            | `idle`        | Claude finished responding (session stays visible) |
+| `Stop`            | `idle`        | Claude finished its turn, waiting for user input |
 
 ### Claudia Internal State (per session)
 
@@ -365,7 +364,7 @@ Hooks are installed in `~/.claude/settings.json` under a `"hooks"` wrapper key.
   "sessions": {
     "abc123": {
       "displayName": "api-server",
-      "state": "working",
+      "state": "busy",
       "lastTool": "Edit",
       "lastEvent": "2026-03-22T14:30:00Z",
       "timeInState": "12s",
@@ -403,11 +402,9 @@ The browser connects via native `EventSource` API with automatic reconnection.
 
 ## Key Design Decisions
 
-### Debouncing
+### No Debouncing Needed
 
-Claude Code fires tools rapidly — `PreToolUse` and `PostToolUse` can alternate every 200ms during a multi-step task. Without debouncing, the UI would flicker between "working" and "idle" constantly.
-
-Solution: when a session transitions from `Working` to `Idle`, wait 2 seconds before displaying the change. If another `PreToolUse` fires within that window, stay on `Working`. This creates a smooth, stable display.
+Both `PreToolUse` and `PostToolUse` map to `busy`. A session stays busy from the first tool call until Claude's turn completes (`Stop` hook). This eliminates the flickering problem entirely — no debounce timers or thinking detection needed.
 
 ### Session Naming
 

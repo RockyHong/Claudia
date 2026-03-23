@@ -118,7 +118,7 @@ Hook POST to `localhost:7890/event`:
 ```json
 {
   "session": "abc123",
-  "state": "working | idle | pending",
+  "state": "busy | idle | pending",
   "tool": "Edit",
   "cwd": "/path/to/project",
   "message": "optional, for pending state",

@@ -3,9 +3,8 @@
 
   const stateConfig = {
     idle: { dot: "dot-idle", label: "Idle" },
-    working: { dot: "dot-working", label: "Working" },
+    busy: { dot: "dot-busy", label: "Busy" },
     pending: { dot: "dot-pending", label: "Needs you" },
-    thinking: { dot: "dot-thinking", label: "Thinking" },
   };
 
   let elapsed = $state("");
@@ -116,17 +115,13 @@
   .dot-idle {
     background: var(--gray);
   }
-  .dot-working {
+  .dot-busy {
     background: var(--blue);
     animation: pulse 2s infinite;
   }
   .dot-pending {
     background: var(--orange);
     animation: pulse 1s infinite;
-  }
-  .dot-thinking {
-    background: var(--purple);
-    animation: pulse 3s infinite;
   }
 
   @keyframes pulse {

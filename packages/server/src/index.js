@@ -47,7 +47,7 @@ app.use((req, res, next) => {
 });
 
 const MAX_SESSIONS = 100;
-const VALID_STATES = new Set(["working", "idle", "pending", "stopped"]);
+const VALID_STATES = new Set(["busy", "idle", "pending", "stopped"]);
 
 // Receive hook events from Claude Code
 app.post("/event", (req, res) => {

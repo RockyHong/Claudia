@@ -20,14 +20,9 @@ const allIdleMessages = [
   "Everyone's idle. Enjoy the calm.",
 ];
 
-const workingMessages = [
+const busyMessages = [
   (count) => `${count > 1 ? "Agents are" : "Agent is"} on it.`,
   (names) => `${names} — heads down, working.`,
-];
-
-const thinkingMessages = [
-  (name) => `${name} is thinking it over...`,
-  (name) => `${name} is pondering the deep questions.`,
 ];
 
 function pick(arr, seed) {
@@ -60,8 +55,7 @@ export function getStatusMessage(sessions) {
 
   const seed = Math.floor(Math.random() * 1000);
   const pending = sessions.filter((s) => s.state === "pending");
-  const working = sessions.filter((s) => s.state === "working");
-  const thinking = sessions.filter((s) => s.state === "thinking");
+  const busy = sessions.filter((s) => s.state === "busy");
 
   let message;
 
@@ -72,11 +66,9 @@ export function getStatusMessage(sessions) {
     message = pick(multiPendingMessages, seed)(names);
   } else if (pending.length === 1) {
     message = pick(pendingMessages, seed)(pending[0].displayName);
-  } else if (working.length > 0) {
-    const names = formatNames(working.map((s) => s.displayName));
-    message = pick(workingMessages, seed)(working.length > 1 ? working.length : names);
-  } else if (thinking.length > 0) {
-    message = pick(thinkingMessages, seed)(thinking[0].displayName);
+  } else if (busy.length > 0) {
+    const names = formatNames(busy.map((s) => s.displayName));
+    message = pick(busyMessages, seed)(busy.length > 1 ? busy.length : names);
   } else {
     message = pick(allIdleMessages, seed);
   }
