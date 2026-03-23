@@ -204,9 +204,10 @@
   }
 
   .header-btn.active {
-    background: var(--blue);
-    border-color: var(--blue);
-    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--text);
   }
 
   /* Background / immersive mode */
@@ -218,9 +219,8 @@
   .app.bg-mode header {
     position: relative;
     z-index: 2;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(12px);
-    border-bottom-color: rgba(255, 255, 255, 0.1);
+    background: transparent;
+    border-bottom-color: transparent;
   }
 
   .app.bg-mode main {
@@ -230,6 +230,7 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
+    max-width: 600px;
   }
 
   .app.bg-mode :global(.status-bar) {
