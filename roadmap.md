@@ -159,7 +159,42 @@ The last 20%. Native features that a browser tab can't provide.
 
 ---
 
-## Phase 6: Hosted Terminal (Future)
+## Phase 6: Settings & Avatar Sets
+
+User-facing settings modal and persistent avatar management. Moves user data out of the package into `~/.claudia/`.
+
+### File Structure
+
+```
+~/.claudia/
+  avatars/
+    active → default/       ← symlink or copy, served by Express
+    default/                ← first uploaded set
+      idle.webm
+      busy.webm
+      pending.webm
+    pixel-art/              ← user-created set
+      idle.webm
+      busy.webm
+      pending.webm
+```
+
+### Settings Modal
+- [ ] Settings button in header opens modal
+- [ ] Avatar section: upload 3 videos (idle/busy/pending), saved as a named set
+- [ ] Set browser: see all sets as thumbnails (first frame of idle video)
+- [ ] One-click switch active set — instant, no restart
+- [ ] Import/export a set as zip for sharing
+- [ ] Server serves from `~/.claudia/avatars/active/` instead of `public/avatar/`
+
+### Why
+- Current file-drop into `public/avatar/` is developer-friendly, not user-friendly
+- Files inside the package get overwritten on npm updates
+- Avatar sets enable personalization and community sharing
+
+---
+
+## Phase 7: Hosted Terminal (Future)
 
 Claudia spawns and hosts Claude Code sessions instead of just monitoring them. Users launch, switch, and interact with sessions entirely from the web dashboard.
 
@@ -204,4 +239,5 @@ Hosted sessions and hook-monitored sessions can coexist. Users who prefer their 
 | 3. CLI & Hooks | **Done** | `npx claudia` works end-to-end |
 | 4. Personality | **Done** | Claudia has character |
 | 5. OS Integration | **Done** | Terminal focus works |
-| 6. Hosted Terminal | **Future** | Spawn and interact from web |
+| 6. Settings & Avatar Sets | **Future** | Upload, switch, persist avatar sets |
+| 7. Hosted Terminal | **Future** | Spawn and interact from web |
