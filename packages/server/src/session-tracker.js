@@ -153,9 +153,9 @@ export function createSessionTracker({ onStateChange } = {}) {
   function getAggregateState() {
     const states = Array.from(sessions.values()).map((s) => s.state);
     if (states.includes(State.PENDING)) return State.PENDING;
+    if (states.includes(State.IDLE)) return State.IDLE;
     if (states.includes(State.WORKING)) return State.WORKING;
     if (states.includes(State.THINKING)) return State.THINKING;
-    if (states.length > 0) return State.IDLE;
     return State.IDLE;
   }
 

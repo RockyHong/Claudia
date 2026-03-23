@@ -256,25 +256,23 @@ describe("session-tracker", () => {
       expect(tracker.getAggregateState()).toBe(State.PENDING);
     });
 
-    it("returns working over thinking and idle", () => {
+    it("returns idle over working and thinking", () => {
       tracker.handleEvent({ session: "s1", state: "working", cwd: "/a" });
-      tracker.handleEvent({ session: "s2", state: "working", cwd: "/b" });
-      vi.advanceTimersByTime(THINKING_THRESHOLD_MS);
-      // s1 and s2 both thinking now, but send s1 back to working
-      tracker.handleEvent({ session: "s1", state: "working" });
-
-      expect(tracker.getAggregateState()).toBe(State.WORKING);
-    });
-
-    it("returns thinking over idle", () => {
-      tracker.handleEvent({ session: "s1", state: "working", cwd: "/a" });
-      vi.advanceTimersByTime(THINKING_THRESHOLD_MS);
-
       tracker.handleEvent({ session: "s2", state: "working", cwd: "/b" });
       tracker.handleEvent({ session: "s2", state: "idle" });
       vi.advanceTimersByTime(IDLE_DEBOUNCE_MS);
 
-      expect(tracker.getAggregateState()).toBe(State.THINKING);
+      expect(tracker.getAggregateState()).toBe(State.IDLE);
+    });
+
+    it("returns working over thinking", () => {
+      tracker.handleEvent({ session: "s1", state: "working", cwd: "/a" });
+      tracker.handleEvent({ session: "s2", state: "working", cwd: "/b" });
+      vi.advanceTimersByTime(THINKING_THRESHOLD_MS);
+      // both thinking now, send s1 back to working
+      tracker.handleEvent({ session: "s1", state: "working" });
+
+      expect(tracker.getAggregateState()).toBe(State.WORKING);
     });
   });
 
