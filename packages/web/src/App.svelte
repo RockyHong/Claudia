@@ -2,6 +2,7 @@
   import { createSSEClient } from "./lib/sse.js";
   import SessionList from "./lib/SessionList.svelte";
   import StatusBar from "./lib/StatusBar.svelte";
+  import AvatarPanel from "./lib/AvatarPanel.svelte";
 
   let sessions = $state([]);
   let aggregateState = $state("idle");
@@ -96,6 +97,8 @@
       </button>
     {/if}
   </header>
+
+  <AvatarPanel {aggregateState} />
 
   <main>
     <SessionList {sessions} />

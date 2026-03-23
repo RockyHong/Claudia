@@ -115,9 +115,9 @@ The character. Claudia isn't a dashboard, she's a receptionist.
 - [x] Include personality messages in SSE state updates
 
 ### Avatar Panel
-- [ ] Add `<video>` element to dashboard UI
-- [ ] Map aggregate state to video source (idle/working/pending/thinking)
-- [ ] Smooth video transitions on state change
+- [x] Add `<video>` element to dashboard UI
+- [x] Map aggregate state to video source (idle/working/pending/thinking)
+- [x] Smooth video transitions on state change
 - [ ] Create or source placeholder avatar videos
 
 ### UI Polish
