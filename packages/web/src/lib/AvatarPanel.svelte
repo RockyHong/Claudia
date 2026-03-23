@@ -1,5 +1,5 @@
 <script>
-  let { aggregateState = "idle", background = false } = $props();
+  let { aggregateState = "idle", background = false, version = 0 } = $props();
 
   const STATES = ["idle", "busy", "pending"];
 
@@ -9,24 +9,39 @@
   let srcA = $state("");
   let srcB = $state("");
   let showA = $state(true);
+  let cacheBust = $derived(version ? `?v=${version}` : "");
 
   $effect(() => {
+    version;
     checkAvailability();
   });
 
   async function checkAvailability() {
+    const bust = cacheBust;
+    const probes = STATES.flatMap((state) => [
+      probe(`/avatar/${state}.webm${bust}`).then((ok) => ({ state, fmt: "webm", ok })),
+      probe(`/avatar/${state}.mp4${bust}`).then((ok) => ({ state, fmt: "mp4", ok })),
+    ]);
     const results = {};
     const preloads = [];
-    for (const state of STATES) {
-      const webm = await probe(`/avatar/${state}.webm`);
-      const mp4 = await probe(`/avatar/${state}.mp4`);
-      if (webm || mp4) {
-        results[state] = { webm, mp4 };
-        const src = webm ? `/avatar/${state}.webm` : `/avatar/${state}.mp4`;
-        preloads.push(preload(src));
-      }
+
+    for (const { state, fmt, ok } of await Promise.all(probes)) {
+      if (!ok) continue;
+      if (!results[state]) results[state] = { webm: false, mp4: false };
+      results[state][fmt] = true;
     }
+
+    for (const state of STATES) {
+      if (!results[state]) continue;
+      const src = results[state].webm ? `/avatar/${state}.webm${bust}` : `/avatar/${state}.mp4${bust}`;
+      preloads.push(preload(src));
+    }
+
     await Promise.all(preloads);
+    srcA = "";
+    srcB = "";
+    showA = true;
+    aspectRatio = "";
     available = Object.keys(results).length > 0 ? results : null;
   }
 
@@ -53,8 +68,8 @@
   function getSrc(state) {
     if (!available || !available[state]) return null;
     const formats = available[state];
-    if (formats.webm) return `/avatar/${state}.webm`;
-    if (formats.mp4) return `/avatar/${state}.mp4`;
+    if (formats.webm) return `/avatar/${state}.webm${cacheBust}`;
+    if (formats.mp4) return `/avatar/${state}.mp4${cacheBust}`;
     return null;
   }
 

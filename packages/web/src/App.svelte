@@ -3,12 +3,15 @@
   import SessionList from "./lib/SessionList.svelte";
   import StatusBar from "./lib/StatusBar.svelte";
   import AvatarPanel from "./lib/AvatarPanel.svelte";
+  import SettingsModal from "./lib/SettingsModal.svelte";
 
   let sessions = $state([]);
   let aggregateState = $state("idle");
   let statusMessage = $state("");
   let previousPendingIds = $state(new Set());
   let bgMode = $state(false);
+  let showSettings = $state(false);
+  let avatarVersion = $state(0);
 
   const sseClient = createSSEClient("/events", (update) => {
     sessions = update.sessions;
@@ -89,7 +92,7 @@
 </script>
 
 <div class="app" class:bg-mode={bgMode}>
-  <AvatarPanel {aggregateState} background={bgMode} />
+  <AvatarPanel {aggregateState} background={bgMode} version={avatarVersion} />
 
   <header>
     <h1>Claudia</h1>
@@ -102,6 +105,9 @@
       <button class="header-btn" class:active={bgMode} onclick={() => bgMode = !bgMode}>
         Immersive
       </button>
+      <button class="header-btn" onclick={() => showSettings = true}>
+        Settings
+      </button>
     </div>
   </header>
 
@@ -110,6 +116,13 @@
   </main>
 
   <StatusBar {aggregateState} {statusMessage} sessionCount={sessions.length} />
+
+  {#if showSettings}
+    <SettingsModal
+      onclose={() => showSettings = false}
+      onavatarchange={() => avatarVersion++}
+    />
+  {/if}
 </div>
 
 <style>

@@ -1,0 +1,184 @@
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import fs from "node:fs/promises";
+import path from "node:path";
+import os from "node:os";
+import { createAvatarStorage, isValidSetName } from "./avatar-storage.js";
+
+let tmpDir;
+let storage;
+
+beforeEach(async () => {
+	tmpDir = path.join(os.tmpdir(), `claudia-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+	await fs.mkdir(tmpDir, { recursive: true });
+	storage = createAvatarStorage(tmpDir);
+});
+
+afterEach(async () => {
+	if (tmpDir) {
+		await fs.rm(tmpDir, { recursive: true, force: true });
+	}
+});
+
+function fakeFile(name, size = 100) {
+	return { name, data: Buffer.alloc(size, 0x42) };
+}
+
+describe("isValidSetName", () => {
+	it("accepts valid names", () => {
+		expect(isValidSetName("default")).toBe(true);
+		expect(isValidSetName("pixel-art")).toBe(true);
+		expect(isValidSetName("my set 01")).toBe(true);
+		expect(isValidSetName("a")).toBe(true);
+		expect(isValidSetName("AB")).toBe(true);
+	});
+
+	it("rejects invalid names", () => {
+		expect(isValidSetName("")).toBe(false);
+		expect(isValidSetName(null)).toBe(false);
+		expect(isValidSetName(undefined)).toBe(false);
+		expect(isValidSetName("../escape")).toBe(false);
+		expect(isValidSetName("-starts-dash")).toBe(false);
+		expect(isValidSetName(" space")).toBe(false);
+		expect(isValidSetName("a".repeat(51))).toBe(false);
+	});
+});
+
+describe("config", () => {
+	it("returns empty object when no config exists", async () => {
+		expect(await storage.getConfig()).toEqual({});
+	});
+
+	it("writes and reads config", async () => {
+		await storage.setConfig({ activeSet: "pixel-art" });
+		const config = await storage.getConfig();
+		expect(config.activeSet).toBe("pixel-art");
+	});
+
+	it("merges patches into existing config", async () => {
+		await storage.setConfig({ activeSet: "default" });
+		await storage.setConfig({ theme: "dark" });
+		const config = await storage.getConfig();
+		expect(config.activeSet).toBe("default");
+		expect(config.theme).toBe("dark");
+	});
+});
+
+describe("getActiveSet", () => {
+	it("defaults to 'default' when no config", async () => {
+		expect(await storage.getActiveSet()).toBe("default");
+	});
+
+	it("returns configured active set", async () => {
+		await storage.setConfig({ activeSet: "pixel-art" });
+		expect(await storage.getActiveSet()).toBe("pixel-art");
+	});
+});
+
+describe("listSets", () => {
+	it("returns empty array when no sets exist", async () => {
+		const sets = await storage.listSets();
+		expect(sets).toEqual([]);
+	});
+
+	it("lists sets with files and active flag", async () => {
+		await storage.createSet("one", [fakeFile("idle.webm"), fakeFile("busy.webm")]);
+		await storage.createSet("two", [fakeFile("idle.mp4")]);
+		await storage.setActiveSet("one");
+
+		const sets = await storage.listSets();
+		expect(sets).toHaveLength(2);
+
+		const one = sets.find((s) => s.name === "one");
+		expect(one.active).toBe(true);
+		expect(one.files).toContain("idle.webm");
+		expect(one.files).toContain("busy.webm");
+
+		const two = sets.find((s) => s.name === "two");
+		expect(two.active).toBe(false);
+		expect(two.files).toContain("idle.mp4");
+	});
+});
+
+describe("createSet", () => {
+	it("creates a set with files on disk", async () => {
+		await storage.createSet("test-set", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
+
+		const setPath = storage.getSetPath("test-set");
+		const files = await fs.readdir(setPath);
+		expect(files).toContain("idle.webm");
+		expect(files).toContain("busy.webm");
+		expect(files).toContain("pending.webm");
+	});
+
+	it("rejects invalid set names", async () => {
+		await expect(storage.createSet("../bad", [fakeFile("idle.webm")])).rejects.toThrow("Invalid set name");
+	});
+
+	it("rejects duplicate set names", async () => {
+		await storage.createSet("dupe", [fakeFile("idle.webm")]);
+		await expect(storage.createSet("dupe", [fakeFile("idle.webm")])).rejects.toThrow("Set already exists");
+	});
+
+	it("rejects invalid filenames", async () => {
+		await expect(storage.createSet("bad-files", [{ name: "malware.exe", data: Buffer.alloc(10) }])).rejects.toThrow("Invalid filename");
+	});
+
+	it("rejects files over size limit", async () => {
+		const bigFile = { name: "idle.webm", data: Buffer.alloc(6 * 1024 * 1024) };
+		await expect(storage.createSet("big", [bigFile])).rejects.toThrow("File too large");
+	});
+});
+
+describe("deleteSet", () => {
+	it("deletes a non-active set", async () => {
+		await storage.createSet("to-delete", [fakeFile("idle.webm")]);
+		await storage.createSet("keeper", [fakeFile("idle.webm")]);
+		await storage.setActiveSet("keeper");
+
+		await storage.deleteSet("to-delete");
+		const sets = await storage.listSets();
+		expect(sets.find((s) => s.name === "to-delete")).toBeUndefined();
+	});
+
+	it("refuses to delete the active set", async () => {
+		await storage.createSet("active-one", [fakeFile("idle.webm")]);
+		await storage.setActiveSet("active-one");
+		await expect(storage.deleteSet("active-one")).rejects.toThrow("Cannot delete the active set");
+	});
+});
+
+describe("setActiveSet", () => {
+	it("switches the active set", async () => {
+		await storage.createSet("a", [fakeFile("idle.webm")]);
+		await storage.createSet("b", [fakeFile("idle.webm")]);
+		await storage.setActiveSet("a");
+		expect(await storage.getActiveSet()).toBe("a");
+		await storage.setActiveSet("b");
+		expect(await storage.getActiveSet()).toBe("b");
+	});
+
+	it("rejects non-existent set", async () => {
+		await expect(storage.setActiveSet("ghost")).rejects.toThrow("Set not found");
+	});
+});
+
+describe("ensureDefaults", () => {
+	it("creates default set when no sets exist", async () => {
+		await storage.ensureDefaults();
+		const sets = await storage.listSets();
+		expect(sets.length).toBeGreaterThanOrEqual(1);
+		expect(sets.find((s) => s.name === "default")).toBeTruthy();
+		expect(await storage.getActiveSet()).toBe("default");
+	});
+
+	it("does nothing when sets already exist", async () => {
+		await storage.createSet("existing", [fakeFile("idle.webm")]);
+		await storage.setActiveSet("existing");
+		await storage.ensureDefaults();
+		expect(await storage.getActiveSet()).toBe("existing");
+	});
+});

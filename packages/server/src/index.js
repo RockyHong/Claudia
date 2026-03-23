@@ -4,6 +4,18 @@ import express from "express";
 import { createSessionTracker } from "./session-tracker.js";
 import { getStatusMessage } from "./personality.js";
 import { focusTerminal } from "./focus.js";
+import {
+  getActiveSetPath,
+  listSets,
+  getActiveSet,
+  createSet,
+  deleteSet,
+  setActiveSet,
+  ensureDefaults,
+  isValidSetName,
+  getSetPath,
+  VALID_FILENAMES,
+} from "./avatar-storage.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIST = path.resolve(__dirname, "../../web/dist");
@@ -39,7 +51,7 @@ app.use((req, res, next) => {
     res.set("Access-Control-Allow-Origin", origin);
   }
   res.set({
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
   });
   if (req.method === "OPTIONS") return res.sendStatus(204);
@@ -110,6 +122,99 @@ app.get("/api/sessions", (req, res) => {
   });
 });
 
+// --- Avatar set API ---
+
+app.get("/api/avatars/sets", async (req, res) => {
+  const sets = await listSets();
+  res.json({ sets });
+});
+
+app.get("/api/avatars/active", async (req, res) => {
+  const activeSet = await getActiveSet();
+  res.json({ activeSet });
+});
+
+app.put("/api/avatars/active", async (req, res) => {
+  const { set } = req.body;
+  if (!set || typeof set !== "string") {
+    return res.status(400).json({ error: "Missing set name" });
+  }
+  try {
+    await setActiveSet(set);
+    res.json({ ok: true, activeSet: set });
+  } catch (err) {
+    res.status(404).json({ error: err.message });
+  }
+});
+
+app.post("/api/avatars/sets/:name", async (req, res) => {
+  const { name } = req.params;
+  if (!isValidSetName(name)) {
+    return res.status(400).json({ error: "Invalid set name" });
+  }
+
+  const contentType = req.headers["content-type"] || "";
+  if (!contentType.startsWith("multipart/form-data")) {
+    return res.status(400).json({ error: "Expected multipart/form-data" });
+  }
+
+  try {
+    const files = await parseMultipart(req);
+    if (files.length === 0) {
+      return res.status(400).json({ error: "No files uploaded" });
+    }
+    await createSet(name, files);
+    res.json({ ok: true, name });
+  } catch (err) {
+    const status = err.message.includes("already exists") ? 409 : 400;
+    res.status(status).json({ error: err.message });
+  }
+});
+
+app.delete("/api/avatars/sets/:name", async (req, res) => {
+  const { name } = req.params;
+  try {
+    await deleteSet(name);
+    res.json({ ok: true });
+  } catch (err) {
+    const status = err.message.includes("active") ? 400 : 404;
+    res.status(status).json({ error: err.message });
+  }
+});
+
+// Serve a specific file from any avatar set (for thumbnails)
+app.get("/api/avatars/sets/:name/file/:filename", (req, res) => {
+  const { name, filename } = req.params;
+  if (!isValidSetName(name)) return res.sendStatus(400);
+  if (!VALID_FILENAMES.has(filename)) return res.sendStatus(400);
+  const filePath = path.join(getSetPath(name), filename);
+  res.sendFile(filePath, (err) => {
+    if (err) res.sendStatus(404);
+  });
+});
+
+// Serve avatar files from the active set in ~/.claudia/avatars/
+let cachedAvatarStatic = null;
+let cachedAvatarDir = null;
+
+async function getAvatarMiddleware() {
+  const dir = await getActiveSetPath();
+  if (dir !== cachedAvatarDir) {
+    cachedAvatarDir = dir;
+    cachedAvatarStatic = express.static(dir);
+  }
+  return cachedAvatarStatic;
+}
+
+app.use("/avatar", async (req, res, next) => {
+  try {
+    const middleware = await getAvatarMiddleware();
+    middleware(req, res, next);
+  } catch {
+    next();
+  }
+});
+
 // Serve built web UI
 app.use(express.static(WEB_DIST));
 
@@ -125,7 +230,84 @@ app.post("/focus/:sessionId", async (req, res) => {
   res.json({ ok: true, focused });
 });
 
-export function startServer(port = PORT) {
+// Minimal multipart/form-data parser (no dependencies)
+
+function parseMultipart(req) {
+  return new Promise((resolve, reject) => {
+    const contentType = req.headers["content-type"] || "";
+    const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^\s;]+))/);
+    if (!boundaryMatch) return reject(new Error("No boundary found"));
+    const boundary = boundaryMatch[1] || boundaryMatch[2];
+
+    const chunks = [];
+    let totalSize = 0;
+    const maxTotal = 20 * 1024 * 1024;
+
+    req.on("data", (chunk) => {
+      totalSize += chunk.length;
+      if (totalSize > maxTotal) {
+        req.destroy();
+        return reject(new Error("Upload too large"));
+      }
+      chunks.push(chunk);
+    });
+
+    req.on("end", () => {
+      try {
+        const files = extractParts(Buffer.concat(chunks), boundary);
+        resolve(files);
+      } catch (err) {
+        reject(err);
+      }
+    });
+
+    req.on("error", reject);
+  });
+}
+
+function extractParts(body, boundary) {
+  const sep = Buffer.from(`--${boundary}`);
+  const files = [];
+  let start = 0;
+
+  while (true) {
+    const sepIdx = body.indexOf(sep, start);
+    if (sepIdx === -1) break;
+
+    const partStart = sepIdx + sep.length;
+    // Check for closing boundary (--)
+    if (body[partStart] === 0x2d && body[partStart + 1] === 0x2d) break;
+
+    const nextSep = body.indexOf(sep, partStart);
+    if (nextSep === -1) break;
+
+    const part = body.subarray(partStart, nextSep);
+    const headerEnd = part.indexOf("\r\n\r\n");
+    if (headerEnd === -1) { start = nextSep; continue; }
+
+    const headerStr = part.subarray(0, headerEnd).toString("utf-8");
+    // Extract filename from Content-Disposition
+    const filenameMatch = headerStr.match(/filename="([^"]+)"/);
+    if (!filenameMatch) { start = nextSep; continue; }
+
+    const filename = filenameMatch[1];
+    if (!VALID_FILENAMES.has(filename)) { start = nextSep; continue; }
+
+    // Data starts after \r\n\r\n, strip trailing \r\n before boundary
+    let data = part.subarray(headerEnd + 4);
+    if (data.length >= 2 && data[data.length - 2] === 0x0d && data[data.length - 1] === 0x0a) {
+      data = data.subarray(0, data.length - 2);
+    }
+
+    files.push({ name: filename, data });
+    start = nextSep;
+  }
+
+  return files;
+}
+
+export async function startServer(port = PORT) {
+  await ensureDefaults();
   tracker.start();
 
   return new Promise((resolve) => {

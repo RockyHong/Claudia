@@ -10,6 +10,7 @@ export default defineConfig({
       "/events": "http://localhost:7890",
       "/api": "http://localhost:7890",
       "/focus": "http://localhost:7890",
+      "/avatar": "http://localhost:7890",
     },
   },
   build: {
