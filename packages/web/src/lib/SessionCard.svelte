@@ -26,14 +26,6 @@
     return `${hours}h ${minutes % 60}m`;
   }
 
-  async function handleFocus() {
-    try {
-      await fetch(`/focus/${session.id}`, { method: "POST" });
-    } catch {
-      // Best effort
-    }
-  }
-
   let config = $derived(stateConfig[session.state] || stateConfig.idle);
 </script>
 
@@ -55,10 +47,6 @@
   {#if session.pendingMessage}
     <div class="pending-msg">{session.pendingMessage}</div>
   {/if}
-
-  <button class="focus-btn" onclick={handleFocus} title="Focus terminal">
-    &rarr;
-  </button>
 </div>
 
 <style>
@@ -140,20 +128,4 @@
     flex-shrink: 1;
   }
 
-  .focus-btn {
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 4px 10px;
-    cursor: pointer;
-    color: var(--text-muted);
-    font-size: 14px;
-    flex-shrink: 0;
-    transition: all 0.15s;
-  }
-
-  .focus-btn:hover {
-    background: var(--border);
-    color: var(--text);
-  }
 </style>

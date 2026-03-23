@@ -8,6 +8,7 @@
   let aggregateState = $state("idle");
   let statusMessage = $state("");
   let previousPendingIds = $state(new Set());
+  let bgMode = $state(false);
 
   const sseClient = createSSEClient("/events", (update) => {
     sessions = update.sessions;
@@ -87,17 +88,22 @@
   }
 </script>
 
-<div class="app">
+<div class="app" class:bg-mode={bgMode}>
+  <AvatarPanel {aggregateState} background={bgMode} />
+
   <header>
     <h1>Claudia</h1>
-    {#if typeof Notification !== "undefined" && Notification.permission === "default"}
-      <button class="notify-btn" onclick={requestNotificationPermission}>
-        Enable notifications
+    <div class="header-actions">
+      {#if typeof Notification !== "undefined" && Notification.permission === "default"}
+        <button class="header-btn" onclick={requestNotificationPermission}>
+          Enable notifications
+        </button>
+      {/if}
+      <button class="header-btn" class:active={bgMode} onclick={() => bgMode = !bgMode}>
+        Immersive
       </button>
-    {/if}
+    </div>
   </header>
-
-  <AvatarPanel {aggregateState} />
 
   <main>
     <SessionList {sessions} />
@@ -176,7 +182,12 @@
     padding: 12px;
   }
 
-  .notify-btn {
+  .header-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .header-btn {
     background: none;
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -187,8 +198,55 @@
     transition: all 0.15s;
   }
 
-  .notify-btn:hover {
+  .header-btn:hover {
     background: var(--border);
     color: var(--text);
+  }
+
+  .header-btn.active {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: #fff;
+  }
+
+  /* Background / immersive mode */
+  .app.bg-mode {
+    max-width: 100%;
+    background: transparent;
+  }
+
+  .app.bg-mode header {
+    position: relative;
+    z-index: 2;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .app.bg-mode main {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .app.bg-mode :global(.status-bar) {
+    position: relative;
+    z-index: 2;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .app.bg-mode :global(.card) {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(12px);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .app.bg-mode :global(.card.pending) {
+    border-color: var(--orange);
   }
 </style>

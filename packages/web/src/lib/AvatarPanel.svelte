@@ -1,5 +1,5 @@
 <script>
-  let { aggregateState = "idle" } = $props();
+  let { aggregateState = "idle", background = false } = $props();
 
   const STATES = ["idle", "busy", "pending"];
 
@@ -94,7 +94,7 @@
 </script>
 
 {#if available}
-  <div class="avatar-panel" style:aspect-ratio={aspectRatio}>
+  <div class="avatar-panel" class:bg-mode={background} style:aspect-ratio={background ? undefined : aspectRatio}>
     <!-- svelte-ignore a11y_media_has_caption -->
     <video
       bind:this={videoA}
@@ -130,6 +130,14 @@
     overflow: hidden;
   }
 
+  .avatar-panel.bg-mode {
+    position: fixed;
+    inset: 0;
+    margin: 0;
+    border-radius: 0;
+    z-index: 0;
+  }
+
   .slot {
     position: absolute;
     top: 0;
@@ -140,6 +148,11 @@
     border-radius: 12px;
     opacity: 0;
     transition: opacity 0.3s ease;
+  }
+
+  .bg-mode .slot {
+    border-radius: 0;
+    object-fit: cover;
   }
 
   .slot.visible {
