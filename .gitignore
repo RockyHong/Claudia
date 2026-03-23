@@ -41,3 +41,7 @@ src-tauri/target/
 
 # Claudia runtime state
 .claudia/
+
+# Avatar videos (user-provided, not shipped)
+packages/web/public/avatar/*.webm
+packages/web/public/avatar/*.mp4
