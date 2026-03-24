@@ -166,9 +166,10 @@
                     <!-- svelte-ignore a11y_media_has_caption -->
                     <video
                       src={thumb}
-                      preload="metadata"
+                      preload="auto"
                       muted
                       playsinline
+                      onloadeddata={(e) => { e.target.currentTime = 0.1; e.target.pause(); }}
                     ></video>
                   {:else}
                     <div class="no-thumb"></div>

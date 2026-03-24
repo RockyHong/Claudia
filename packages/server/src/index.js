@@ -229,9 +229,8 @@ app.get("/api/avatars/sets/:name/file/:filename", (req, res) => {
   const { name, filename } = req.params;
   if (!isValidSetName(name)) return res.sendStatus(400);
   if (!VALID_FILENAMES.has(filename)) return res.sendStatus(400);
-  const filePath = path.join(getSetPath(name), filename);
-  res.sendFile(filePath, (err) => {
-    if (err) res.sendStatus(404);
+  res.sendFile(filename, { root: getSetPath(name) }, (err) => {
+    if (err && !res.headersSent) res.sendStatus(404);
   });
 });
 
