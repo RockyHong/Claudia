@@ -80,6 +80,38 @@ function synthPendingChime(volume) {
   osc2.stop(now + 0.6);
 }
 
+function synthBusyWhoosh(volume) {
+  const ctx = getContext();
+  const now = ctx.currentTime;
+
+  // White noise burst shaped into a short whoosh
+  const bufferSize = ctx.sampleRate * 0.15;
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+  }
+
+  const noise = ctx.createBufferSource();
+  noise.buffer = buffer;
+
+  // Bandpass filter to make it sound like a soft send/swoosh
+  const filter = ctx.createBiquadFilter();
+  filter.type = "bandpass";
+  filter.frequency.setValueAtTime(2000, now);
+  filter.Q.setValueAtTime(0.5, now);
+
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(volume * 0.15, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+  noise.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  noise.start(now);
+  noise.stop(now + 0.15);
+}
+
 function synthIdleTone(volume) {
   const ctx = getContext();
   const now = ctx.currentTime;
@@ -100,6 +132,7 @@ function synthIdleTone(volume) {
 
 // --- Controller ---
 
+const playBusySound = createAudioWithFallback("/sfx/busy.mp3", synthBusyWhoosh);
 const playPendingSound = createAudioWithFallback("/sfx/pending.mp3", synthPendingChime);
 const playIdleSound = createAudioWithFallback("/sfx/idle.mp3", synthIdleTone);
 
@@ -123,6 +156,11 @@ export function createSFXController() {
       savePreferences(prefs);
     },
 
+    playBusy() {
+      if (prefs.muted) return;
+      playBusySound(prefs.volume);
+    },
+
     playPending() {
       if (prefs.muted) return;
       playPendingSound(prefs.volume);
@@ -134,6 +172,7 @@ export function createSFXController() {
     },
 
     preview(sound) {
+      if (sound === "busy") playBusySound(prefs.volume);
       if (sound === "pending") playPendingSound(prefs.volume);
       if (sound === "idle") playIdleSound(prefs.volume);
     },

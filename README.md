@@ -103,12 +103,17 @@ Supported formats: `.webm`, `.mp4`. Switch between sets from Settings — no res
 
 ### Sound Effects
 
-Claudia plays a sound when a session needs your attention (pending) or finishes a task (idle). This triggers per session, not just on aggregate state.
+Claudia plays a sound on session state changes — per session, not just aggregate:
+
+- **Busy** — a subtle whoosh when a session starts working
+- **Pending** — a chime when a session needs your approval
+- **Idle** — a tone when a session finishes its task
 
 Out of the box, she uses synthesized tones via Web Audio API. To use custom audio (e.g. a TTS voice), drop MP3 files here:
 
 ```
 packages/server/assets/sfx/
+  busy.mp3
   pending.mp3
   idle.mp3
 ```

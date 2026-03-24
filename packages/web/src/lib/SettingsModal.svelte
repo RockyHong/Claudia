@@ -221,6 +221,9 @@
               />
             </label>
             <div class="sfx-preview">
+              <button class="preview-btn" onclick={() => sfx.preview("busy")}>
+                Preview busy
+              </button>
               <button class="preview-btn" onclick={() => sfx.preview("pending")}>
                 Preview pending
               </button>

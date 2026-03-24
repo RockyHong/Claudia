@@ -148,7 +148,7 @@ The last 20%. Native features that a browser tab can't provide.
 
 ### Sound Effects
 - [x] MP3 audio cues served from `packages/server/assets/sfx/`
-- [x] Two sounds: `pending.mp3` ("Waiting on you"), `idle.mp3` ("Ready for the next one")
+- [x] Three sounds: `busy.mp3` (starting work), `pending.mp3` (needs approval), `idle.mp3` (task complete)
 - [x] Trigger per session — each session entering pending or idle plays its sound
 - [x] Mute toggle + volume slider in settings modal, persisted in localStorage
 - [x] Preview buttons in settings to audition each sound
