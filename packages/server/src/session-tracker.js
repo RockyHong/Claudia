@@ -27,6 +27,7 @@ function createSession(id, cwd) {
     displayName: extractDisplayName(cwd),
     lastTool: null,
     lastEvent: Date.now(),
+    stateChangedAt: Date.now(),
     pendingMessage: null,
     spawned: false,
     terminalTitle: null,
@@ -94,6 +95,10 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
     }
 
     const isNew = !sessions.has(sessionId);
+
+    // Don't create ghost sessions from late Notifications for ended sessions
+    if (isNew && state === "pending") return;
+
     if (isNew) {
       const session = createSession(sessionId, cwd);
       // Attach window handle if this cwd was spawned by Claudia
@@ -119,6 +124,8 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
       session.displayName = deduplicateDisplayName(extractDisplayName(cwd));
     }
 
+    const prevState = session.state;
+
     switch (state) {
       case "busy":
         session.state = State.BUSY;
@@ -126,22 +133,21 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
         session.pendingMessage = null;
         break;
 
-      case "idle": {
-        const wasIdle = session.state === State.IDLE;
+      case "idle":
         session.state = State.IDLE;
         session.lastTool = null;
         session.pendingMessage = null;
-        if (!wasIdle && session.terminalTitle && onIdleAlert) {
+        if (prevState !== State.IDLE && session.terminalTitle && onIdleAlert) {
           onIdleAlert(session);
         }
         break;
-      }
 
       case "pending": {
-        const wasPending = session.state === State.PENDING;
+        // Ignore late Notifications that arrive after Stop already resolved the session
+        if (prevState === State.IDLE) break;
         session.state = State.PENDING;
         session.pendingMessage = message || null;
-        if (!wasPending && session.terminalTitle && onPendingAlert) {
+        if (prevState !== State.PENDING && session.terminalTitle && onPendingAlert) {
           onPendingAlert(session);
         }
         break;
@@ -149,6 +155,10 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
 
       default:
         return;
+    }
+
+    if (session.state !== prevState) {
+      session.stateChangedAt = Date.now();
     }
 
     // Refresh git status on new sessions, cwd changes, and idle (work complete)
@@ -168,6 +178,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
       cwd: s.cwd,
       lastTool: s.lastTool,
       lastEvent: s.lastEvent,
+      stateChangedAt: s.stateChangedAt,
       pendingMessage: s.pendingMessage,
       spawned: s.spawned,
       terminalTitle: s.terminalTitle,
@@ -236,6 +247,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
       cwd: s.cwd,
       lastTool: s.lastTool,
       lastEvent: s.lastEvent,
+      stateChangedAt: s.stateChangedAt,
       pendingMessage: s.pendingMessage,
       spawned: s.spawned,
       terminalTitle: s.terminalTitle,

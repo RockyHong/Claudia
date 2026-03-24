@@ -30,6 +30,7 @@ const CLAUDIA_HOOKS = {
   SessionStart: [hookEntry("SessionStart")],
   PreToolUse: [hookEntry("PreToolUse")],
   PostToolUse: [hookEntry("PostToolUse")],
+  PermissionRequest: [hookEntry("PermissionRequest")],
   Notification: [hookEntry("Notification")],
   Stop: [hookEntry("Stop")],
   SessionEnd: [hookEntry("SessionEnd")],

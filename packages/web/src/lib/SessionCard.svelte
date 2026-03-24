@@ -11,9 +11,9 @@
 
   $effect(() => {
     const interval = setInterval(() => {
-      elapsed = formatElapsed(session.lastEvent);
+      elapsed = formatElapsed(session.stateChangedAt);
     }, 1000);
-    elapsed = formatElapsed(session.lastEvent);
+    elapsed = formatElapsed(session.stateChangedAt);
     return () => clearInterval(interval);
   });
 

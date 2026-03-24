@@ -205,6 +205,7 @@ describe("session-tracker", () => {
 
     it("returns pending when any session is pending (highest priority)", () => {
       tracker.handleEvent({ session: "s1", state: "busy", cwd: "/a" });
+      tracker.handleEvent({ session: "s2", state: "busy", cwd: "/b" });
       tracker.handleEvent({ session: "s2", state: "pending", cwd: "/b" });
 
       expect(tracker.getAggregateState()).toBe(State.PENDING);
@@ -234,6 +235,8 @@ describe("session-tracker", () => {
     });
 
     it("notifies on pending event", () => {
+      tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
+      stateChanges.length = 0;
       tracker.handleEvent({ session: "s1", state: "pending", cwd: "/proj", message: "hi" });
 
       expect(stateChanges).toHaveLength(1);
