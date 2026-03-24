@@ -5,7 +5,7 @@ import { createSessionTracker } from "./session-tracker.js";
 import { getStatusMessage } from "./personality.js";
 import { focusTerminal } from "./focus.js";
 import { getGitStatus } from "./git-status.js";
-import { trackProject, listProjects } from "./project-storage.js";
+import { trackProject, listProjects, removeProject } from "./project-storage.js";
 import { spawnSession, browseFolder } from "./spawner.js";
 import { transformHookPayload, VALID_HOOK_TYPES } from "./hook-transform.js";
 import {
@@ -161,6 +161,15 @@ app.get("/api/sessions", (req, res) => {
 app.get("/api/projects", async (req, res) => {
   const projects = await listProjects();
   res.json({ projects });
+});
+
+app.delete("/api/projects", async (req, res) => {
+  const { path: projectPath } = req.body;
+  if (!projectPath || typeof projectPath !== "string") {
+    return res.status(400).json({ error: "Missing path" });
+  }
+  await removeProject(projectPath);
+  res.json({ ok: true });
 });
 
 app.post("/api/browse", async (req, res) => {

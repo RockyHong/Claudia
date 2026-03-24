@@ -52,6 +52,17 @@ export async function trackProject(cwd) {
   await writeProjects(projects.slice(0, MAX_PROJECTS));
 }
 
+export async function removeProject(projectPath) {
+  if (!projectPath || typeof projectPath !== "string") return;
+
+  const normalized = projectPath.replace(/\\/g, "/");
+  knownPaths.delete(normalized);
+
+  const projects = await readProjects();
+  const filtered = projects.filter((p) => p.path !== normalized);
+  await writeProjects(filtered);
+}
+
 export async function listProjects() {
   return readProjects();
 }

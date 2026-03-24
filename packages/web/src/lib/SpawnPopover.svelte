@@ -22,6 +22,19 @@
 
   let browsing = $state(false);
 
+  async function removeProject(projectPath) {
+    try {
+      await fetch("/api/projects", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: projectPath }),
+      });
+      projects = projects.filter((p) => p.path !== projectPath);
+    } catch {
+      // ignore
+    }
+  }
+
   async function launch(projectPath) {
     launching = projectPath;
     try {
@@ -78,14 +91,21 @@
       {#if projects.length > 0}
         <div class="project-list">
           {#each projects as project}
-            <button
-              class="project-item"
-              disabled={launching === project.path}
-              onclick={() => launch(project.path)}
-            >
-              <span class="project-name">{project.name}</span>
-              <span class="project-path">{project.path}</span>
-            </button>
+            <div class="project-row">
+              <button
+                class="project-item"
+                disabled={launching === project.path}
+                onclick={() => launch(project.path)}
+              >
+                <span class="project-name">{project.name}</span>
+                <span class="project-path">{project.path}</span>
+              </button>
+              <button
+                class="remove-btn"
+                title="Remove from history"
+                onclick={() => removeProject(project.path)}
+              >&times;</button>
+            </div>
           {/each}
         </div>
       {/if}
@@ -143,26 +163,51 @@
     max-height: 340px;
   }
 
+  .project-row {
+    display: flex;
+    align-items: center;
+  }
+
+  .project-row:hover {
+    background: var(--border);
+  }
+
   .project-item {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     padding: 10px 14px;
     border: none;
     background: none;
     text-align: left;
     cursor: pointer;
-    transition: background 0.1s;
-  }
-
-  .project-item:hover {
-    background: var(--border);
   }
 
   .project-item:disabled {
     opacity: 0.5;
     cursor: wait;
+  }
+
+  .remove-btn {
+    flex-shrink: 0;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-size: 16px;
+    padding: 4px 10px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.1s, color 0.1s;
+  }
+
+  .project-row:hover .remove-btn {
+    opacity: 1;
+  }
+
+  .remove-btn:hover {
+    color: var(--orange);
   }
 
   .project-name {
