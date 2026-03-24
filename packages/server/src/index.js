@@ -7,6 +7,7 @@ import { focusTerminal } from "./focus.js";
 import { getGitStatus } from "./git-status.js";
 import { trackProject, listProjects } from "./project-storage.js";
 import { spawnSession, browseFolder } from "./spawner.js";
+import { transformHookPayload, VALID_HOOK_TYPES } from "./hook-transform.js";
 import {
   getActiveSetPath,
   listSets,
@@ -85,6 +86,31 @@ app.post("/event", (req, res) => {
 
   if (event.session.length > 100 || (event.message && event.message.length > 2000)) {
     return res.status(400).json({ error: "Field too long" });
+  }
+
+  if (
+    event.state !== "stopped" &&
+    !tracker.getSession(event.session) &&
+    tracker.getSessions().length >= MAX_SESSIONS
+  ) {
+    return res.status(429).json({ error: "Too many sessions" });
+  }
+
+  tracker.handleEvent(event);
+  if (event.cwd) trackProject(event.cwd);
+  res.json({ ok: true });
+});
+
+// Receive raw Claude Code stdin JSON — server-side transform, no node cold start
+app.post("/hook/:type", (req, res) => {
+  const { type } = req.params;
+  if (!VALID_HOOK_TYPES.has(type)) {
+    return res.status(400).json({ error: "Unknown hook type" });
+  }
+
+  const event = transformHookPayload(type, req.body);
+  if (!event) {
+    return res.status(400).json({ error: "Invalid payload" });
   }
 
   if (

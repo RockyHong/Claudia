@@ -2,7 +2,7 @@
 
 import { createInterface } from "node:readline";
 import { createServer as createNetServer } from "node:net";
-import { exec } from "node:child_process";
+import { exec, execSync } from "node:child_process";
 import { platform } from "node:os";
 import {
   readSettings,
@@ -76,6 +76,11 @@ async function runInit() {
   try {
     await writeSettings(merged);
     console.log("\nHooks installed successfully.");
+    if (!hasCurl()) {
+      console.log("\nWarning: curl not found on this system.");
+      console.log("  Hooks use curl for fast event delivery (~20ms vs ~300ms with node).");
+      console.log("  Install curl or upgrade to Windows 10 1803+ for best performance.");
+    }
     console.log("Restart any running Claude Code sessions to pick up the hooks.");
     console.log("Then run `claudia` or `npx claudia` to start the receptionist.");
   } catch (err) {
@@ -169,6 +174,15 @@ function checkPort(port) {
     });
     server.listen(port);
   });
+}
+
+function hasCurl() {
+  try {
+    execSync("curl --version", { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function openBrowser(url) {

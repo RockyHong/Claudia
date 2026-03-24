@@ -155,11 +155,9 @@ The last 20%. Native features that a browser tab can't provide.
 - [x] To customize: replace MP3 files in `packages/server/assets/sfx/`
 
 ### Future (Not Planned for v1)
-- [ ] Session history / timeline
-- [ ] Quick actions (approve/deny from Claudia)
-- [ ] Multi-machine monitoring
-- [ ] Theme/skin support
 - [ ] Persistent hook daemon to eliminate per-event node startup cost
+- [ ] Multi-machine monitoring
+- [ ] Quick actions (approve/deny from Claudia) — blocked by lack of Claude Code approval API
 
 ---
 
@@ -171,47 +169,47 @@ Claudia becomes a true receptionist — she spawns sessions, owns their lifecycl
 Claudia spawns the terminal → stores the window handle → controls it directly. Spawned sessions get reliable focus, flash, and foreground. Hook-monitored (external) sessions remain best-effort.
 
 ### Spawn Flow
-- [ ] `[+]` button in header bar (always visible, compact)
-- [ ] Click opens a popover with recent projects from known `cwd`s
-- [ ] Projects sorted by last activity
-- [ ] "Browse folder..." option at bottom for new directories
-- [ ] Pick a project → server spawns terminal → popover closes
-- [ ] Store spawned process handle and window handle on the session record
+- [x] `[+]` button in header bar (always visible, compact)
+- [x] Click opens a popover with recent projects from known `cwd`s
+- [x] Projects sorted by last activity
+- [x] "Browse folder..." option at bottom for new directories
+- [x] Pick a project → server spawns terminal → popover closes
+- [x] Store spawned process handle and window handle on the session record
 
 ### Window Control (spawned sessions only)
-- [ ] Click card → `SetForegroundWindow` with stored handle (bring to front)
-- [ ] Pending auto-alert → orange overlay flash on stored handle + taskbar blink
-- [ ] User click nav → blue overlay flash on stored handle
-- [ ] Minimized → restore then foreground
-- [ ] DPI-aware overlay positioning via `DwmGetWindowAttribute` (DWMWA_EXTENDED_FRAME_BOUNDS)
-- [ ] `FlashWindowEx` for taskbar icon blink (background windows)
+- [x] Click card → `SetForegroundWindow` with stored handle (bring to front)
+- [x] Pending auto-alert → orange overlay flash on stored handle + taskbar blink
+- [x] User click nav → blue overlay flash on stored handle
+- [x] Minimized → restore then foreground
+- [x] DPI-aware overlay positioning via `DwmGetWindowAttribute` (DWMWA_EXTENDED_FRAME_BOUNDS)
+- [x] `FlashWindowEx` for taskbar icon blink (background windows)
 
 ### Server
-- [ ] `GET /api/projects` — return known project directories from session history
-- [ ] `POST /api/launch` — spawn a terminal at given `cwd` with `claude` running
-- [ ] Persist known projects across server restarts (small JSON file)
-- [ ] Platform-specific terminal spawn (cmd on Windows, default terminal on macOS/Linux)
-- [ ] Track `windowHandle` per spawned session — set at spawn, used for focus/flash
-- [ ] Detect spawned session exit (process end) — clean up session card
+- [x] `GET /api/projects` — return known project directories from session history
+- [x] `POST /api/launch` — spawn a terminal at given `cwd` with `claude` running
+- [x] Persist known projects across server restarts (small JSON file)
+- [x] Platform-specific terminal spawn (cmd on Windows, default terminal on macOS/Linux)
+- [x] Track `windowHandle` per spawned session — set at spawn, used for focus/flash
+- [x] Detect spawned session exit (process end) — clean up session card
 
 ### Card Ordering
-- [ ] Sort cards by attention priority: **pending → idle → busy**
-- [ ] Within same state: most recent activity first
-- [ ] Busy sessions are lowest priority (working, leave them alone)
-- [ ] Smooth reorder animation when cards change position
+- [x] Sort cards by attention priority: **pending → idle → busy**
+- [x] Within same state: most recent activity first
+- [x] Busy sessions are lowest priority (working, leave them alone)
+- [x] Smooth reorder animation when cards change position
 
 ### Git Status on Cards
-- [ ] On session registration, read git info from session `cwd`
-- [ ] Three data points: is git repo, current branch, clean/dirty
-- [ ] Display on card: `main • clean` or `feat/auth • dirty`
-- [ ] Refresh git status on each state change event
-- [ ] Non-git directories show no git info (graceful absence, not an error)
+- [x] On session registration, read git info from session `cwd`
+- [x] Three data points: is git repo, current branch, clean/dirty
+- [x] Display on card: `main • clean` or `feat/auth • dirty`
+- [x] Refresh git status on each state change event
+- [x] Non-git directories show no git info (graceful absence, not an error)
 
 ### Orphan Sessions (hook-detected, not spawned by Claudia)
-- [ ] Continue tracking external Claude Code sessions via hooks
-- [ ] Mark orphan cards visually (subtle badge or dimmed state) — "monitoring only"
-- [ ] Click on orphan card → best-effort focus (title matching, may not work)
-- [ ] No flash/foreground guarantee — honest about the limitation
+- [x] Continue tracking external Claude Code sessions via hooks
+- [x] Mark orphan cards visually (subtle badge or dimmed state) — "monitoring only"
+- [x] Click on orphan card → best-effort focus (title matching, may not work)
+- [x] No flash/foreground guarantee — honest about the limitation
 
 ### Design Decisions
 - **Spawn = own** — Claudia spawns the terminal, stores the handle, controls focus/flash directly. No title matching, no PID walking, no guesswork.
@@ -246,12 +244,11 @@ User-facing settings modal and persistent avatar management. Moves user data out
 ```
 
 ### Settings Modal
-- [ ] Settings button in header opens modal
-- [ ] Avatar section: upload 3 videos (idle/busy/pending), saved as a named set
-- [ ] Set browser: see all sets as thumbnails (first frame of idle video)
-- [ ] One-click switch active set — instant, no restart
-- [ ] Import/export a set as zip for sharing
-- [ ] Server serves from `~/.claudia/avatars/active/` instead of `public/avatar/`
+- [x] Settings button in header opens modal
+- [x] Avatar section: upload 3 videos (idle/busy/pending), saved as a named set
+- [x] Set browser: see all sets as thumbnails (first frame of idle video)
+- [x] One-click switch active set — instant, no restart
+- [x] Server serves from `~/.claudia/avatars/active/` instead of `public/avatar/`
 
 ### Why
 - Current file-drop into `public/avatar/` is developer-friendly, not user-friendly
@@ -269,5 +266,5 @@ User-facing settings modal and persistent avatar management. Moves user data out
 | 3. CLI & Hooks | **Done** | `npx claudia` works end-to-end |
 | 4. Personality | **Done** | Claudia has character |
 | 5. OS Integration | **Done** | Terminal focus works |
-| 6. Session Launcher & Control | **Next** | Spawn, navigate, flash — own the lifecycle |
-| 7. Settings & Avatar Sets | **Future** | Upload, switch, persist avatar sets |
+| 6. Session Launcher & Control | **Done** | Spawn, navigate, flash — own the lifecycle |
+| 7. Settings & Avatar Sets | **Done** | Upload, switch, persist avatar sets |
