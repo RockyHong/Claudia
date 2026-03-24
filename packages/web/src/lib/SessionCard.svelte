@@ -120,10 +120,10 @@
   }
 
   .dot-idle {
-    background: var(--blue);
+    background: var(--green);
   }
   .dot-busy {
-    background: var(--gray);
+    background: var(--blue);
     animation: pulse 3s infinite;
   }
   .dot-pending {

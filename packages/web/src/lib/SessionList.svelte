@@ -2,6 +2,17 @@
   import SessionCard from "./SessionCard.svelte";
 
   let { sessions = [] } = $props();
+
+  const statePriority = { pending: 0, idle: 1, busy: 2 };
+
+  let sorted = $derived(
+    [...sessions].sort((a, b) => {
+      const pa = statePriority[a.state] ?? 3;
+      const pb = statePriority[b.state] ?? 3;
+      if (pa !== pb) return pa - pb;
+      return b.lastEvent - a.lastEvent;
+    })
+  );
 </script>
 
 {#if sessions.length === 0}
@@ -13,7 +24,7 @@
   </div>
 {:else}
   <div class="list">
-    {#each sessions as session (session.id)}
+    {#each sorted as session (session.id)}
       <SessionCard {session} />
     {/each}
   </div>

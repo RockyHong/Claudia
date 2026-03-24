@@ -79,8 +79,8 @@
 
     const style = getComputedStyle(document.documentElement);
     const colorMap = {
-      idle: style.getPropertyValue("--blue").trim(),
-      busy: style.getPropertyValue("--gray").trim(),
+      idle: style.getPropertyValue("--green").trim(),
+      busy: style.getPropertyValue("--blue").trim(),
       pending: style.getPropertyValue("--orange").trim(),
     };
 
@@ -151,6 +151,7 @@
     --text: #e1e4ed;
     --text-muted: #8b8fa3;
     --gray: #6b7280;
+    --green: #22c55e;
     --blue: #3b82f6;
     --orange: #f59e0b;
   }
@@ -163,6 +164,7 @@
       --text: #1a1d27;
       --text-muted: #6b7280;
       --gray: #9ca3af;
+      --green: #16a34a;
       --blue: #2563eb;
       --orange: #d97706;
     }
