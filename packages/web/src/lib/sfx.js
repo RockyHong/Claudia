@@ -84,51 +84,67 @@ function synthPendingChime(volume) {
 function synthBusyWhoosh(volume) {
   const ctx = getContext();
   const now = ctx.currentTime;
+  const duration = 0.6;
 
-  // White noise burst shaped into a short whoosh
-  const bufferSize = ctx.sampleRate * 0.15;
+  // White noise so the lowpass sweep is clearly audible
+  const bufferSize = Math.ceil(ctx.sampleRate * duration);
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
   const data = buffer.getChannelData(0);
   for (let i = 0; i < bufferSize; i++) {
-    data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    data[i] = Math.random() * 2 - 1;
   }
 
   const noise = ctx.createBufferSource();
   noise.buffer = buffer;
 
-  // Bandpass filter to make it sound like a soft send/swoosh
+  // Low-pass filter sweeping down for a "sent away" fade
   const filter = ctx.createBiquadFilter();
-  filter.type = "bandpass";
-  filter.frequency.setValueAtTime(2000, now);
-  filter.Q.setValueAtTime(0.5, now);
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(4000, now);
+  filter.frequency.setTargetAtTime(500, now, duration * 0.3);
+  filter.Q.setValueAtTime(0.7, now);
 
+  // Quick fade-in, long fade-out envelope
   const gain = ctx.createGain();
-  gain.gain.setValueAtTime(volume * 0.5, now);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+  gain.gain.setValueAtTime(0.001, now);
+  gain.gain.linearRampToValueAtTime(volume * 0.5, now + 0.08);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
   noise.connect(filter);
   filter.connect(gain);
   gain.connect(ctx.destination);
   noise.start(now);
-  noise.stop(now + 0.15);
+  noise.stop(now + duration);
 }
 
 function synthIdleTone(volume) {
   const ctx = getContext();
   const now = ctx.currentTime;
 
-  const gain = ctx.createGain();
-  gain.connect(ctx.destination);
-  gain.gain.setValueAtTime(volume * 0.6, now);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+  const gain1 = ctx.createGain();
+  gain1.connect(ctx.destination);
+  gain1.gain.setValueAtTime(volume * 0.8, now);
+  gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
 
-  const osc = ctx.createOscillator();
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(523.25, now);
-  osc.frequency.exponentialRampToValueAtTime(392, now + 0.4);
-  osc.connect(gain);
-  osc.start(now);
-  osc.stop(now + 0.5);
+  const osc1 = ctx.createOscillator();
+  osc1.type = "sine";
+  osc1.frequency.setValueAtTime(880, now);
+  osc1.connect(gain1);
+  osc1.start(now);
+  osc1.stop(now + 0.3);
+
+  const gain2 = ctx.createGain();
+  gain2.connect(ctx.destination);
+  gain2.gain.setValueAtTime(0.001, now);
+  gain2.gain.setValueAtTime(volume * 0.8, now + 0.15);
+  gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+  const osc2 = ctx.createOscillator();
+  osc2.type = "sine";
+  osc2.frequency.setValueAtTime(659.25, now + 0.15);
+  osc2.connect(gain2);
+  osc2.start(now + 0.15);
+  osc2.stop(now + 0.6);
 }
 
 // --- Controller ---
