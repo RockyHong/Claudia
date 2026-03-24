@@ -121,17 +121,60 @@ const browseStrategies = {
   linux: browseLinux,
 };
 
+const FOLDER_PICKER_CS = [
+  "using System;",
+  "using System.Runtime.InteropServices;",
+  "[ComImport, Guid(\"DC1C5A9C-E88A-4DDE-A5A1-60F82A20AEF7\")] class FileOpenDialogRCW {}",
+  "[ComImport, Guid(\"42F85136-DB7E-439C-85F1-E4075D135FC8\"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]",
+  "interface IFileOpenDialog {",
+  "  [PreserveSig] int Show(IntPtr hwnd);",
+  "  void SetFileTypes(uint c, IntPtr f);",
+  "  void SetFileTypeIndex(uint i);",
+  "  void GetFileTypeIndex(out uint i);",
+  "  void Advise(IntPtr p, out uint c);",
+  "  void Unadvise(uint c);",
+  "  void SetOptions(uint o);",
+  "  void GetOptions(out uint o);",
+  "  void SetDefaultFolder(IShellItem s);",
+  "  void SetFolder(IShellItem s);",
+  "  void GetFolder(out IShellItem s);",
+  "  void GetCurrentSelection(out IShellItem s);",
+  "  void SetFileName([MarshalAs(UnmanagedType.LPWStr)] string n);",
+  "  void GetFileName([MarshalAs(UnmanagedType.LPWStr)] out string n);",
+  "  void SetTitle([MarshalAs(UnmanagedType.LPWStr)] string t);",
+  "  void SetOkButtonLabel([MarshalAs(UnmanagedType.LPWStr)] string t);",
+  "  void SetFileNameLabel([MarshalAs(UnmanagedType.LPWStr)] string t);",
+  "  void GetResult(out IShellItem s);",
+  "}",
+  "[ComImport, Guid(\"43826D1E-E718-42EE-BC55-A1E261C37BFE\"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]",
+  "interface IShellItem {",
+  "  void BindToHandler(IntPtr p, ref Guid b, ref Guid r, out IntPtr o);",
+  "  void GetParent(out IShellItem p);",
+  "  void GetDisplayName(uint t, [MarshalAs(UnmanagedType.LPWStr)] out string n);",
+  "  void GetAttributes(uint m, out uint a);",
+  "  void Compare(IShellItem o, uint h, out int r);",
+  "}",
+  "public class FolderPicker {",
+  "  public static string Pick() {",
+  "    var d = (IFileOpenDialog)new FileOpenDialogRCW();",
+  "    d.SetOptions(0x20 | 0x800 | 0x1000);",
+  "    d.SetTitle(\"Select project folder\");",
+  "    if (d.Show(IntPtr.Zero) != 0) return \"\";",
+  "    IShellItem item; d.GetResult(out item);",
+  "    string path; item.GetDisplayName(0x80058000, out path);",
+  "    return path;",
+  "  }",
+  "}",
+].join("\n");
+
 function browseWindows() {
   return new Promise((resolve) => {
     const ps = [
-      "Add-Type -AssemblyName System.Windows.Forms",
-      "$d = New-Object System.Windows.Forms.FolderBrowserDialog",
-      "$d.Description = 'Select project folder'",
-      "$d.ShowNewFolderButton = $false",
-      "if ($d.ShowDialog() -eq 'OK') { $d.SelectedPath } else { '' }",
+      'Add-Type -Language CSharp @"\n' + FOLDER_PICKER_CS + '\n"@',
+      "[FolderPicker]::Pick()",
     ].join("; ");
 
-    execFile("powershell", ["-NoProfile", "-Command", ps], { timeout: 60000 }, (err, stdout) => {
+    execFile("powershell", ["-NoProfile", "-STA", "-Command", ps], { timeout: 60000 }, (err, stdout) => {
       if (err) return resolve(null);
       const selected = stdout.trim();
       resolve(selected || null);
