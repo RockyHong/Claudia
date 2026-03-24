@@ -36,6 +36,9 @@ const tracker = createSessionTracker({
   onPendingAlert: (session) => {
     focusTerminal(session.displayName, "alert", session.windowHandle);
   },
+  onIdleAlert: (session) => {
+    focusTerminal(session.displayName, "navigate", session.windowHandle);
+  },
 });
 
 function broadcast(update) {
@@ -106,6 +109,10 @@ app.post("/hook/:type", (req, res) => {
   const { type } = req.params;
   if (!VALID_HOOK_TYPES.has(type)) {
     return res.status(400).json({ error: "Unknown hook type" });
+  }
+
+  if (type === "Notification" || type === "Stop") {
+    console.log(`[hook] ${type} stdin:`, JSON.stringify(req.body));
   }
 
   const event = transformHookPayload(type, req.body);

@@ -41,10 +41,20 @@ export function extractDisplayName(cwd) {
   return normalized.split("/").filter(Boolean).pop() || "unknown";
 }
 
-export function createSessionTracker({ onStateChange, getGitStatus, onPendingAlert } = {}) {
+export function createSessionTracker({ onStateChange, getGitStatus, onPendingAlert, onIdleAlert } = {}) {
   const sessions = new Map();
   const spawnedInfo = new Map(); // cwd (normalized) → { terminalTitle, windowHandle }
   let pruneInterval = null;
+
+  function deduplicateDisplayName(baseName) {
+    const existing = new Set(
+      Array.from(sessions.values()).map((s) => s.displayName),
+    );
+    if (!existing.has(baseName)) return baseName;
+    let n = 2;
+    while (existing.has(`${baseName} (${n})`)) n++;
+    return `${baseName} (${n})`;
+  }
 
   function notify() {
     if (onStateChange) {
@@ -93,7 +103,10 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
         session.spawned = true;
         session.terminalTitle = info.terminalTitle;
         session.windowHandle = info.windowHandle;
+        // Consume so next spawn of same cwd gets its own entry
+        spawnedInfo.delete(normalizedCwd);
       }
+      session.displayName = deduplicateDisplayName(session.displayName);
       sessions.set(sessionId, session);
     }
 
@@ -103,7 +116,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
     const cwdChanged = cwd && cwd !== session.cwd;
     if (cwdChanged) {
       session.cwd = cwd;
-      session.displayName = extractDisplayName(cwd);
+      session.displayName = deduplicateDisplayName(extractDisplayName(cwd));
     }
 
     switch (state) {
@@ -113,11 +126,16 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
         session.pendingMessage = null;
         break;
 
-      case "idle":
+      case "idle": {
+        const wasIdle = session.state === State.IDLE;
         session.state = State.IDLE;
         session.lastTool = null;
         session.pendingMessage = null;
+        if (!wasIdle && session.terminalTitle && onIdleAlert) {
+          onIdleAlert(session);
+        }
         break;
+      }
 
       case "pending": {
         const wasPending = session.state === State.PENDING;
