@@ -47,6 +47,7 @@ let audioContext = null;
 
 function getContext() {
   if (!audioContext) audioContext = new AudioContext();
+  if (audioContext.state === "suspended") audioContext.resume();
   return audioContext;
 }
 
@@ -56,7 +57,7 @@ function synthPendingChime(volume) {
 
   const gain1 = ctx.createGain();
   gain1.connect(ctx.destination);
-  gain1.gain.setValueAtTime(volume * 0.3, now);
+  gain1.gain.setValueAtTime(volume * 0.8, now);
   gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
 
   const osc1 = ctx.createOscillator();
@@ -69,7 +70,7 @@ function synthPendingChime(volume) {
   const gain2 = ctx.createGain();
   gain2.connect(ctx.destination);
   gain2.gain.setValueAtTime(0.001, now);
-  gain2.gain.setValueAtTime(volume * 0.3, now + 0.15);
+  gain2.gain.setValueAtTime(volume * 0.8, now + 0.15);
   gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
 
   const osc2 = ctx.createOscillator();
@@ -102,7 +103,7 @@ function synthBusyWhoosh(volume) {
   filter.Q.setValueAtTime(0.5, now);
 
   const gain = ctx.createGain();
-  gain.gain.setValueAtTime(volume * 0.15, now);
+  gain.gain.setValueAtTime(volume * 0.5, now);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
 
   noise.connect(filter);
@@ -118,7 +119,7 @@ function synthIdleTone(volume) {
 
   const gain = ctx.createGain();
   gain.connect(ctx.destination);
-  gain.gain.setValueAtTime(volume * 0.2, now);
+  gain.gain.setValueAtTime(volume * 0.6, now);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
 
   const osc = ctx.createOscillator();
