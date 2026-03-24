@@ -1,5 +1,6 @@
 <script>
   import { createSSEClient } from "./lib/sse.js";
+  import { createSFXController } from "./lib/sfx.js";
   import SessionList from "./lib/SessionList.svelte";
   import StatusBar from "./lib/StatusBar.svelte";
   import AvatarPanel from "./lib/AvatarPanel.svelte";
@@ -8,31 +9,39 @@
   let sessions = $state([]);
   let aggregateState = $state("idle");
   let statusMessage = $state("");
-  let previousPendingIds = $state(new Set());
+  let previousStates = $state(new Map());
   let bgMode = $state(false);
   let showSettings = $state(false);
   let avatarVersion = $state(0);
+
+  const sfx = createSFXController();
 
   const sseClient = createSSEClient("/events", (update) => {
     sessions = update.sessions;
     aggregateState = update.aggregateState;
     statusMessage = update.statusMessage || "";
-    checkForPendingNotifications(update.sessions);
+    handleSessionTransitions(update.sessions);
     updateDocumentTitle(update.aggregateState, update.sessions);
   });
 
-  function checkForPendingNotifications(currentSessions) {
-    const currentPendingIds = new Set(
-      currentSessions.filter((s) => s.state === "pending").map((s) => s.id)
-    );
+  function handleSessionTransitions(currentSessions) {
+    const newStates = new Map();
 
     for (const s of currentSessions) {
-      if (s.state === "pending" && !previousPendingIds.has(s.id)) {
+      const prev = previousStates.get(s.id);
+      newStates.set(s.id, s.state);
+
+      if (!prev) continue;
+
+      if (s.state === "pending" && prev !== "pending") {
         sendNotification(s);
+        sfx.playPending();
+      } else if (s.state === "idle" && prev !== "idle") {
+        sfx.playIdle();
       }
     }
 
-    previousPendingIds = currentPendingIds;
+    previousStates = newStates;
   }
 
   function sendNotification(session) {
@@ -121,6 +130,7 @@
     <SettingsModal
       onclose={() => showSettings = false}
       onavatarchange={() => avatarVersion++}
+      {sfx}
     />
   {/if}
 </div>

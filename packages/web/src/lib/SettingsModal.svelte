@@ -1,5 +1,15 @@
 <script>
-  let { onclose, onavatarchange } = $props();
+  let { onclose, onavatarchange, sfx } = $props();
+
+  let sfxMuted = $state(false);
+  let sfxVolume = $state(0.5);
+
+  $effect(() => {
+    if (sfx) {
+      sfxMuted = sfx.muted;
+      sfxVolume = sfx.volume;
+    }
+  });
 
   let sets = $state([]);
   let loading = $state(true);
@@ -179,6 +189,47 @@
             {/each}
           </div>
         {/if}
+      </section>
+
+      <section>
+        <h3>Sound Effects</h3>
+        <div class="sfx-controls">
+          <label class="sfx-toggle">
+            <input
+              type="checkbox"
+              checked={!sfxMuted}
+              onchange={(e) => {
+                sfxMuted = !e.target.checked;
+                sfx.muted = sfxMuted;
+              }}
+            />
+            <span>Enable sound effects</span>
+          </label>
+          {#if !sfxMuted}
+            <label class="sfx-volume">
+              <span>Volume</span>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={sfxVolume}
+                oninput={(e) => {
+                  sfxVolume = +e.target.value;
+                  sfx.volume = sfxVolume;
+                }}
+              />
+            </label>
+            <div class="sfx-preview">
+              <button class="preview-btn" onclick={() => sfx.preview("pending")}>
+                Preview pending
+              </button>
+              <button class="preview-btn" onclick={() => sfx.preview("idle")}>
+                Preview idle
+              </button>
+            </div>
+          {/if}
+        </div>
       </section>
 
       <section>
@@ -456,6 +507,62 @@
   .delete-btn:hover {
     color: #f87171;
     background: rgba(239, 68, 68, 0.2);
+  }
+
+  /* --- SFX controls --- */
+
+  .sfx-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .sfx-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .sfx-toggle input[type="checkbox"] {
+    accent-color: var(--blue);
+  }
+
+  .sfx-volume {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .sfx-volume input[type="range"] {
+    flex: 1;
+    accent-color: var(--blue);
+    height: 4px;
+  }
+
+  .sfx-preview {
+    display: flex;
+    gap: 8px;
+  }
+
+  .preview-btn {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .preview-btn:hover {
+    border-color: var(--text-muted);
+    color: var(--text);
   }
 
   /* --- Upload form --- */

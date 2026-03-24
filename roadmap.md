@@ -146,8 +146,15 @@ The last 20%. Native features that a browser tab can't provide.
 - **Hook data via stdin** — Claude Code passes session context (session_id, tool_name, cwd) to hooks via stdin as JSON, not environment variables. This was undocumented and discovered empirically.
 - **Settings.json hook format** — Hooks must be under a `"hooks"` wrapper key in `~/.claude/settings.json`. The top-level format documented for user settings did not work in testing (v2.1.81).
 
+### Sound Effects
+- [x] MP3 audio cues served from `packages/server/assets/sfx/`
+- [x] Two sounds: `pending.mp3` ("Waiting on you"), `idle.mp3` ("Ready for the next one")
+- [x] Trigger per session — each session entering pending or idle plays its sound
+- [x] Mute toggle + volume slider in settings modal, persisted in localStorage
+- [x] Preview buttons in settings to audition each sound
+- [x] To customize: replace MP3 files in `packages/server/assets/sfx/`
+
 ### Future (Not Planned for v1)
-- [ ] Sound cues on Pending
 - [ ] Session history / timeline
 - [ ] Quick actions (approve/deny from Claudia)
 - [ ] Multi-machine monitoring

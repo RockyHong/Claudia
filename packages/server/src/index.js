@@ -215,6 +215,10 @@ app.use("/avatar", async (req, res, next) => {
   }
 });
 
+// Serve sound effects from assets/sfx/
+const SFX_DIR = path.resolve(__dirname, "../assets/sfx");
+app.use("/sfx", express.static(SFX_DIR));
+
 // Serve built web UI
 app.use(express.static(WEB_DIST));
 
