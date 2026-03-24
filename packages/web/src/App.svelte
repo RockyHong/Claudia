@@ -5,6 +5,7 @@
   import StatusBar from "./lib/StatusBar.svelte";
   import AvatarPanel from "./lib/AvatarPanel.svelte";
   import SettingsModal from "./lib/SettingsModal.svelte";
+  import SpawnPopover from "./lib/SpawnPopover.svelte";
 
   let sessions = $state([]);
   let aggregateState = $state("idle");
@@ -12,6 +13,7 @@
   let previousStates = $state(new Map());
   let bgMode = $state(false);
   let showSettings = $state(false);
+  let showSpawn = $state(false);
   let avatarVersion = $state(0);
 
   const sfx = createSFXController();
@@ -108,6 +110,7 @@
   <header>
     <h1>Claudia</h1>
     <div class="header-actions">
+      <button class="header-btn spawn-btn" onclick={() => showSpawn = !showSpawn}>+</button>
       {#if typeof Notification !== "undefined" && Notification.permission === "default"}
         <button class="header-btn" onclick={requestNotificationPermission}>
           Enable notifications
@@ -127,6 +130,10 @@
   </main>
 
   <StatusBar {aggregateState} {statusMessage} sessionCount={sessions.length} />
+
+  {#if showSpawn}
+    <SpawnPopover onclose={() => showSpawn = false} />
+  {/if}
 
   {#if showSettings}
     <SettingsModal
@@ -223,6 +230,13 @@
     color: var(--text-muted);
     cursor: pointer;
     transition: all 0.15s;
+  }
+
+  .spawn-btn {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 2px 10px;
   }
 
   .header-btn:hover {

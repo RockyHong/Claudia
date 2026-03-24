@@ -29,6 +29,7 @@
   let config = $derived(stateConfig[session.state] || stateConfig.idle);
 
   async function handleClick() {
+    if (!session.spawned) return;
     try {
       await fetch(`/focus/${session.id}`, { method: "POST" });
     } catch {
@@ -38,17 +39,30 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="card {session.state}" onclick={handleClick} onkeydown={(e) => e.key === 'Enter' && handleClick()} tabindex="0" role="button">
+<div
+  class="card {session.state}"
+  class:clickable={session.spawned}
+  onclick={handleClick}
+  onkeydown={(e) => e.key === 'Enter' && handleClick()}
+  tabindex={session.spawned ? 0 : -1}
+  role={session.spawned ? "button" : undefined}
+>
   <div class="card-main">
     <span class="dot {config.dot}"></span>
     <div class="card-info">
-      <span class="name">{session.displayName}</span>
+      <span class="name">
+        {session.displayName}
+        {#if !session.spawned}<span class="orphan-badge" title="External session — focus is best-effort">ext</span>{/if}
+      </span>
       <span class="meta">
         {config.label}
         {#if session.lastTool}
           &middot; {session.lastTool}
         {/if}
         &middot; {elapsed}
+        {#if session.git?.isGit}
+          &middot; <span class="git">{session.git.branch}{session.git.dirty ? " *" : ""}</span>
+        {/if}
       </span>
     </div>
   </div>
@@ -68,15 +82,18 @@
     background: var(--card-bg);
     border: 1px solid var(--border);
     transition: border-color 0.2s, background 0.15s;
-    cursor: pointer;
     user-select: none;
   }
 
-  .card:hover {
+  .card.clickable {
+    cursor: pointer;
+  }
+
+  .card.clickable:hover {
     background: var(--card-bg-hover, var(--card-bg));
   }
 
-  .card:active {
+  .card.clickable:active {
     opacity: 0.85;
   }
 
@@ -139,6 +156,24 @@
     50% {
       opacity: 0.4;
     }
+  }
+
+  .orphan-badge {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    background: var(--border);
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  .git {
+    font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+    font-size: 11px;
   }
 
   .pending-msg {
