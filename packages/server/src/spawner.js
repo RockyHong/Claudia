@@ -5,8 +5,7 @@ const currentPlatform = platform();
 
 /**
  * Spawn a terminal running `claude` in the given directory.
- * Returns { windowHandle, onExit(callback) }.
- * onExit fires when the spawned process terminates.
+ * Returns { windowHandle } — lifecycle is managed by Claude Code hooks.
  */
 export async function spawnSession(cwd) {
   const strategy = strategies[currentPlatform];
@@ -21,27 +20,17 @@ const strategies = {
 };
 
 async function spawnWindows(cwd) {
-  // Spawn cmd directly — gives us a trackable process with its own window.
-  // Windows Terminal (`wt`) is just a launcher that exits immediately and
-  // opens a tab in the shared WT process, making exit detection impossible.
   const child = spawn("cmd", ["/k", "claude"], {
     detached: true,
     stdio: "ignore",
     cwd,
   });
-
-  const exitCallbacks = [];
-  child.on("exit", () => exitCallbacks.forEach((cb) => cb()));
-  child.on("error", () => exitCallbacks.forEach((cb) => cb()));
   child.unref();
 
   await sleep(1000);
   const windowHandle = await getWindowHandleByPid(child.pid);
 
-  return {
-    windowHandle,
-    onExit(cb) { exitCallbacks.push(cb); },
-  };
+  return { windowHandle };
 }
 
 async function spawnMac(cwd) {
@@ -51,19 +40,12 @@ async function spawnMac(cwd) {
     do script "cd '${escapeAppleScript(escapedCwd)}' && claude"
   end tell`;
 
-  const child = spawn("osascript", ["-e", script], {
+  spawn("osascript", ["-e", script], {
     detached: true,
     stdio: "ignore",
-  });
+  }).unref();
 
-  const exitCallbacks = [];
-  child.on("exit", () => exitCallbacks.forEach((cb) => cb()));
-  child.unref();
-
-  return {
-    windowHandle: null,
-    onExit(cb) { exitCallbacks.push(cb); },
-  };
+  return { windowHandle: null };
 }
 
 async function spawnLinux(cwd) {
@@ -91,13 +73,8 @@ function trySpawn(cmd, args, cwd) {
     });
     child.on("error", () => resolve(null));
     setTimeout(() => {
-      const exitCallbacks = [];
-      child.on("exit", () => exitCallbacks.forEach((cb) => cb()));
       child.unref();
-      resolve({
-        windowHandle: null,
-        onExit(cb) { exitCallbacks.push(cb); },
-      });
+      resolve({ windowHandle: null });
     }, 500);
   });
 }

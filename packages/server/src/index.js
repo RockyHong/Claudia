@@ -7,7 +7,6 @@ import { focusTerminal } from "./focus.js";
 import { getGitStatus } from "./git-status.js";
 import { trackProject, listProjects } from "./project-storage.js";
 import { spawnSession, browseFolder } from "./spawner.js";
-import crypto from "node:crypto";
 import {
   getActiveSetPath,
   listSets,
@@ -155,14 +154,11 @@ app.post("/api/launch", async (req, res) => {
   }
 
   try {
-    const { windowHandle, onExit } = await spawnSession(cwd);
-    const sessionId = `spawned-${crypto.randomBytes(4).toString("hex")}`;
-
-    tracker.registerSpawned({ id: sessionId, cwd, windowHandle });
-    onExit(() => tracker.removeSession(sessionId));
+    const { windowHandle } = await spawnSession(cwd);
+    tracker.storeSpawnedHandle(cwd, windowHandle);
     await trackProject(cwd);
 
-    res.json({ ok: true, sessionId });
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

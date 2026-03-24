@@ -42,6 +42,7 @@ export function extractDisplayName(cwd) {
 
 export function createSessionTracker({ onStateChange, getGitStatus, onPendingAlert } = {}) {
   const sessions = new Map();
+  const spawnedHandles = new Map(); // cwd (normalized) → windowHandle
   let pruneInterval = null;
 
   function notify() {
@@ -83,7 +84,15 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
 
     const isNew = !sessions.has(sessionId);
     if (isNew) {
-      sessions.set(sessionId, createSession(sessionId, cwd));
+      const session = createSession(sessionId, cwd);
+      // Attach window handle if this cwd was spawned by Claudia
+      const normalizedCwd = cwd ? cwd.replace(/\\/g, "/") : null;
+      if (normalizedCwd && spawnedHandles.has(normalizedCwd)) {
+        session.spawned = true;
+        session.windowHandle = spawnedHandles.get(normalizedCwd);
+        spawnedHandles.delete(normalizedCwd);
+      }
+      sessions.set(sessionId, session);
     }
 
     const session = sessions.get(sessionId);
@@ -112,7 +121,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
         const wasPending = session.state === State.PENDING;
         session.state = State.PENDING;
         session.pendingMessage = message || null;
-        if (!wasPending && session.spawned && onPendingAlert) {
+        if (!wasPending && session.windowHandle && onPendingAlert) {
           onPendingAlert(session);
         }
         break;
@@ -180,24 +189,9 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
     sessions.clear();
   }
 
-  function registerSpawned({ id, cwd, windowHandle }) {
-    const session = createSession(id, cwd);
-    session.spawned = true;
-    session.windowHandle = windowHandle;
-    sessions.set(id, session);
-
-    if (getGitStatus) {
-      refreshGit(session).then(notify);
-    } else {
-      notify();
-    }
-  }
-
-  function removeSession(id) {
-    if (sessions.has(id)) {
-      sessions.delete(id);
-      notify();
-    }
+  function storeSpawnedHandle(cwd, windowHandle) {
+    const normalized = cwd.replace(/\\/g, "/");
+    spawnedHandles.set(normalized, windowHandle);
   }
 
   function getSession(id) {
@@ -223,8 +217,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
     getSession,
     getAggregateState,
     getSessionDisplayName,
-    registerSpawned,
-    removeSession,
+    storeSpawnedHandle,
     pruneStale,
     start,
     stop,
