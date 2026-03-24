@@ -28,6 +28,7 @@ function hookEntry(hookType, matcher = ".*") {
 
 const CLAUDIA_HOOKS = {
   SessionStart: [hookEntry("SessionStart")],
+  UserPromptSubmit: [hookEntry("UserPromptSubmit")],
   PreToolUse: [hookEntry("PreToolUse")],
   PostToolUse: [hookEntry("PostToolUse")],
   PermissionRequest: [hookEntry("PermissionRequest")],

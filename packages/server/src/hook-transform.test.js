@@ -72,9 +72,9 @@ describe("transformHookPayload", () => {
 });
 
 describe("VALID_HOOK_TYPES", () => {
-	it("contains all 7 hook types", () => {
-		expect(VALID_HOOK_TYPES.size).toBe(7);
-		for (const type of ["SessionStart", "PreToolUse", "PostToolUse", "PermissionRequest", "Notification", "Stop", "SessionEnd"]) {
+	it("contains all 8 hook types", () => {
+		expect(VALID_HOOK_TYPES.size).toBe(8);
+		for (const type of ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Notification", "Stop", "SessionEnd"]) {
 			expect(VALID_HOOK_TYPES.has(type)).toBe(true);
 		}
 	});

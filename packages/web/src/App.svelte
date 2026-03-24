@@ -33,14 +33,14 @@
       const prev = previousStates.get(s.id);
       newStates.set(s.id, s.state);
 
-      if (!prev) continue;
+      if (prev === s.state) continue;
 
-      if (s.state === "pending" && prev !== "pending") {
+      if (s.state === "pending") {
         sendNotification(s);
         sfx.playPending();
-      } else if (s.state === "busy" && prev !== "busy") {
+      } else if (s.state === "busy" && prev) {
         sfx.playBusy();
-      } else if (s.state === "idle" && prev !== "idle") {
+      } else if (s.state === "idle" && prev) {
         sfx.playIdle();
       }
     }

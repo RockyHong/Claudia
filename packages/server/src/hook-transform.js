@@ -3,6 +3,7 @@
 
 const HOOK_TYPE_MAP = {
 	SessionStart: (input) => ({ state: "idle" }),
+	UserPromptSubmit: (input) => ({ state: "busy" }),
 	PreToolUse: (input) => ({ state: "busy", tool: input.tool_name }),
 	PostToolUse: (input) => ({ state: "busy", tool: input.tool_name }),
 	PermissionRequest: (input) => ({ state: "pending", tool: input.tool_name }),
