@@ -109,7 +109,7 @@
     <h1>Claudia</h1>
     <div class="header-actions">
       <div class="spawn-anchor">
-        <button class="header-btn" onclick={() => showSpawn = !showSpawn}>New</button>
+        <button class="header-btn" onclick={() => showSpawn = !showSpawn}>New agent</button>
         {#if showSpawn}
           <SpawnPopover onclose={() => showSpawn = false} />
         {/if}
@@ -183,6 +183,7 @@
     background: var(--bg);
     color: var(--text);
     line-height: 1.5;
+    overflow-x: hidden;
   }
 
   .app {
@@ -218,12 +219,12 @@
   }
 
   .header-actions {
+    position: relative;
     display: flex;
     gap: 8px;
   }
 
   .spawn-anchor {
-    position: relative;
     display: flex;
   }
 

@@ -129,7 +129,7 @@
     top: 100%;
     left: 0;
     margin-top: 8px;
-    width: 320px;
+    width: 100%;
     z-index: 101;
     max-height: 400px;
     background: var(--card-bg);
