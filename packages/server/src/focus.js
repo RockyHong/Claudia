@@ -14,10 +14,14 @@ const FLASH_COLORS = {
   alert: { r: 255, g: 180, b: 80, hex: "#FFB450" },
 };
 
-export function focusTerminal(displayName, intent = "navigate") {
+/**
+ * Focus a terminal window by name (best-effort for orphan sessions)
+ * or by window handle (reliable for spawned sessions, added in Phase 6).
+ */
+export function focusTerminal(displayName, intent = "navigate", windowHandle = null) {
   const strategy = strategies[currentPlatform] || focusFallback;
   const color = FLASH_COLORS[intent] || FLASH_COLORS.navigate;
-  return strategy(sanitize(displayName), color);
+  return strategy(sanitize(displayName), color, windowHandle);
 }
 
 function runExec(command) {
@@ -36,16 +40,26 @@ function runFile(cmd, args) {
   });
 }
 
-function focusWindows(name, color) {
-  // Build PowerShell script as plain string to avoid template literal $ conflicts
-  const ps = [
-    "Add-Type -AssemblyName System.Windows.Forms",
-    "Add-Type -Language CSharp @\"\nusing System;\nusing System.Runtime.InteropServices;\npublic class WinHelper {\n  [DllImport(\"user32.dll\")] public static extern bool SetForegroundWindow(IntPtr hWnd);\n  [DllImport(\"user32.dll\")] public static extern bool IsIconic(IntPtr hWnd);\n  [DllImport(\"shcore.dll\")] public static extern int SetProcessDpiAwareness(int value);\n  [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }\n  [DllImport(\"dwmapi.dll\")] public static extern int DwmGetWindowAttribute(IntPtr hwnd, int attr, out RECT rect, int cbSize);\n  public static RECT GetWindowBounds(IntPtr hwnd) { RECT r; DwmGetWindowAttribute(hwnd, 9, out r, Marshal.SizeOf(typeof(RECT))); return r; }\n  [StructLayout(LayoutKind.Sequential)] public struct FLASHWINFO {\n    public uint cbSize; public IntPtr hwnd; public uint dwFlags; public uint uCount; public uint dwTimeout;\n  }\n  [DllImport(\"user32.dll\")] public static extern bool FlashWindowEx(ref FLASHWINFO pfwi);\n  public static void Flash(IntPtr hwnd) {\n    FLASHWINFO fi = new FLASHWINFO();\n    fi.cbSize = (uint)Marshal.SizeOf(typeof(FLASHWINFO));\n    fi.hwnd = hwnd;\n    fi.dwFlags = 14;\n    fi.uCount = 5;\n    fi.dwTimeout = 0;\n    FlashWindowEx(ref fi);\n  }\n}\n\"@",
-    "[WinHelper]::SetProcessDpiAwareness(2) | Out-Null",
-    "$procs = Get-Process | Where-Object { $_.MainWindowTitle -match '" + name + "' }",
-    "if (-not $procs) { $procs = Get-Process -Name WindowsTerminal,cmd,powershell -ErrorAction SilentlyContinue }",
-    "if ($procs) {",
-    "  $hwnd = $procs[0].MainWindowHandle",
+// C# helper shared by all Windows focus calls.
+// Compiled once per PowerShell invocation.
+const WIN_HELPER_CS = [
+  "using System;",
+  "using System.Runtime.InteropServices;",
+  "public class WinHelper {",
+  "  [DllImport(\"user32.dll\")] public static extern bool SetForegroundWindow(IntPtr hWnd);",
+  "  [DllImport(\"user32.dll\")] public static extern bool IsIconic(IntPtr hWnd);",
+  "  [DllImport(\"shcore.dll\")] public static extern int SetProcessDpiAwareness(int value);",
+  "  [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }",
+  "  [DllImport(\"dwmapi.dll\")] public static extern int DwmGetWindowAttribute(IntPtr hwnd, int attr, out RECT rect, int cbSize);",
+  "  public static RECT GetWindowBounds(IntPtr hwnd) { RECT r; DwmGetWindowAttribute(hwnd, 9, out r, Marshal.SizeOf(typeof(RECT))); return r; }",
+  "  [StructLayout(LayoutKind.Sequential)] public struct FLASHWINFO { public uint cbSize; public IntPtr hwnd; public uint dwFlags; public uint uCount; public uint dwTimeout; }",
+  "  [DllImport(\"user32.dll\")] public static extern bool FlashWindowEx(ref FLASHWINFO pfwi);",
+  "  public static void Flash(IntPtr hwnd) { FLASHWINFO fi = new FLASHWINFO(); fi.cbSize = (uint)Marshal.SizeOf(typeof(FLASHWINFO)); fi.hwnd = hwnd; fi.dwFlags = 14; fi.uCount = 5; fi.dwTimeout = 0; FlashWindowEx(ref fi); }",
+  "}",
+].join("\n");
+
+function buildWindowsFlashScript(color) {
+  return [
     "  [WinHelper]::Flash($hwnd)",
     "  if (-not [WinHelper]::IsIconic($hwnd)) {",
     "    $rect = [WinHelper]::GetWindowBounds($hwnd)",
@@ -67,12 +81,34 @@ function focusWindows(name, color) {
     "    }",
     "    [WinHelper]::SetForegroundWindow($hwnd) | Out-Null",
     "  }",
+  ];
+}
+
+function focusWindows(name, color, windowHandle) {
+  // If we have a stored window handle (spawned session), use it directly.
+  // Otherwise fall back to title matching (orphan sessions, best-effort).
+  const findWindow = windowHandle
+    ? ["$hwnd = [IntPtr]" + windowHandle]
+    : [
+        "$hwnd = [IntPtr]::Zero",
+        "$procs = Get-Process | Where-Object { $_.MainWindowTitle -match '" + name + "' }",
+        "if (-not $procs) { $procs = Get-Process -Name WindowsTerminal,cmd,powershell -ErrorAction SilentlyContinue }",
+        "if ($procs) { $hwnd = $procs[0].MainWindowHandle }",
+      ];
+
+  const ps = [
+    "Add-Type -AssemblyName System.Windows.Forms",
+    'Add-Type -Language CSharp @"\n' + WIN_HELPER_CS + '\n"@',
+    "[WinHelper]::SetProcessDpiAwareness(2) | Out-Null",
+    ...findWindow,
+    "if ($hwnd -ne [IntPtr]::Zero) {",
+    ...buildWindowsFlashScript(color),
     "}",
   ].join("\n");
   return runFile("powershell", ["-NoProfile", "-Command", ps]);
 }
 
-function focusMac(name, color) {
+function focusMac(name, color, _windowHandle) {
   const script = `
     use framework "AppKit"
     use scripting additions
@@ -130,17 +166,14 @@ function focusMac(name, color) {
   return runFile("osascript", ["-e", script]);
 }
 
-async function focusLinux(name, color) {
+async function focusLinux(name, color, _windowHandle) {
   const flashAndFocus = `
     WID=$(xdotool search --name '${name}' 2>/dev/null | head -1)
     if [ -z "$WID" ]; then
       WID=$(xdotool search --class terminal 2>/dev/null | head -1)
     fi
     if [ -n "$WID" ]; then
-      # Check if minimized (iconic state)
-      # Always: urgency hint (taskbar flash)
       xdotool set_window --urgency 1 "$WID" 2>/dev/null
-      # If visible: overlay + focus
       STATE=$(xprop -id "$WID" WM_STATE 2>/dev/null | grep -c "Iconic")
       if [ "$STATE" -eq 0 ]; then
         eval $(xdotool getwindowgeometry --shell "$WID")

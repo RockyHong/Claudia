@@ -163,9 +163,36 @@ The last 20%. Native features that a browser tab can't provide.
 
 ---
 
-## Phase 6: Dashboard Intelligence
+## Phase 6: Session Launcher & Control
 
-Smarter session cards and ordering. The dashboard becomes a triage board — what needs attention is always on top.
+Claudia becomes a true receptionist — she spawns sessions, owns their lifecycle, and controls navigation. No more guessing which terminal belongs to which session.
+
+### Core Principle
+Claudia spawns the terminal → stores the window handle → controls it directly. Spawned sessions get reliable focus, flash, and foreground. Hook-monitored (external) sessions remain best-effort.
+
+### Spawn Flow
+- [ ] `[+]` button in header bar (always visible, compact)
+- [ ] Click opens a popover with recent projects from known `cwd`s
+- [ ] Projects sorted by last activity
+- [ ] "Browse folder..." option at bottom for new directories
+- [ ] Pick a project → server spawns terminal → popover closes
+- [ ] Store spawned process handle and window handle on the session record
+
+### Window Control (spawned sessions only)
+- [ ] Click card → `SetForegroundWindow` with stored handle (bring to front)
+- [ ] Pending auto-alert → orange overlay flash on stored handle + taskbar blink
+- [ ] User click nav → blue overlay flash on stored handle
+- [ ] Minimized → restore then foreground
+- [ ] DPI-aware overlay positioning via `DwmGetWindowAttribute` (DWMWA_EXTENDED_FRAME_BOUNDS)
+- [ ] `FlashWindowEx` for taskbar icon blink (background windows)
+
+### Server
+- [ ] `GET /api/projects` — return known project directories from session history
+- [ ] `POST /api/launch` — spawn a terminal at given `cwd` with `claude` running
+- [ ] Persist known projects across server restarts (small JSON file)
+- [ ] Platform-specific terminal spawn (cmd on Windows, default terminal on macOS/Linux)
+- [ ] Track `windowHandle` per spawned session — set at spawn, used for focus/flash
+- [ ] Detect spawned session exit (process end) — clean up session card
 
 ### Card Ordering
 - [ ] Sort cards by attention priority: **pending → idle → busy**
@@ -180,9 +207,21 @@ Smarter session cards and ordering. The dashboard becomes a triage board — wha
 - [ ] Refresh git status on each state change event
 - [ ] Non-git directories show no git info (graceful absence, not an error)
 
-### Why
-- Card ordering eliminates scanning — the top card is always the one to act on
-- Git status prevents mistakes (working on wrong branch, dirty repo) without switching terminals
+### Orphan Sessions (hook-detected, not spawned by Claudia)
+- [ ] Continue tracking external Claude Code sessions via hooks
+- [ ] Mark orphan cards visually (subtle badge or dimmed state) — "monitoring only"
+- [ ] Click on orphan card → best-effort focus (title matching, may not work)
+- [ ] No flash/foreground guarantee — honest about the limitation
+
+### Design Decisions
+- **Spawn = own** — Claudia spawns the terminal, stores the handle, controls focus/flash directly. No title matching, no PID walking, no guesswork.
+- **Orphan sessions are honest** — hook-detected sessions still appear on the dashboard but focus/flash is best-effort. Card UI makes this clear rather than silently failing.
+- **No embedded terminal** — real terminal windows, spread across monitors. Claudia is the control plane, not the terminal.
+- **Session-based, not project-based** — one project can have multiple sessions; flat card list avoids nesting/layering problems.
+- **Two flash intents** — navigate (blue, user clicked) vs alert (orange, system pending). Color indicates who initiated.
+
+### Why This Order
+Focus/flash on external terminals proved unreliable (Windows Terminal: all windows share one PID, titles show tasks not projects, no way to correlate). Spawning first solves the control problem, making card ordering and git status immediately useful on sessions you can actually navigate to.
 
 ---
 
@@ -221,32 +260,6 @@ User-facing settings modal and persistent avatar management. Moves user data out
 
 ---
 
-## Phase 8: Smart Launch
-
-Spawn new Claude Code sessions from the dashboard. No embedded terminal — Claudia opens a real terminal window, hooks auto-connect the session back.
-
-### UX Flow
-- [ ] `[+]` button in header bar (always visible, compact)
-- [ ] Click opens a popover (not modal) with recent projects from known `cwd`s
-- [ ] Projects sorted by last activity
-- [ ] "Browse folder..." option at bottom for new directories
-- [ ] Pick a project → server spawns terminal → popover closes
-- [ ] New session card appears on dashboard automatically via hook events
-
-### Server
-- [ ] `GET /api/projects` — return known project directories from session history
-- [ ] `POST /api/launch` — spawn a terminal at given `cwd` with `claude` running
-- [ ] Persist known projects across server restarts (small JSON file)
-- [ ] Platform-specific terminal spawn (cmd on Windows, default terminal on macOS/Linux)
-
-### Design Decisions
-- **No embedded terminal** — power users with multi-monitor setups need terminals spread across screens; tabs collapse parallel visibility into sequential attention
-- **No extra linking** — Claude Code hooks auto-register the session; Claudia just opens the terminal and waits
-- **Session-based, not project-based** — one project can have multiple sessions; flat card list avoids nesting/layering problems
-- **Claudia is air traffic control, not the airplane** — monitor, direct, launch; don't fly
-
----
-
 ## Progress
 
 | Phase | Status | Milestone |
@@ -256,6 +269,5 @@ Spawn new Claude Code sessions from the dashboard. No embedded terminal — Clau
 | 3. CLI & Hooks | **Done** | `npx claudia` works end-to-end |
 | 4. Personality | **Done** | Claudia has character |
 | 5. OS Integration | **Done** | Terminal focus works |
-| 6. Dashboard Intelligence | **Next** | Attention-priority ordering, git status on cards |
+| 6. Session Launcher & Control | **Next** | Spawn, navigate, flash — own the lifecycle |
 | 7. Settings & Avatar Sets | **Future** | Upload, switch, persist avatar sets |
-| 8. Smart Launch | **Future** | Spawn sessions from dashboard |
