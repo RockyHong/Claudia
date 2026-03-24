@@ -5,9 +5,8 @@ const currentPlatform = platform();
 
 /**
  * Spawn a terminal running `claude` in the given directory.
- * Returns { pid, windowHandle } where windowHandle is available on Windows.
- *
- * The spawned terminal is detached — it survives if Claudia exits.
+ * Returns { windowHandle, onExit(callback) }.
+ * onExit fires when the spawned process terminates.
  */
 export async function spawnSession(cwd) {
   const strategy = strategies[currentPlatform];
@@ -22,22 +21,27 @@ const strategies = {
 };
 
 async function spawnWindows(cwd) {
-  // Spawn Windows Terminal (or cmd as fallback) running claude.
-  // Use `start` via cmd to get a detached window, then grab the handle.
-  const child = spawn("cmd", ["/c", "start", "wt", "-d", cwd, "cmd", "/k", "claude"], {
+  // Spawn cmd directly — gives us a trackable process with its own window.
+  // Windows Terminal (`wt`) is just a launcher that exits immediately and
+  // opens a tab in the shared WT process, making exit detection impossible.
+  const child = spawn("cmd", ["/k", "claude"], {
     detached: true,
     stdio: "ignore",
     cwd,
   });
+
+  const exitCallbacks = [];
+  child.on("exit", () => exitCallbacks.forEach((cb) => cb()));
+  child.on("error", () => exitCallbacks.forEach((cb) => cb()));
   child.unref();
 
-  // Give the terminal time to create its window
-  await sleep(1500);
+  await sleep(1000);
+  const windowHandle = await getWindowHandleByPid(child.pid);
 
-  // Find the most recently created Windows Terminal window
-  const windowHandle = await getNewestWindowHandle();
-
-  return { pid: child.pid, windowHandle };
+  return {
+    windowHandle,
+    onExit(cb) { exitCallbacks.push(cb); },
+  };
 }
 
 async function spawnMac(cwd) {
@@ -51,9 +55,15 @@ async function spawnMac(cwd) {
     detached: true,
     stdio: "ignore",
   });
+
+  const exitCallbacks = [];
+  child.on("exit", () => exitCallbacks.forEach((cb) => cb()));
   child.unref();
 
-  return { pid: child.pid, windowHandle: null };
+  return {
+    windowHandle: null,
+    onExit(cb) { exitCallbacks.push(cb); },
+  };
 }
 
 async function spawnLinux(cwd) {
@@ -80,23 +90,21 @@ function trySpawn(cmd, args, cwd) {
       cwd,
     });
     child.on("error", () => resolve(null));
-    // If no error within 500ms, assume success
     setTimeout(() => {
+      const exitCallbacks = [];
+      child.on("exit", () => exitCallbacks.forEach((cb) => cb()));
       child.unref();
-      resolve({ pid: child.pid, windowHandle: null });
+      resolve({
+        windowHandle: null,
+        onExit(cb) { exitCallbacks.push(cb); },
+      });
     }, 500);
   });
 }
 
-function getNewestWindowHandle() {
+function getWindowHandleByPid(pid) {
   return new Promise((resolve) => {
-    const ps = [
-      "$p = Get-Process -Name WindowsTerminal,cmd,powershell -ErrorAction SilentlyContinue",
-      "| Where-Object { $_.MainWindowHandle -ne 0 }",
-      "| Sort-Object StartTime -Descending",
-      "| Select-Object -First 1",
-      "if ($p) { $p.MainWindowHandle } else { 0 }",
-    ].join(" ");
+    const ps = "$p = Get-Process -Id " + pid + " -ErrorAction SilentlyContinue; if ($p) { $p.MainWindowHandle } else { 0 }";
 
     execFile("powershell", ["-NoProfile", "-Command", ps], { timeout: 5000 }, (err, stdout) => {
       if (err) return resolve(null);

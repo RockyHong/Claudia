@@ -193,6 +193,13 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
     }
   }
 
+  function removeSession(id) {
+    if (sessions.has(id)) {
+      sessions.delete(id);
+      notify();
+    }
+  }
+
   function getSession(id) {
     const s = sessions.get(id);
     if (!s) return null;
@@ -217,6 +224,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
     getAggregateState,
     getSessionDisplayName,
     registerSpawned,
+    removeSession,
     pruneStale,
     start,
     stop,

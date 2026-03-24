@@ -155,10 +155,11 @@ app.post("/api/launch", async (req, res) => {
   }
 
   try {
-    const { windowHandle } = await spawnSession(cwd);
+    const { windowHandle, onExit } = await spawnSession(cwd);
     const sessionId = `spawned-${crypto.randomBytes(4).toString("hex")}`;
 
     tracker.registerSpawned({ id: sessionId, cwd, windowHandle });
+    onExit(() => tracker.removeSession(sessionId));
     await trackProject(cwd);
 
     res.json({ ok: true, sessionId });
