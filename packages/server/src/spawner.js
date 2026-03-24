@@ -5,12 +5,21 @@ const currentPlatform = platform();
 
 /**
  * Spawn a terminal running `claude` in the given directory.
- * Returns { windowHandle } — lifecycle is managed by Claude Code hooks.
+ * Returns { terminalTitle, windowHandle } — a unique title set on the terminal
+ * window for display, and the HWND found by polling for that title.
  */
 export async function spawnSession(cwd) {
   const strategy = strategies[currentPlatform];
   if (!strategy) throw new Error(`Unsupported platform: ${currentPlatform}`);
   return strategy(cwd);
+}
+
+let spawnCounter = 0;
+
+function generateTerminalTitle(cwd) {
+  const name = cwd.replace(/\\/g, "/").split("/").filter(Boolean).pop() || "session";
+  const uid = (++spawnCounter).toString(36).padStart(2, "0");
+  return `${name}-${uid}`;
 }
 
 const strategies = {
@@ -20,17 +29,29 @@ const strategies = {
 };
 
 async function spawnWindows(cwd) {
-  const child = spawn("cmd", ["/k", "claude"], {
-    detached: true,
-    stdio: "ignore",
-    cwd,
+  const terminalTitle = generateTerminalTitle(cwd);
+  const fwdCwd = cwd.replace(/\\/g, "/");
+
+  // Launch in a dedicated WT window via PowerShell (resolves Store app alias).
+  // --suppressApplicationTitle keeps our title even after Claude starts.
+  const wtArgs = ["-w", "new", "--title", terminalTitle, "--suppressApplicationTitle", "-d", fwdCwd, "cmd", "/k", "claude"];
+  const psList = wtArgs.map((a) => '"' + a.replace(/"/g, '`"') + '"').join(",");
+  const ps = `Start-Process wt -ArgumentList @(${psList})`;
+
+  await runPowerShell(ps);
+
+  // Poll for the window by its unique title, then store the HWND for focus.
+  const windowHandle = await findWindowByTitle(terminalTitle);
+
+  return { terminalTitle, windowHandle };
+}
+
+function runPowerShell(command) {
+  return new Promise((resolve) => {
+    execFile("powershell", ["-NoProfile", "-Command", command], { timeout: 10000 }, (err) => {
+      resolve(!err);
+    });
   });
-  child.unref();
-
-  await sleep(1000);
-  const windowHandle = await getWindowHandleByPid(child.pid);
-
-  return { windowHandle };
 }
 
 async function spawnMac(cwd) {
@@ -45,7 +66,7 @@ async function spawnMac(cwd) {
     stdio: "ignore",
   }).unref();
 
-  return { windowHandle: null };
+  return { terminalTitle: null, windowHandle: null };
 }
 
 async function spawnLinux(cwd) {
@@ -74,16 +95,25 @@ function trySpawn(cmd, args, cwd) {
     child.on("error", () => resolve(null));
     setTimeout(() => {
       child.unref();
-      resolve({ windowHandle: null });
+      resolve({ terminalTitle: null, windowHandle: null });
     }, 500);
   });
 }
 
-function getWindowHandleByPid(pid) {
-  return new Promise((resolve) => {
-    const ps = "$p = Get-Process -Id " + pid + " -ErrorAction SilentlyContinue; if ($p) { $p.MainWindowHandle } else { 0 }";
+function findWindowByTitle(title) {
+  const escaped = title.replace(/'/g, "''");
+  const ps = [
+    "$hwnd = 0",
+    "for ($i = 0; $i -lt 10; $i++) {",
+    "  $p = Get-Process | Where-Object { $_.MainWindowTitle -eq '" + escaped + "' -and $_.MainWindowHandle -ne 0 } | Select-Object -First 1",
+    "  if ($p) { $hwnd = $p.MainWindowHandle; break }",
+    "  Start-Sleep -Milliseconds 500",
+    "}",
+    "$hwnd",
+  ].join("\n");
 
-    execFile("powershell", ["-NoProfile", "-Command", ps], { timeout: 5000 }, (err, stdout) => {
+  return new Promise((resolve) => {
+    execFile("powershell", ["-NoProfile", "-Command", ps], { timeout: 10000 }, (err, stdout) => {
       if (err) return resolve(null);
       const handle = parseInt(stdout.trim(), 10);
       resolve(handle && handle !== 0 ? handle : null);

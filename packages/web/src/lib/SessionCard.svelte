@@ -51,7 +51,7 @@
     <span class="dot {config.dot}"></span>
     <div class="card-info">
       <span class="name">
-        {session.displayName}
+        {session.terminalTitle || session.displayName}
         {#if !session.spawned}<span class="orphan-badge" title="External session — focus is best-effort">ext</span>{/if}
       </span>
       <span class="meta">

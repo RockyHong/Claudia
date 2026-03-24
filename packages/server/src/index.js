@@ -154,8 +154,9 @@ app.post("/api/launch", async (req, res) => {
   }
 
   try {
-    const { windowHandle } = await spawnSession(cwd);
-    tracker.storeSpawnedHandle(cwd, windowHandle);
+    const { terminalTitle, windowHandle } = await spawnSession(cwd);
+    console.log(`[spawn] cwd=${cwd} title=${terminalTitle} hwnd=${windowHandle}`);
+    tracker.storeSpawnedInfo(cwd, terminalTitle, windowHandle);
     await trackProject(cwd);
 
     res.json({ ok: true });
@@ -269,6 +270,7 @@ app.post("/focus/:sessionId", async (req, res) => {
   if (!session) {
     return res.status(404).json({ error: "Session not found" });
   }
+  console.log(`[focus] session=${session.displayName} spawned=${session.spawned} hwnd=${session.windowHandle}`);
   const focused = await focusTerminal(
     session.displayName,
     "navigate",

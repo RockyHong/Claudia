@@ -29,6 +29,7 @@ function createSession(id, cwd) {
     lastEvent: Date.now(),
     pendingMessage: null,
     spawned: false,
+    terminalTitle: null,
     windowHandle: null,
     git: null,
   };
@@ -42,7 +43,7 @@ export function extractDisplayName(cwd) {
 
 export function createSessionTracker({ onStateChange, getGitStatus, onPendingAlert } = {}) {
   const sessions = new Map();
-  const spawnedHandles = new Map(); // cwd (normalized) → windowHandle
+  const spawnedInfo = new Map(); // cwd (normalized) → { terminalTitle, windowHandle }
   let pruneInterval = null;
 
   function notify() {
@@ -87,10 +88,11 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
       const session = createSession(sessionId, cwd);
       // Attach window handle if this cwd was spawned by Claudia
       const normalizedCwd = cwd ? cwd.replace(/\\/g, "/") : null;
-      if (normalizedCwd && spawnedHandles.has(normalizedCwd)) {
+      if (normalizedCwd && spawnedInfo.has(normalizedCwd)) {
+        const info = spawnedInfo.get(normalizedCwd);
         session.spawned = true;
-        session.windowHandle = spawnedHandles.get(normalizedCwd);
-        spawnedHandles.delete(normalizedCwd);
+        session.terminalTitle = info.terminalTitle;
+        session.windowHandle = info.windowHandle;
       }
       sessions.set(sessionId, session);
     }
@@ -121,7 +123,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
         const wasPending = session.state === State.PENDING;
         session.state = State.PENDING;
         session.pendingMessage = message || null;
-        if (!wasPending && session.windowHandle && onPendingAlert) {
+        if (!wasPending && session.terminalTitle && onPendingAlert) {
           onPendingAlert(session);
         }
         break;
@@ -150,6 +152,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
       lastEvent: s.lastEvent,
       pendingMessage: s.pendingMessage,
       spawned: s.spawned,
+      terminalTitle: s.terminalTitle,
       git: s.git,
     }));
   }
@@ -189,9 +192,20 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
     sessions.clear();
   }
 
-  function storeSpawnedHandle(cwd, windowHandle) {
+  function storeSpawnedInfo(cwd, terminalTitle, windowHandle) {
     const normalized = cwd.replace(/\\/g, "/");
-    spawnedHandles.set(normalized, windowHandle);
+    spawnedInfo.set(normalized, { terminalTitle, windowHandle });
+
+    // Retroactively mark any session that arrived before the info was stored
+    for (const session of sessions.values()) {
+      const sessionCwd = session.cwd ? session.cwd.replace(/\\/g, "/") : null;
+      if (sessionCwd === normalized && !session.spawned) {
+        session.spawned = true;
+        session.terminalTitle = terminalTitle;
+        session.windowHandle = windowHandle;
+        notify();
+      }
+    }
   }
 
   function getSession(id) {
@@ -206,6 +220,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
       lastEvent: s.lastEvent,
       pendingMessage: s.pendingMessage,
       spawned: s.spawned,
+      terminalTitle: s.terminalTitle,
       windowHandle: s.windowHandle,
       git: s.git,
     };
@@ -217,7 +232,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
     getSession,
     getAggregateState,
     getSessionDisplayName,
-    storeSpawnedHandle,
+    storeSpawnedInfo,
     pruneStale,
     start,
     stop,

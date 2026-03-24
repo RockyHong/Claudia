@@ -15,8 +15,8 @@ const FLASH_COLORS = {
 };
 
 /**
- * Focus a terminal window by name (best-effort for orphan sessions)
- * or by window handle (reliable for spawned sessions, added in Phase 6).
+ * Focus a terminal window by HWND (spawned sessions)
+ * or by display name (best-effort for orphan sessions).
  */
 export function focusTerminal(displayName, intent = "navigate", windowHandle = null) {
   const strategy = strategies[currentPlatform] || focusFallback;
@@ -47,7 +47,13 @@ const WIN_HELPER_CS = [
   "using System.Runtime.InteropServices;",
   "public class WinHelper {",
   "  [DllImport(\"user32.dll\")] public static extern bool SetForegroundWindow(IntPtr hWnd);",
+  "  [DllImport(\"user32.dll\")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);",
   "  [DllImport(\"user32.dll\")] public static extern bool IsIconic(IntPtr hWnd);",
+  "  [DllImport(\"user32.dll\")] public static extern IntPtr GetForegroundWindow();",
+  "  [DllImport(\"user32.dll\")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr lpdwProcessId);",
+  "  [DllImport(\"kernel32.dll\")] public static extern uint GetCurrentThreadId();",
+  "  [DllImport(\"user32.dll\")] public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);",
+  "  [DllImport(\"user32.dll\")] public static extern bool BringWindowToTop(IntPtr hWnd);",
   "  [DllImport(\"shcore.dll\")] public static extern int SetProcessDpiAwareness(int value);",
   "  [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }",
   "  [DllImport(\"dwmapi.dll\")] public static extern int DwmGetWindowAttribute(IntPtr hwnd, int attr, out RECT rect, int cbSize);",
@@ -55,12 +61,26 @@ const WIN_HELPER_CS = [
   "  [StructLayout(LayoutKind.Sequential)] public struct FLASHWINFO { public uint cbSize; public IntPtr hwnd; public uint dwFlags; public uint uCount; public uint dwTimeout; }",
   "  [DllImport(\"user32.dll\")] public static extern bool FlashWindowEx(ref FLASHWINFO pfwi);",
   "  public static void Flash(IntPtr hwnd) { FLASHWINFO fi = new FLASHWINFO(); fi.cbSize = (uint)Marshal.SizeOf(typeof(FLASHWINFO)); fi.hwnd = hwnd; fi.dwFlags = 14; fi.uCount = 5; fi.dwTimeout = 0; FlashWindowEx(ref fi); }",
+  "  public static void ForceForeground(IntPtr hwnd) {",
+  "    if (IsIconic(hwnd)) ShowWindow(hwnd, 9);",
+  "    IntPtr fg = GetForegroundWindow();",
+  "    uint fgThread = GetWindowThreadProcessId(fg, IntPtr.Zero);",
+  "    uint curThread = GetCurrentThreadId();",
+  "    if (fgThread != curThread) {",
+  "      AttachThreadInput(curThread, fgThread, true);",
+  "      BringWindowToTop(hwnd);",
+  "      SetForegroundWindow(hwnd);",
+  "      AttachThreadInput(curThread, fgThread, false);",
+  "    } else { SetForegroundWindow(hwnd); }",
+  "  }",
   "}",
 ].join("\n");
 
 function buildWindowsFlashScript(color) {
   return [
     "  [WinHelper]::Flash($hwnd)",
+    "  [WinHelper]::ForceForeground($hwnd)",
+    "  Start-Sleep -Milliseconds 50",
     "  if (-not [WinHelper]::IsIconic($hwnd)) {",
     "    $rect = [WinHelper]::GetWindowBounds($hwnd)",
     "    $w = $rect.Right - $rect.Left",
@@ -79,21 +99,18 @@ function buildWindowsFlashScript(color) {
     "      Start-Sleep -Milliseconds 400",
     "      $form.Close()",
     "    }",
-    "    [WinHelper]::SetForegroundWindow($hwnd) | Out-Null",
     "  }",
   ];
 }
 
 function focusWindows(name, color, windowHandle) {
-  // If we have a stored window handle (spawned session), use it directly.
-  // Otherwise fall back to title matching (orphan sessions, best-effort).
+  // Use stored HWND (spawned) or fall back to title matching (orphan, best-effort).
   const findWindow = windowHandle
     ? ["$hwnd = [IntPtr]" + windowHandle]
     : [
         "$hwnd = [IntPtr]::Zero",
-        "$procs = Get-Process | Where-Object { $_.MainWindowTitle -match '" + name + "' }",
-        "if (-not $procs) { $procs = Get-Process -Name WindowsTerminal,cmd,powershell -ErrorAction SilentlyContinue }",
-        "if ($procs) { $hwnd = $procs[0].MainWindowHandle }",
+        "$p = Get-Process | Where-Object { $_.MainWindowTitle -match [regex]::Escape('" + name + "') -and $_.MainWindowHandle -ne 0 } | Select-Object -First 1",
+        "if ($p) { $hwnd = $p.MainWindowHandle }",
       ];
 
   const ps = [
