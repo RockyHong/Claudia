@@ -45,3 +45,6 @@ src-tauri/target/
 # Avatar videos (user-provided, not shipped)
 packages/web/public/avatar/*.webm
 packages/web/public/avatar/*.mp4
+
+# Sound effects (user-provided, not shipped)
+packages/server/assets/sfx/
