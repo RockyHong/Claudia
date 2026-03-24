@@ -4,6 +4,10 @@ import express from "express";
 import { createSessionTracker } from "./session-tracker.js";
 import { getStatusMessage } from "./personality.js";
 import { focusTerminal } from "./focus.js";
+import { getGitStatus } from "./git-status.js";
+import { trackProject, listProjects } from "./project-storage.js";
+import { spawnSession, browseFolder } from "./spawner.js";
+import crypto from "node:crypto";
 import {
   getActiveSetPath,
   listSets,
@@ -25,8 +29,12 @@ const PORT = process.env.CLAUDIA_PORT || 7890;
 const sseClients = new Set();
 
 const tracker = createSessionTracker({
+  getGitStatus,
   onStateChange: (update) => {
     broadcast({ ...update, statusMessage: getStatusMessage(update.sessions) });
+  },
+  onPendingAlert: (session) => {
+    focusTerminal(session.displayName, "alert", session.windowHandle);
   },
 });
 
@@ -82,13 +90,14 @@ app.post("/event", (req, res) => {
 
   if (
     event.state !== "stopped" &&
-    !tracker.getSessions().some((s) => s.id === event.session) &&
+    !tracker.getSession(event.session) &&
     tracker.getSessions().length >= MAX_SESSIONS
   ) {
     return res.status(429).json({ error: "Too many sessions" });
   }
 
   tracker.handleEvent(event);
+  if (event.cwd) trackProject(event.cwd);
   res.json({ ok: true });
 });
 
@@ -120,6 +129,42 @@ app.get("/api/sessions", (req, res) => {
     sessions: tracker.getSessions(),
     aggregateState: tracker.getAggregateState(),
   });
+});
+
+// --- Projects API ---
+
+app.get("/api/projects", async (req, res) => {
+  const projects = await listProjects();
+  res.json({ projects });
+});
+
+app.post("/api/browse", async (req, res) => {
+  try {
+    const selected = await browseFolder();
+    if (!selected) return res.json({ cancelled: true });
+    res.json({ path: selected });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/launch", async (req, res) => {
+  const { cwd } = req.body;
+  if (!cwd || typeof cwd !== "string") {
+    return res.status(400).json({ error: "Missing cwd" });
+  }
+
+  try {
+    const { windowHandle } = await spawnSession(cwd);
+    const sessionId = `spawned-${crypto.randomBytes(4).toString("hex")}`;
+
+    tracker.registerSpawned({ id: sessionId, cwd, windowHandle });
+    await trackProject(cwd);
+
+    res.json({ ok: true, sessionId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // --- Avatar set API ---
@@ -224,13 +269,15 @@ app.use(express.static(WEB_DIST));
 
 // Trigger terminal focus for a session
 app.post("/focus/:sessionId", async (req, res) => {
-  const session = tracker
-    .getSessions()
-    .find((s) => s.id === req.params.sessionId);
+  const session = tracker.getSession(req.params.sessionId);
   if (!session) {
     return res.status(404).json({ error: "Session not found" });
   }
-  const focused = await focusTerminal(session.displayName);
+  const focused = await focusTerminal(
+    session.displayName,
+    "navigate",
+    session.windowHandle,
+  );
   res.json({ ok: true, focused });
 });
 

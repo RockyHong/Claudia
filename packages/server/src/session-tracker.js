@@ -28,16 +28,19 @@ function createSession(id, cwd) {
     lastTool: null,
     lastEvent: Date.now(),
     pendingMessage: null,
+    spawned: false,
+    windowHandle: null,
+    git: null,
   };
 }
 
-function extractDisplayName(cwd) {
+export function extractDisplayName(cwd) {
   if (!cwd) return "unknown";
   const normalized = cwd.replace(/\\/g, "/");
   return normalized.split("/").filter(Boolean).pop() || "unknown";
 }
 
-export function createSessionTracker({ onStateChange } = {}) {
+export function createSessionTracker({ onStateChange, getGitStatus, onPendingAlert } = {}) {
   const sessions = new Map();
   let pruneInterval = null;
 
@@ -47,6 +50,21 @@ export function createSessionTracker({ onStateChange } = {}) {
         sessions: getSessions(),
         aggregateState: getAggregateState(),
       });
+    }
+  }
+
+  const gitRefreshing = new Set();
+
+  async function refreshGit(session) {
+    if (!getGitStatus || !session.cwd) return;
+    if (gitRefreshing.has(session.id)) return;
+    gitRefreshing.add(session.id);
+    try {
+      session.git = await getGitStatus(session.cwd);
+    } catch {
+      session.git = null;
+    } finally {
+      gitRefreshing.delete(session.id);
     }
   }
 
@@ -63,14 +81,16 @@ export function createSessionTracker({ onStateChange } = {}) {
       return;
     }
 
-    if (!sessions.has(sessionId)) {
+    const isNew = !sessions.has(sessionId);
+    if (isNew) {
       sessions.set(sessionId, createSession(sessionId, cwd));
     }
 
     const session = sessions.get(sessionId);
     session.lastEvent = ts ? ts * 1000 : Date.now();
 
-    if (cwd && cwd !== session.cwd) {
+    const cwdChanged = cwd && cwd !== session.cwd;
+    if (cwdChanged) {
       session.cwd = cwd;
       session.displayName = extractDisplayName(cwd);
     }
@@ -80,24 +100,34 @@ export function createSessionTracker({ onStateChange } = {}) {
         session.state = State.BUSY;
         session.lastTool = tool || session.lastTool;
         session.pendingMessage = null;
-        notify();
         break;
 
       case "idle":
         session.state = State.IDLE;
         session.lastTool = null;
         session.pendingMessage = null;
-        notify();
         break;
 
-      case "pending":
+      case "pending": {
+        const wasPending = session.state === State.PENDING;
         session.state = State.PENDING;
         session.pendingMessage = message || null;
-        notify();
+        if (!wasPending && session.spawned && onPendingAlert) {
+          onPendingAlert(session);
+        }
         break;
+      }
 
       default:
-        break;
+        return;
+    }
+
+    // Refresh git status on new sessions, cwd changes, and idle (work complete)
+    const shouldRefreshGit = getGitStatus && (isNew || cwdChanged || state === "idle");
+    if (shouldRefreshGit) {
+      refreshGit(session).then(notify);
+    } else {
+      notify();
     }
   }
 
@@ -110,6 +140,8 @@ export function createSessionTracker({ onStateChange } = {}) {
       lastTool: s.lastTool,
       lastEvent: s.lastEvent,
       pendingMessage: s.pendingMessage,
+      spawned: s.spawned,
+      git: s.git,
     }));
   }
 
@@ -148,11 +180,43 @@ export function createSessionTracker({ onStateChange } = {}) {
     sessions.clear();
   }
 
+  function registerSpawned({ id, cwd, windowHandle }) {
+    const session = createSession(id, cwd);
+    session.spawned = true;
+    session.windowHandle = windowHandle;
+    sessions.set(id, session);
+
+    if (getGitStatus) {
+      refreshGit(session).then(notify);
+    } else {
+      notify();
+    }
+  }
+
+  function getSession(id) {
+    const s = sessions.get(id);
+    if (!s) return null;
+    return {
+      id: s.id,
+      state: s.state,
+      displayName: s.displayName,
+      cwd: s.cwd,
+      lastTool: s.lastTool,
+      lastEvent: s.lastEvent,
+      pendingMessage: s.pendingMessage,
+      spawned: s.spawned,
+      windowHandle: s.windowHandle,
+      git: s.git,
+    };
+  }
+
   return {
     handleEvent,
     getSessions,
+    getSession,
     getAggregateState,
     getSessionDisplayName,
+    registerSpawned,
     pruneStale,
     start,
     stop,
