@@ -105,12 +105,15 @@
 </script>
 
 <div class="app" class:bg-mode={bgMode}>
-  <AvatarPanel {aggregateState} background={bgMode} version={avatarVersion} />
-
   <header>
     <h1>Claudia</h1>
     <div class="header-actions">
-      <button class="header-btn spawn-btn" onclick={() => showSpawn = !showSpawn}>+</button>
+      <div class="spawn-anchor">
+        <button class="header-btn" onclick={() => showSpawn = !showSpawn}>New</button>
+        {#if showSpawn}
+          <SpawnPopover onclose={() => showSpawn = false} />
+        {/if}
+      </div>
       {#if typeof Notification !== "undefined" && Notification.permission === "default"}
         <button class="header-btn" onclick={requestNotificationPermission}>
           Enable notifications
@@ -125,15 +128,13 @@
     </div>
   </header>
 
+  <AvatarPanel {aggregateState} background={bgMode} version={avatarVersion} />
+
   <main>
     <SessionList {sessions} />
   </main>
 
   <StatusBar {aggregateState} {statusMessage} sessionCount={sessions.length} />
-
-  {#if showSpawn}
-    <SpawnPopover onclose={() => showSpawn = false} />
-  {/if}
 
   {#if showSettings}
     <SettingsModal
@@ -221,8 +222,13 @@
     gap: 8px;
   }
 
+  .spawn-anchor {
+    position: relative;
+    display: flex;
+  }
+
   .header-btn {
-    background: none;
+    background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 4px 12px;
@@ -232,23 +238,33 @@
     transition: all 0.15s;
   }
 
-  .spawn-btn {
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 1;
-    padding: 2px 10px;
-  }
-
   .header-btn:hover {
     background: var(--border);
     color: var(--text);
   }
 
   .header-btn.active {
+    background: var(--border);
+    border-color: var(--text-muted);
+    color: var(--text);
+  }
+
+  .app.bg-mode .header-btn {
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(12px);
     border-color: rgba(255, 255, 255, 0.2);
-    color: var(--text);
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .app.bg-mode .header-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+  }
+
+  .app.bg-mode .header-btn.active {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #fff;
   }
 
   /* Background / immersive mode */
@@ -262,6 +278,7 @@
     z-index: 2;
     background: transparent;
     border-bottom-color: transparent;
+    color: #fff;
   }
 
   .app.bg-mode main {

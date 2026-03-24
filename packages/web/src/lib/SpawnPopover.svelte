@@ -79,8 +79,8 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="backdrop" onclick={handleBackdropClick}>
-  <div class="popover">
+<div class="backdrop" onclick={handleBackdropClick}></div>
+<div class="popover">
     <div class="popover-header">
       <span class="popover-title">Launch session</span>
     </div>
@@ -116,7 +116,6 @@
       </div>
     {/if}
   </div>
-</div>
 
 <style>
   .backdrop {
@@ -127,9 +126,11 @@
 
   .popover {
     position: absolute;
-    top: 52px;
-    right: 16px;
+    top: 100%;
+    left: 0;
+    margin-top: 8px;
     width: 320px;
+    z-index: 101;
     max-height: 400px;
     background: var(--card-bg);
     border: 1px solid var(--border);
