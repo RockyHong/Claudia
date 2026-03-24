@@ -38,7 +38,7 @@
       if (s.state === "pending") {
         sendNotification(s);
         sfx.playPending();
-      } else if (s.state === "busy" && prev) {
+      } else if (s.state === "busy") {
         sfx.playBusy();
       } else if (s.state === "idle" && prev) {
         sfx.playIdle();
