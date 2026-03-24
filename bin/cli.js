@@ -131,12 +131,19 @@ async function runTeardown() {
 async function runStart() {
   const port = process.env.CLAUDIA_PORT || 7890;
 
-  // Check for port conflict before importing the server
   const portInUse = await checkPort(port);
   if (portInUse) {
-    console.error(`Error: Port ${port} is already in use.`);
-    console.error(`  Try: CLAUDIA_PORT=7891 claudia`);
-    process.exit(1);
+    console.log(`Claudia is already running on port ${port}. Replacing...`);
+    await killExistingInstance(port);
+    // Wait for port to free up
+    for (let i = 0; i < 20; i++) {
+      if (!(await checkPort(port))) break;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    if (await checkPort(port)) {
+      console.error(`Error: Could not free port ${port}.`);
+      process.exit(1);
+    }
   }
 
   const { startServer } = await import("../packages/server/src/index.js");
@@ -163,6 +170,26 @@ function confirm(question) {
       resolve(answer.trim().toLowerCase() === "y");
     });
   });
+}
+
+async function killExistingInstance(port) {
+  try {
+    // Ask the running instance to shut down gracefully (closes terminal too)
+    await fetch(`http://127.0.0.1:${port}/api/shutdown`, { method: "POST" });
+  } catch {
+    // Instance might not support /api/shutdown — force kill as fallback
+    try {
+      if (platform() === "win32") {
+        const out = execSync(`netstat -ano | findstr :${port} | findstr LISTENING`, { encoding: "utf-8" });
+        const pids = new Set(out.trim().split("\n").map((line) => line.trim().split(/\s+/).pop()).filter(Boolean));
+        for (const pid of pids) {
+          try { execSync(`taskkill /F /PID ${pid}`, { stdio: "ignore" }); } catch {}
+        }
+      } else {
+        execSync(`lsof -ti :${port} | xargs kill -9`, { stdio: "ignore" });
+      }
+    } catch {}
+  }
 }
 
 function checkPort(port) {

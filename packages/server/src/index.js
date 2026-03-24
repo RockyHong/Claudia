@@ -413,8 +413,15 @@ export async function startServer(port = PORT) {
         client.end();
       }
       sseClients.clear();
-      server.close();
+      server.close(() => process.exit(0));
     };
+
+    // Remote shutdown — lets a new instance replace this one
+    app.post("/api/shutdown", (req, res) => {
+      res.json({ ok: true });
+      // Force exit after response flushes — closes terminal on Windows
+      setTimeout(() => process.exit(0), 100);
+    });
 
     process.on("SIGINT", shutdown);
     process.on("SIGTERM", shutdown);

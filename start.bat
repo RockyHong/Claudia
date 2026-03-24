@@ -1,4 +1,8 @@
 @echo off
+:: Shut down any previous Claudia instance
+curl -sfS -X POST http://127.0.0.1:7890/api/shutdown >nul 2>&1
+timeout /t 1 /nobreak >nul
+
 echo Installing dependencies...
 call npm install
 echo Building web UI...
