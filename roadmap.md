@@ -155,7 +155,7 @@ The last 20%. Native features that a browser tab can't provide.
 - [x] To customize: replace MP3 files in `packages/server/assets/sfx/`
 
 ### Future (Not Planned for v1)
-- [ ] Persistent hook daemon to eliminate per-event node startup cost
+- [ ] **Standalone executable** — Use Node SEA (Single Executable Application) to bundle server + web into a single `.exe`/binary. No Node.js install required. Cross-platform: build for Windows (.exe), macOS (universal binary), and Linux (x64/arm64) via CI. Users just download and run.
 - [ ] Multi-machine monitoring
 - [ ] Quick actions (approve/deny from Claudia) — blocked by lack of Claude Code approval API
 
