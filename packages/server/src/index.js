@@ -1,5 +1,8 @@
 import { fileURLToPath } from "node:url";
+import { randomUUID } from "node:crypto";
+import fs from "node:fs/promises";
 import path from "node:path";
+import os from "node:os";
 import express from "express";
 import { createSessionTracker } from "./session-tracker.js";
 import { getStatusMessage } from "./personality.js";
@@ -25,6 +28,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIST = path.resolve(__dirname, "../../web/dist");
 
 const PORT = process.env.CLAUDIA_PORT || 7890;
+const SHUTDOWN_TOKEN_PATH = path.join(os.homedir(), ".claudia", "shutdown-token");
 
 const sseClients = new Set();
 
@@ -70,6 +74,7 @@ app.use((req, res, next) => {
 });
 
 const MAX_SESSIONS = 100;
+const MAX_SSE_CLIENTS = 50;
 const VALID_STATES = new Set(["busy", "idle", "pending", "stopped"]);
 
 // Receive hook events from Claude Code
@@ -135,6 +140,9 @@ app.post("/hook/:type", (req, res) => {
 
 // SSE stream for browser UI
 app.get("/events", (req, res) => {
+  if (sseClients.size >= MAX_SSE_CLIENTS) {
+    return res.status(503).json({ error: "Too many connections" });
+  }
   res.set({
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
@@ -193,6 +201,12 @@ app.post("/api/launch", async (req, res) => {
   const { cwd } = req.body;
   if (!cwd || typeof cwd !== "string") {
     return res.status(400).json({ error: "Missing cwd" });
+  }
+
+  try {
+    await fs.access(cwd);
+  } catch {
+    return res.status(400).json({ error: "Directory not found" });
   }
 
   try {
@@ -258,6 +272,7 @@ app.post("/api/avatars/sets/:name", async (req, res) => {
 
 app.delete("/api/avatars/sets/:name", async (req, res) => {
   const { name } = req.params;
+  if (!isValidSetName(name)) return res.status(400).json({ error: "Invalid set name" });
   try {
     await deleteSet(name);
     res.json({ ok: true });
@@ -401,6 +416,9 @@ export async function startServer(port = PORT) {
   await ensureDefaults();
   tracker.start();
 
+  const shutdownToken = randomUUID();
+  await fs.writeFile(SHUTDOWN_TOKEN_PATH, shutdownToken);
+
   return new Promise((resolve) => {
     const server = app.listen(port, "127.0.0.1", () => {
       console.log(`Claudia listening on http://localhost:${port}`);
@@ -418,6 +436,9 @@ export async function startServer(port = PORT) {
 
     // Remote shutdown — lets a new instance replace this one
     app.post("/api/shutdown", (req, res) => {
+      if (!req.body || req.body.token !== shutdownToken) {
+        return res.status(401).json({ error: "Invalid token" });
+      }
       res.json({ ok: true });
       // Force exit after response flushes — closes terminal on Windows
       setTimeout(() => process.exit(0), 100);

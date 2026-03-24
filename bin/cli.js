@@ -3,7 +3,9 @@
 import { createInterface } from "node:readline";
 import { createServer as createNetServer } from "node:net";
 import { exec, execSync } from "node:child_process";
-import { platform } from "node:os";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { homedir, platform } from "node:os";
 import {
   readSettings,
   writeSettings,
@@ -23,6 +25,9 @@ switch (command) {
     break;
   case "teardown":
     await runTeardown();
+    break;
+  case "shutdown":
+    await runShutdown();
     break;
   default:
     await runStart();
@@ -126,6 +131,13 @@ async function runTeardown() {
   }
 }
 
+// --- shutdown ---
+
+async function runShutdown() {
+  const port = process.env.CLAUDIA_PORT || 7890;
+  await killExistingInstance(port);
+}
+
 // --- start ---
 
 async function runStart() {
@@ -174,8 +186,13 @@ function confirm(question) {
 
 async function killExistingInstance(port) {
   try {
-    // Ask the running instance to shut down gracefully (closes terminal too)
-    await fetch(`http://127.0.0.1:${port}/api/shutdown`, { method: "POST" });
+    const tokenPath = path.join(homedir(), ".claudia", "shutdown-token");
+    const token = await readFile(tokenPath, "utf-8").catch(() => "");
+    await fetch(`http://127.0.0.1:${port}/api/shutdown`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
   } catch {
     // Instance might not support /api/shutdown — force kill as fallback
     try {
