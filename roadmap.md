@@ -133,12 +133,12 @@ The last 20%. Native features that a browser tab can't provide.
 
 ### Terminal Focus (`packages/server/src/focus.js`)
 - [x] Define `focusTerminal(identifier)` interface
-- [x] Windows: PowerShell — find terminal window by title, `SetForegroundWindow`
-- [x] macOS: osascript — match terminal by window title
-- [x] Linux: xdotool/wmctrl — `windowactivate` by name
-- [x] Fallback: bring terminal app to front (no specific window match)
 - [x] Platform detection and strategy selection
-- [x] Test on each platform (web-based — platform-agnostic, focus.js is best-effort)
+- [x] Fallback: bring terminal app to front (no specific window match)
+- [x] Windows: `FlashWindowEx` (taskbar blink) + monitor-wide orange overlay flash + `SetForegroundWindow`
+- [x] macOS: NSWindow overlay flash on target monitor + `AXRaise` window focus
+- [x] Linux: python3/tkinter overlay flash + `xdotool windowactivate`
+- [x] Multi-monitor support: detect which monitor the terminal is on, flash that monitor only
 
 ### Known Limitations
 - **No "generating" state** — Claude Code only fires hooks around tool use. Between tools, the session stays in `busy` state until the `Stop` hook fires (turn complete). This is accurate enough — Claude is still working between tools — but doesn't distinguish "running a tool" from "composing text."
@@ -163,7 +163,30 @@ The last 20%. Native features that a browser tab can't provide.
 
 ---
 
-## Phase 6: Settings & Avatar Sets
+## Phase 6: Dashboard Intelligence
+
+Smarter session cards and ordering. The dashboard becomes a triage board — what needs attention is always on top.
+
+### Card Ordering
+- [ ] Sort cards by attention priority: **pending → idle → busy**
+- [ ] Within same state: most recent activity first
+- [ ] Busy sessions are lowest priority (working, leave them alone)
+- [ ] Smooth reorder animation when cards change position
+
+### Git Status on Cards
+- [ ] On session registration, read git info from session `cwd`
+- [ ] Three data points: is git repo, current branch, clean/dirty
+- [ ] Display on card: `main • clean` or `feat/auth • dirty`
+- [ ] Refresh git status on each state change event
+- [ ] Non-git directories show no git info (graceful absence, not an error)
+
+### Why
+- Card ordering eliminates scanning — the top card is always the one to act on
+- Git status prevents mistakes (working on wrong branch, dirty repo) without switching terminals
+
+---
+
+## Phase 7: Settings & Avatar Sets
 
 User-facing settings modal and persistent avatar management. Moves user data out of the package into `~/.claudia/`.
 
@@ -198,39 +221,29 @@ User-facing settings modal and persistent avatar management. Moves user data out
 
 ---
 
-## Phase 7: Hosted Terminal (Future)
+## Phase 8: Smart Launch
 
-Claudia spawns and hosts Claude Code sessions instead of just monitoring them. Users launch, switch, and interact with sessions entirely from the web dashboard.
+Spawn new Claude Code sessions from the dashboard. No embedded terminal — Claudia opens a real terminal window, hooks auto-connect the session back.
 
-### Architecture
+### UX Flow
+- [ ] `[+]` button in header bar (always visible, compact)
+- [ ] Click opens a popover (not modal) with recent projects from known `cwd`s
+- [ ] Projects sorted by last activity
+- [ ] "Browse folder..." option at bottom for new directories
+- [ ] Pick a project → server spawns terminal → popover closes
+- [ ] New session card appears on dashboard automatically via hook events
 
-```
-Browser (xterm.js)  ←WebSocket→  Claudia Server  ←PTY→  Claude Code process
-                                      ↕
-                                 Session registry
-                                 Scrollback buffer
-```
+### Server
+- [ ] `GET /api/projects` — return known project directories from session history
+- [ ] `POST /api/launch` — spawn a terminal at given `cwd` with `claude` running
+- [ ] Persist known projects across server restarts (small JSON file)
+- [ ] Platform-specific terminal spawn (cmd on Windows, default terminal on macOS/Linux)
 
-### Why
-- Terminal windows are hard to distinguish — Claudia can label and organize them
-- Focus/switch doesn't work reliably on Windows (OS blocks background focus stealing)
-- One UI for everything: status, notifications, and terminal interaction
-
-### How
-- [ ] `node-pty` spawns Claude Code as headless child process (no terminal window)
-- [ ] WebSocket transport alongside existing SSE for terminal I/O
-- [ ] `xterm.js` renders terminal in browser, click card to switch
-- [ ] Server holds PTY sessions + scrollback buffer — survives browser close/refresh
-- [ ] "New session" button spawns a new Claude Code instance with cwd picker
-- [ ] Graceful shutdown: SIGTERM → wait for idle sessions → kill
-
-### Risks
-- Server crash kills all hosted sessions (child processes die with parent)
-- Adds `node-pty` + `xterm.js` dependencies (breaks single-dependency principle)
-- Scope is large: PTY lifecycle, WebSocket, scrollback, reconnection
-
-### Coexistence
-Hosted sessions and hook-monitored sessions can coexist. Users who prefer their own terminal keep using hooks. Users who want the integrated experience spawn from Claudia.
+### Design Decisions
+- **No embedded terminal** — power users with multi-monitor setups need terminals spread across screens; tabs collapse parallel visibility into sequential attention
+- **No extra linking** — Claude Code hooks auto-register the session; Claudia just opens the terminal and waits
+- **Session-based, not project-based** — one project can have multiple sessions; flat card list avoids nesting/layering problems
+- **Claudia is air traffic control, not the airplane** — monitor, direct, launch; don't fly
 
 ---
 
@@ -243,5 +256,6 @@ Hosted sessions and hook-monitored sessions can coexist. Users who prefer their 
 | 3. CLI & Hooks | **Done** | `npx claudia` works end-to-end |
 | 4. Personality | **Done** | Claudia has character |
 | 5. OS Integration | **Done** | Terminal focus works |
-| 6. Settings & Avatar Sets | **Future** | Upload, switch, persist avatar sets |
-| 7. Hosted Terminal | **Future** | Spawn and interact from web |
+| 6. Dashboard Intelligence | **Next** | Attention-priority ordering, git status on cards |
+| 7. Settings & Avatar Sets | **Future** | Upload, switch, persist avatar sets |
+| 8. Smart Launch | **Future** | Spawn sessions from dashboard |

@@ -27,9 +27,18 @@
   }
 
   let config = $derived(stateConfig[session.state] || stateConfig.idle);
+
+  async function handleClick() {
+    try {
+      await fetch(`/focus/${session.id}`, { method: "POST" });
+    } catch {
+      // best-effort
+    }
+  }
 </script>
 
-<div class="card {session.state}">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="card {session.state}" onclick={handleClick} onkeydown={(e) => e.key === 'Enter' && handleClick()} tabindex="0" role="button">
   <div class="card-main">
     <span class="dot {config.dot}"></span>
     <div class="card-info">
@@ -58,7 +67,17 @@
     border-radius: 8px;
     background: var(--card-bg);
     border: 1px solid var(--border);
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, background 0.15s;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .card:hover {
+    background: var(--card-bg-hover, var(--card-bg));
+  }
+
+  .card:active {
+    opacity: 0.85;
   }
 
   .card.pending {

@@ -9,14 +9,20 @@ const strategies = {
   linux: focusLinux,
 };
 
-export function focusTerminal(displayName) {
+const FLASH_COLORS = {
+  navigate: { r: 100, g: 160, b: 255, hex: "#64A0FF" },
+  alert: { r: 255, g: 180, b: 80, hex: "#FFB450" },
+};
+
+export function focusTerminal(displayName, intent = "navigate") {
   const strategy = strategies[currentPlatform] || focusFallback;
-  return strategy(sanitize(displayName));
+  const color = FLASH_COLORS[intent] || FLASH_COLORS.navigate;
+  return strategy(sanitize(displayName), color);
 }
 
 function runExec(command) {
   return new Promise((resolve) => {
-    exec(command, { timeout: 5000 }, (err) => {
+    exec(command, { timeout: 10000 }, (err) => {
       resolve(!err);
     });
   });
@@ -24,30 +30,70 @@ function runExec(command) {
 
 function runFile(cmd, args) {
   return new Promise((resolve) => {
-    execFile(cmd, args, { timeout: 5000 }, (err) => {
+    execFile(cmd, args, { timeout: 10000 }, (err) => {
       resolve(!err);
     });
   });
 }
 
-function focusWindows(name) {
-  const ps = `
-    Add-Type -Name Win -Namespace Native -MemberDefinition '
-      [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
-    '
-    $procs = Get-Process | Where-Object { $_.MainWindowTitle -match '${name}' }
-    if ($procs) {
-      [Native.Win]::SetForegroundWindow($procs[0].MainWindowHandle)
-    } else {
-      $terms = Get-Process -Name WindowsTerminal,cmd,powershell -ErrorAction SilentlyContinue
-      if ($terms) { [Native.Win]::SetForegroundWindow($terms[0].MainWindowHandle) }
-    }
-  `.trim();
+function focusWindows(name, color) {
+  // Build PowerShell script as plain string to avoid template literal $ conflicts
+  const ps = [
+    "Add-Type -AssemblyName System.Windows.Forms",
+    "Add-Type -Language CSharp @\"\nusing System;\nusing System.Runtime.InteropServices;\npublic class WinHelper {\n  [DllImport(\"user32.dll\")] public static extern bool SetForegroundWindow(IntPtr hWnd);\n  [DllImport(\"user32.dll\")] public static extern bool IsIconic(IntPtr hWnd);\n  [DllImport(\"shcore.dll\")] public static extern int SetProcessDpiAwareness(int value);\n  [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }\n  [DllImport(\"dwmapi.dll\")] public static extern int DwmGetWindowAttribute(IntPtr hwnd, int attr, out RECT rect, int cbSize);\n  public static RECT GetWindowBounds(IntPtr hwnd) { RECT r; DwmGetWindowAttribute(hwnd, 9, out r, Marshal.SizeOf(typeof(RECT))); return r; }\n  [StructLayout(LayoutKind.Sequential)] public struct FLASHWINFO {\n    public uint cbSize; public IntPtr hwnd; public uint dwFlags; public uint uCount; public uint dwTimeout;\n  }\n  [DllImport(\"user32.dll\")] public static extern bool FlashWindowEx(ref FLASHWINFO pfwi);\n  public static void Flash(IntPtr hwnd) {\n    FLASHWINFO fi = new FLASHWINFO();\n    fi.cbSize = (uint)Marshal.SizeOf(typeof(FLASHWINFO));\n    fi.hwnd = hwnd;\n    fi.dwFlags = 14;\n    fi.uCount = 5;\n    fi.dwTimeout = 0;\n    FlashWindowEx(ref fi);\n  }\n}\n\"@",
+    "[WinHelper]::SetProcessDpiAwareness(2) | Out-Null",
+    "$procs = Get-Process | Where-Object { $_.MainWindowTitle -match '" + name + "' }",
+    "if (-not $procs) { $procs = Get-Process -Name WindowsTerminal,cmd,powershell -ErrorAction SilentlyContinue }",
+    "if ($procs) {",
+    "  $hwnd = $procs[0].MainWindowHandle",
+    "  [WinHelper]::Flash($hwnd)",
+    "  if (-not [WinHelper]::IsIconic($hwnd)) {",
+    "    $rect = [WinHelper]::GetWindowBounds($hwnd)",
+    "    $w = $rect.Right - $rect.Left",
+    "    $h = $rect.Bottom - $rect.Top",
+    "    if ($w -gt 0 -and $h -gt 0) {",
+    "      $form = New-Object System.Windows.Forms.Form",
+    "      $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::None",
+    "      $form.BackColor = [System.Drawing.Color]::FromArgb(" + color.r + ", " + color.g + ", " + color.b + ")",
+    "      $form.Opacity = 0.3",
+    "      $form.TopMost = $true",
+    "      $form.ShowInTaskbar = $false",
+    "      $form.StartPosition = [System.Windows.Forms.FormStartPosition]::Manual",
+    "      $form.Location = New-Object System.Drawing.Point($rect.Left, $rect.Top)",
+    "      $form.Size = New-Object System.Drawing.Size($w, $h)",
+    "      $form.Show()",
+    "      Start-Sleep -Milliseconds 400",
+    "      $form.Close()",
+    "    }",
+    "    [WinHelper]::SetForegroundWindow($hwnd) | Out-Null",
+    "  }",
+    "}",
+  ].join("\n");
   return runFile("powershell", ["-NoProfile", "-Command", ps]);
 }
 
-function focusMac(name) {
+function focusMac(name, color) {
   const script = `
+    use framework "AppKit"
+    use scripting additions
+
+    on flashOverWindow(wx, wy, ww, wh)
+      set screenH to current application's NSScreen's mainScreen()'s frame()'s |size|()'s height
+      set flippedY to screenH - wy - wh
+      set overlay to current application's NSWindow's alloc()'s initWithContentRect:{|x|:wx, y:flippedY, width:ww, height:wh} styleMask:0 backing:2 defer:false
+      overlay's setLevel:999
+      overlay's setOpaque:false
+      overlay's setBackgroundColor:(current application's NSColor's colorWithRed:${(color.r / 255).toFixed(2)} green:${(color.g / 255).toFixed(2)} blue:${(color.b / 255).toFixed(2)} alpha:0.3)
+      overlay's setIgnoresMouseEvents:true
+      overlay's makeKeyAndOrderFront:missing value
+      delay 0.4
+      overlay's orderOut:missing value
+    end flashOverWindow
+
+    on bounceDock(appName)
+      tell application appName to activate
+    end bounceDock
+
     tell application "System Events"
       set termApps to {"Terminal", "iTerm2", "Alacritty", "kitty", "Warp"}
       repeat with appName in termApps
@@ -55,8 +101,14 @@ function focusMac(name) {
           set appProc to process appName
           repeat with w in windows of appProc
             if name of w contains "${name}" then
-              set frontmost of appProc to true
-              perform action "AXRaise" of w
+              my bounceDock(appName as text)
+              if not miniaturized of w then
+                set {px, py} to position of w
+                set {sx, sy} to size of w
+                my flashOverWindow(px, py, sx, sy)
+                set frontmost of appProc to true
+                perform action "AXRaise" of w
+              end if
               return
             end if
           end repeat
@@ -64,7 +116,12 @@ function focusMac(name) {
       end repeat
       repeat with appName in termApps
         if (exists process appName) then
-          set frontmost of process appName to true
+          set appProc to process appName
+          set w to front window of appProc
+          set {px, py} to position of w
+          set {sx, sy} to size of w
+          my flashOverWindow(px, py, sx, sy)
+          set frontmost of appProc to true
           return
         end if
       end repeat
@@ -73,10 +130,39 @@ function focusMac(name) {
   return runFile("osascript", ["-e", script]);
 }
 
-async function focusLinux(name) {
-  if (await runFile("wmctrl", ["-a", name])) return true;
-  if (await runFile("xdotool", ["search", "--name", name, "windowactivate"])) return true;
-  return runExec(`wmctrl -a Terminal || xdotool search --class terminal windowactivate`);
+async function focusLinux(name, color) {
+  const flashAndFocus = `
+    WID=$(xdotool search --name '${name}' 2>/dev/null | head -1)
+    if [ -z "$WID" ]; then
+      WID=$(xdotool search --class terminal 2>/dev/null | head -1)
+    fi
+    if [ -n "$WID" ]; then
+      # Check if minimized (iconic state)
+      # Always: urgency hint (taskbar flash)
+      xdotool set_window --urgency 1 "$WID" 2>/dev/null
+      # If visible: overlay + focus
+      STATE=$(xprop -id "$WID" WM_STATE 2>/dev/null | grep -c "Iconic")
+      if [ "$STATE" -eq 0 ]; then
+        eval $(xdotool getwindowgeometry --shell "$WID")
+        if command -v python3 >/dev/null 2>&1; then
+          python3 -c "
+import tkinter as tk
+root = tk.Tk()
+root.overrideredirect(True)
+root.attributes('-topmost', True)
+root.attributes('-alpha', 0.3)
+root.configure(bg='${color.hex}')
+root.geometry(f'$WIDTH' + 'x' + '$HEIGHT' + '+' + '$X' + '+' + '$Y')
+root.update()
+root.after(400, root.destroy)
+root.mainloop()
+" &
+        fi
+        xdotool windowactivate "$WID"
+      fi
+    fi
+  `;
+  return runExec(flashAndFocus);
 }
 
 function focusFallback() {
