@@ -215,18 +215,16 @@
         </div>
       </section>
 
-      <section>
-        <h3>Upload New Set</h3>
-        <div class="upload-form">
-          <label class="field">
-            <span>Set name</span>
-            <input
-              type="text"
-              bind:value={newSetName}
-              placeholder="e.g. pixel-art"
-              maxlength="50"
-            />
-          </label>
+      <details class="upload-section">
+        <summary>Upload New Set</summary>
+        <div class="upload-content">
+          <input
+            class="set-name-input"
+            type="text"
+            bind:value={newSetName}
+            placeholder="Set name"
+            maxlength="50"
+          />
           <div class="file-fields">
             <label class="file-field">
               <span>Idle</span>
@@ -245,10 +243,10 @@
             </label>
           </div>
           <button class="upload-btn" onclick={uploadSet} disabled={uploading}>
-            {uploading ? "Uploading..." : "Upload Set"}
+            {uploading ? "Uploading..." : "Upload"}
           </button>
         </div>
-      </section>
+      </details>
     </div>
   </div>
 </div>
@@ -521,35 +519,64 @@
 
   /* --- Upload form --- */
 
-  .upload-form {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+  .upload-section {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
   }
 
-  .field {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .field span {
+  .upload-section summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 10px 12px;
     font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     color: var(--text-muted);
   }
 
-  .field input[type="text"] {
+  .upload-section summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .upload-section summary::after {
+    content: " +";
+  }
+
+  .upload-section[open] summary::after {
+    content: " −";
+  }
+
+  .upload-content {
+    padding: 0 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .set-name-input {
     background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .set-name-input {
+    background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 8px 10px;
     color: var(--text);
-    font-size: 14px;
+    font-size: 13px;
     outline: none;
     transition: border-color 0.15s;
   }
 
-  .field input[type="text"]:focus {
+  .set-name-input:focus {
     border-color: var(--blue);
   }
 
@@ -599,11 +626,12 @@
     color: white;
     border: none;
     border-radius: 6px;
-    padding: 8px 16px;
-    font-size: 13px;
+    padding: 7px 16px;
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
     transition: opacity 0.15s;
+    align-self: flex-end;
   }
 
   .upload-btn:hover {
