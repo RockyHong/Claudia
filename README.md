@@ -81,6 +81,40 @@ npx claudia teardown   # Remove Claudia hooks (keeps your other hooks)
 - Node.js 18+
 - Claude Code (with hooks support)
 
+## Customization
+
+### Avatar Videos
+
+Upload avatar sets through the Settings modal in the dashboard, or place files directly:
+
+```
+~/.claudia/avatars/
+  default/
+    idle.webm
+    busy.webm
+    pending.webm
+  my-custom-set/
+    idle.webm
+    busy.webm
+    pending.webm
+```
+
+Supported formats: `.webm`, `.mp4`. Switch between sets from Settings — no restart needed.
+
+### Sound Effects
+
+Claudia plays a sound when a session needs your attention (pending) or finishes a task (idle). This triggers per session, not just on aggregate state.
+
+Out of the box, she uses synthesized tones via Web Audio API. To use custom audio (e.g. a TTS voice), drop MP3 files here:
+
+```
+packages/server/assets/sfx/
+  pending.mp3
+  idle.mp3
+```
+
+If the files exist, Claudia plays them. If not, she falls back to the built-in tones. Volume and mute controls are in the Settings modal.
+
 ## Uninstall
 
 ```bash
