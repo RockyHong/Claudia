@@ -19,7 +19,7 @@ let spawnCounter = 0;
 function generateTerminalTitle(cwd) {
   const name = cwd.replace(/\\/g, "/").split("/").filter(Boolean).pop() || "session";
   const uid = (++spawnCounter).toString(36).padStart(2, "0");
-  return `${name}-${uid}`;
+  return `claudia · ${name}-${uid}`;
 }
 
 const strategies = {
