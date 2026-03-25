@@ -2,7 +2,7 @@
 
 import { createInterface } from "node:readline";
 import { createServer as createNetServer } from "node:net";
-import { exec, execSync } from "node:child_process";
+import { exec, execFile, execSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { homedir, platform } from "node:os";
@@ -231,13 +231,13 @@ function hasCurl() {
 
 function openBrowser(url) {
   const commands = {
-    win32: `start "" "${url}"`,
-    darwin: `open "${url}"`,
-    linux: `xdg-open "${url}"`,
+    win32: ["cmd", ["/c", "start", "", url]],
+    darwin: ["open", [url]],
+    linux: ["xdg-open", [url]],
   };
-  const cmd = commands[platform()];
-  if (cmd) {
-    exec(cmd, () => {
+  const entry = commands[platform()];
+  if (entry) {
+    execFile(entry[0], entry[1], () => {
       // Silently ignore errors — browser open is best-effort
     });
   }
