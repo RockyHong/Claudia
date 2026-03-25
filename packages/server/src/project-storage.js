@@ -33,6 +33,7 @@ export async function trackProject(cwd) {
 
   // Skip disk I/O if this path was already seen this server run
   if (knownPaths.has(normalized)) return;
+  if (knownPaths.size >= MAX_PROJECTS * 2) knownPaths.clear();
   knownPaths.add(normalized);
 
   const projects = await readProjects();

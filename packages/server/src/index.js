@@ -47,8 +47,17 @@ const tracker = createSessionTracker({
 
 function broadcast(update) {
   const data = JSON.stringify(update);
-  for (const res of sseClients) {
-    res.write(`data: ${data}\n\n`);
+  for (const res of Array.from(sseClients)) {
+    if (res.writableEnded || res.destroyed) {
+      sseClients.delete(res);
+      continue;
+    }
+    res.write(`data: ${data}\n\n`, (err) => {
+      if (err) {
+        sseClients.delete(res);
+        res.end();
+      }
+    });
   }
 }
 

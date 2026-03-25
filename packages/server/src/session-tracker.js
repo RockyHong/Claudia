@@ -164,7 +164,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
     // Refresh git status on new sessions, cwd changes, and idle (work complete)
     const shouldRefreshGit = getGitStatus && (isNew || cwdChanged || state === "idle");
     if (shouldRefreshGit) {
-      refreshGit(session).then(notify);
+      refreshGit(session).then(notify).catch(() => {});
     } else {
       notify();
     }
