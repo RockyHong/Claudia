@@ -170,9 +170,9 @@ Expand test coverage beyond the core logic. Prioritized by testability and value
 - [x] `project-storage.js` — read/write JSON, handle missing file, handle corrupt file, deduplication
 
 ### Tier 2: API Layer (light mocking of dependencies)
-- [ ] `routes-api.js` — test each route handler: `/api/sessions`, `/api/projects`, `/api/launch`, `/api/avatar/*`
-- [ ] `index.js` — SSE connection lifecycle, event broadcast, static file serving, hook endpoint wiring
-- [ ] `sfx-preview.js` — serve audio files, 404 on missing file
+- [x] `routes-api.js` — test each route handler: `/api/sessions`, `/api/projects`, `/api/launch`, `/api/avatar/*`
+- [x] `index.js` — SSE connection lifecycle, event broadcast, static file serving, hook endpoint wiring
+- [x] `sfx-preview.js` — serve audio files, 404 on missing file
 
 ### Tier 3: OS-Dependent (need platform mocks or conditional tests)
 - [x] `git-status.js` — mock `child_process.exec`, test branch/dirty/clean/non-repo parsing
