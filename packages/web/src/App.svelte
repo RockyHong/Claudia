@@ -11,7 +11,7 @@
   let aggregateState = $state("idle");
   let statusMessage = $state("");
   let previousStates = $state(new Map());
-  let bgMode = $state(false);
+  let bgMode = $state(localStorage.getItem("claudia-immersive") === "true");
   let showSettings = $state(false);
   let showSpawn = $state(false);
   let avatarVersion = $state(0);
@@ -119,7 +119,7 @@
           Enable notifications
         </button>
       {/if}
-      <button class="header-btn" class:active={bgMode} onclick={() => bgMode = !bgMode}>
+      <button class="header-btn" class:active={bgMode} onclick={() => { bgMode = !bgMode; localStorage.setItem("claudia-immersive", bgMode); }}>
         Immersive
       </button>
       <button class="header-btn" onclick={() => showSettings = true}>
