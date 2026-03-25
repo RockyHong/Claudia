@@ -48,3 +48,6 @@ packages/web/public/avatar/*.mp4
 
 # Sound effects (user-provided, not shipped)
 packages/server/assets/sfx/
+
+# App icon (not finalized)
+packages/server/assets/icon.ico
