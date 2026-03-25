@@ -130,6 +130,18 @@ Hook types: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Pe
 
 SSE stream at `GET /events` pushes state updates to the browser. See `overview.md` for the full protocol.
 
+## Git Notes
+
+- **No Git LFS** — This repo does not use LFS. However, the dev machine has LFS installed globally, which can cause push failures (`This repository exceeded its LFS budget`). If this happens, disable the LFS filter locally:
+  ```bash
+  git config --local filter.lfs.required false
+  git config --local filter.lfs.clean ""
+  git config --local filter.lfs.smudge ""
+  git config --local filter.lfs.process ""
+  git config --local lfs.repositoryformatversion ""
+  ```
+  This was applied on 2026-03-25. If you reinstall Git or clone fresh, you may need to reapply.
+
 ## Planning
 
 - `roadmap.md` — Phase-by-phase plan with checkboxes (source of truth for what's done/TODO)
