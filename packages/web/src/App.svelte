@@ -15,6 +15,7 @@
   let showSettings = $state(false);
   let showSpawn = $state(false);
   let avatarVersion = $state(0);
+  let sseConnected = $state(true);
 
   const sfx = createSFXController();
 
@@ -24,6 +25,8 @@
     statusMessage = update.statusMessage || "";
     handleSessionTransitions(update.sessions);
     updateDocumentTitle(update.aggregateState, update.sessions);
+  }, (connected) => {
+    sseConnected = connected;
   });
 
   function handleSessionTransitions(currentSessions) {
@@ -134,7 +137,7 @@
     <SessionList {sessions} />
   </main>
 
-  <StatusBar {aggregateState} {statusMessage} sessionCount={sessions.length} />
+  <StatusBar {aggregateState} statusMessage={sseConnected ? statusMessage : "Disconnected — retrying…"} sessionCount={sessions.length} disconnected={!sseConnected} />
 
   {#if showSettings}
     <SettingsModal

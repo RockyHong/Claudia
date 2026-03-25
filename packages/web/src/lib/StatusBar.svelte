@@ -1,7 +1,7 @@
 <script>
-  let { aggregateState = "idle", statusMessage = "", sessionCount = 0 } = $props();
+  let { aggregateState = "idle", statusMessage = "", sessionCount = 0, disconnected = false } = $props();
 
-  let dotClass = $derived(`dot-${aggregateState}`);
+  let dotClass = $derived(disconnected ? "dot-disconnected" : `dot-${aggregateState}`);
 </script>
 
 <div class="status-bar">
@@ -31,6 +31,12 @@
   .dot-idle { background: var(--green); }
   .dot-busy { background: var(--blue); }
   .dot-pending { background: var(--orange); }
+  .dot-disconnected { background: var(--gray); animation: pulse 2s infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
 
   .message {
     flex: 1;
