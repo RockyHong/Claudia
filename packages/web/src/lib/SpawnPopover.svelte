@@ -78,8 +78,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="backdrop" onclick={handleBackdropClick}></div>
+<div class="backdrop" role="presentation" onclick={handleBackdropClick}></div>
 <div class="popover">
     <div class="popover-header">
       <span class="popover-title">Launch session</span>

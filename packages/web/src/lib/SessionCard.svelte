@@ -43,7 +43,7 @@
   class="card {session.state}"
   class:clickable={session.spawned}
   onclick={handleClick}
-  onkeydown={(e) => e.key === 'Enter' && handleClick()}
+  onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), handleClick())}
   tabindex={session.spawned ? 0 : -1}
   role={session.spawned ? "button" : undefined}
 >

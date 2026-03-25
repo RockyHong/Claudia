@@ -155,7 +155,7 @@
                 class="set-card"
                 class:active={set.active}
                 onclick={() => switchSet(set.name)}
-                onkeydown={(e) => { if (e.key === "Enter") switchSet(set.name); }}
+                onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); switchSet(set.name); } }}
                 role="button"
                 tabindex="0"
               >
