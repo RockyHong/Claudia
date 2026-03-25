@@ -296,3 +296,9 @@ User-facing settings modal and persistent avatar management. Moves user data out
 | 6. Session Launcher & Control | **Done** | Spawn, navigate, flash — own the lifecycle |
 | 7. Settings & Avatar Sets | **Done** | Upload, switch, persist avatar sets |
 | 8. Test Coverage | **TODO** | Pure logic → API → OS → Frontend |
+
+---
+
+## Known Bugs
+
+- [x] **SFX not playing** — Root cause: AudioContext created from SSE handler (non-user-gesture) stays suspended. Fix: unlock AudioContext on first click/keydown interaction.

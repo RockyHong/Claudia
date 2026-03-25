@@ -59,6 +59,15 @@ function ensureContextReady() {
   return resumePromise || Promise.resolve();
 }
 
+// Unlock AudioContext on first user interaction (browsers require a gesture)
+function unlockAudio() {
+  getContext();
+  document.removeEventListener("click", unlockAudio);
+  document.removeEventListener("keydown", unlockAudio);
+}
+document.addEventListener("click", unlockAudio);
+document.addEventListener("keydown", unlockAudio);
+
 function synthPendingChime(volume) {
   const ctx = getContext();
   const now = ctx.currentTime;
