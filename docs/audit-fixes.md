@@ -86,6 +86,10 @@ Issues found in the 2026-03-25 audit. Ordered by effort (quick wins first).
 
 - [ ] **Verbose logging of hook stdin (index.js:120).** Notification/Stop/SessionEnd bodies logged to stdout. Could contain sensitive user prompts. Remove or redact in production.
 
+- [ ] **CORS headers leak on non-matching origins (index.js:68-71).** `Access-Control-Allow-Methods` and `Access-Control-Allow-Headers` are set on ALL responses regardless of origin match. Move these inside the `if (ALLOWED_ORIGINS.includes(origin))` block.
+
+- [ ] **No file magic byte validation in multipart upload (index.js:473-512).** Files are validated by filename only (`VALID_FILENAMES`), not content. A file named `idle.webm` containing executable code would pass. Add a basic magic byte check (webm starts with `0x1A45DFA3`, mp4 with `ftyp` at offset 4).
+
 ## Robustness Fixes
 
 - [ ] **SSE broadcast doesn't handle write errors (index.js:48-52).** `res.write()` to a dead socket fails silently; dead client never removed from `sseClients`. Check `res.writableEnded` before writing, remove client on error.
