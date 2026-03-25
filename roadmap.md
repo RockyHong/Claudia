@@ -176,8 +176,8 @@ Expand test coverage beyond the core logic. Prioritized by testability and value
 
 ### Tier 3: OS-Dependent (need platform mocks or conditional tests)
 - [x] `git-status.js` — mock `child_process.exec`, test branch/dirty/clean/non-repo parsing
-- [ ] `focus.js` — mock platform APIs, test strategy selection per OS, fallback behavior
-- [ ] `spawner.js` — mock `child_process.spawn`, test terminal launch command per platform
+- [x] `focus.js` — mock platform APIs, test strategy selection per OS, fallback behavior
+- [x] `spawner.js` — mock `child_process.spawn`, test terminal launch command per platform
 
 ### Tier 4: Frontend
 - [ ] Set up Svelte component testing (vitest + @testing-library/svelte)
