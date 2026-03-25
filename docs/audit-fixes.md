@@ -68,63 +68,63 @@ Issues found in the 2026-03-25 audit. Ordered by effort (quick wins first).
 
 ## Quick Fixes
 
-- [ ] **Dead code: unused `sleep()` in spawner.js:227-229.** Defined but never called. Delete it.
+- [x] **Dead code: unused `sleep()` in spawner.js:227-229.** Defined but never called. Delete it.
 
-- [ ] **SpawnPopover browse race condition (SpawnPopover.svelte:56-68).** If `launch()` fails after `browse()`, `browsing` stays `true` permanently — button disabled forever. Add `finally { browsing = false; }`.
+- [x] ~~**SpawnPopover browse race condition**~~ — false positive: `browsing = false` is already outside try/catch on line 67.
 
-- [ ] **CSS duplicate `.set-name-input` in SettingsModal.svelte:558-577.** Two rule blocks for the same selector — first is fully overwritten by second. Remove the dead first block.
+- [x]**CSS duplicate `.set-name-input` in SettingsModal.svelte:558-577.** Two rule blocks for the same selector — first is fully overwritten by second. Remove the dead first block.
 
-- [ ] **AudioContext.resume() not awaited in sfx.js:48-52.** `resume()` returns a promise but isn't awaited. First SFX can fail silently on Safari/Chrome when context is suspended. Await it or chain playback after resume.
+- [x]**AudioContext.resume() not awaited in sfx.js:48-52.** `resume()` returns a promise but isn't awaited. First SFX can fail silently on Safari/Chrome when context is suspended. Await it or chain playback after resume.
 
 ## Security Fixes
 
-- [ ] **Command injection in cli.js openBrowser() (line 232-243).** URL interpolated into `exec()` shell command. Use `execFile()` with args array instead of `exec()` with string interpolation.
+- [x]**Command injection in cli.js openBrowser() (line 232-243).** URL interpolated into `exec()` shell command. Use `execFile()` with args array instead of `exec()` with string interpolation.
 
-- [ ] **PowerShell injection in focus.js orphan name matching (line 112).** Display name interpolated into PowerShell string with single quotes. A name containing `'` breaks the quoting. Apply `name.replace(/'/g, "''")` for PS escaping (spawner.js already does this — focus.js doesn't).
+- [x]**PowerShell injection in focus.js orphan name matching (line 112).** Display name interpolated into PowerShell string with single quotes. A name containing `'` breaks the quoting. Apply `name.replace(/'/g, "''")` for PS escaping (spawner.js already does this — focus.js doesn't).
 
-- [ ] **Shutdown token file permissions (index.js:542).** Written without restrictive mode. Add `{ mode: 0o600 }` to `fs.writeFile` so other local users can't read it.
+- [x]**Shutdown token file permissions (index.js:542).** Written without restrictive mode. Add `{ mode: 0o600 }` to `fs.writeFile` so other local users can't read it.
 
-- [ ] **Verbose logging of hook stdin (index.js:120).** Notification/Stop/SessionEnd bodies logged to stdout. Could contain sensitive user prompts. Remove or redact in production.
+- [x]**Verbose logging of hook stdin (index.js:120).** Notification/Stop/SessionEnd bodies logged to stdout. Could contain sensitive user prompts. Remove or redact in production.
 
-- [ ] **CORS headers leak on non-matching origins (index.js:68-71).** `Access-Control-Allow-Methods` and `Access-Control-Allow-Headers` are set on ALL responses regardless of origin match. Move these inside the `if (ALLOWED_ORIGINS.includes(origin))` block.
+- [x]**CORS headers leak on non-matching origins (index.js:68-71).** `Access-Control-Allow-Methods` and `Access-Control-Allow-Headers` are set on ALL responses regardless of origin match. Move these inside the `if (ALLOWED_ORIGINS.includes(origin))` block.
 
-- [ ] **No file magic byte validation in multipart upload (index.js:473-512).** Files are validated by filename only (`VALID_FILENAMES`), not content. A file named `idle.webm` containing executable code would pass. Add a basic magic byte check (webm starts with `0x1A45DFA3`, mp4 with `ftyp` at offset 4).
+- [x]**No file magic byte validation in multipart upload (index.js:473-512).** Files are validated by filename only (`VALID_FILENAMES`), not content. A file named `idle.webm` containing executable code would pass. Add a basic magic byte check (webm starts with `0x1A45DFA3`, mp4 with `ftyp` at offset 4).
 
 ## Robustness Fixes
 
-- [ ] **SSE broadcast doesn't handle write errors (index.js:48-52).** `res.write()` to a dead socket fails silently; dead client never removed from `sseClients`. Check `res.writableEnded` before writing, remove client on error.
+- [x]**SSE broadcast doesn't handle write errors (index.js:48-52).** `res.write()` to a dead socket fails silently; dead client never removed from `sseClients`. Check `res.writableEnded` before writing, remove client on error.
 
-- [ ] **SSE broadcast should snapshot clients (index.js:50).** Iterating `sseClients` while `req.on("close")` can delete from it mid-iteration. Use `Array.from(sseClients)` before the loop.
+- [x]**SSE broadcast should snapshot clients (index.js:50).** Iterating `sseClients` while `req.on("close")` can delete from it mid-iteration. Use `Array.from(sseClients)` before the loop.
 
-- [ ] **windowCheckRunning not reset on early return (index.js:522).** `if (spawned.length === 0) return` exits before `finally` — actually wait, `finally` does run on return. ~~This is fine.~~ Verified: `finally` runs, no bug.
+- [x]**windowCheckRunning not reset on early return (index.js:522).** `if (spawned.length === 0) return` exits before `finally` — actually wait, `finally` does run on return. ~~This is fine.~~ Verified: `finally` runs, no bug.
 
-- [ ] **Unhandled rejection: refreshGit().then(notify) (session-tracker.js:167).** If `getGitStatus` rejects in a way the catch doesn't cover, the `.then(notify)` chain rejects unhandled. Add `.catch(() => {})` to the chain.
+- [x]**Unhandled rejection: refreshGit().then(notify) (session-tracker.js:167).** If `getGitStatus` rejects in a way the catch doesn't cover, the `.then(notify)` chain rejects unhandled. Add `.catch(() => {})` to the chain.
 
-- [ ] **project-storage.js knownPaths cache unbounded.** Grows indefinitely over long server lifetime. Add MAX_CACHE or periodic pruning.
+- [x]**project-storage.js knownPaths cache unbounded.** Grows indefinitely over long server lifetime. Add MAX_CACHE or periodic pruning.
 
 ## Medium Fixes
 
-- [ ] **A11y: Space key not handled on button-role elements.** `SessionCard.svelte:46` and `SettingsModal.svelte:154-160` only handle Enter, not Space. Elements with `role="button"` should respond to both. Also `SpawnPopover.svelte:82` backdrop has no role/aria attributes.
+- [x]**A11y: Space key not handled on button-role elements.** `SessionCard.svelte:46` and `SettingsModal.svelte:154-160` only handle Enter, not Space. Elements with `role="button"` should respond to both. Also `SpawnPopover.svelte:82` backdrop has no role/aria attributes.
 
-- [ ] **No SSE disconnect indicator (sse.js).** When the server is down, the UI shows stale data with no visual hint. Add a connection status signal so the UI can show a "disconnected" state.
+- [x]**No SSE disconnect indicator (sse.js).** When the server is down, the UI shows stale data with no visual hint. Add a connection status signal so the UI can show a "disconnected" state.
 
-- [ ] **Truncate tool_name from hooks (hook-transform.js:7-9).** `input.tool_name` stored without length limit. Add `.slice(0, 100)`.
+- [x]**Truncate tool_name from hooks (hook-transform.js:7-9).** `input.tool_name` stored without length limit. Add `.slice(0, 100)`.
 
 ## Larger Refactors
 
-- [ ] **index.js is 583 lines (~3x the ~200 line ceiling).** Mixes routing, multipart parsing, SFX preview HTML, avatar middleware caching, and shutdown logic. Split into focused modules (e.g. `routes/`, `multipart-parser.js`). This is the biggest CLAUDE.md principle violation in the codebase.
+- [x]**index.js is 583 lines (~3x the ~200 line ceiling).** Mixes routing, multipart parsing, SFX preview HTML, avatar middleware caching, and shutdown logic. Split into focused modules (e.g. `routes/`, `multipart-parser.js`). This is the biggest CLAUDE.md principle violation in the codebase.
 
 ## Test Coverage
 
 Server tests are strong for core modules (session-tracker 93%, hooks 97%, hook-transform 100%, avatar-storage 98%). Major gaps:
 
-- [ ] **index.js routes: 0% coverage.** HTTP validation (400/429 responses), SSE broadcast, multipart parser — all untested. This is the highest-value test target.
+- [x]**index.js routes: 0% coverage.** HTTP validation (400/429 responses), SSE broadcast, multipart parser — all untested. This is the highest-value test target.
 
-- [ ] **focus.js, spawner.js: 0% coverage.** Platform-specific code. Hard to test (needs mocked exec), but `sanitize()`, `generateTerminalTitle()`, and argument escaping are testable pure functions.
+- [x]**focus.js, spawner.js: 0% coverage.** Platform-specific code. Hard to test (needs mocked exec), but `sanitize()`, `generateTerminalTitle()`, and argument escaping are testable pure functions.
 
-- [ ] **git-status.js, project-storage.js, personality.js: 0% coverage.** Easy wins — small files, pure logic, no mocking needed for most paths.
+- [x]**git-status.js, project-storage.js, personality.js: 0% coverage.** Easy wins — small files, pure logic, no mocking needed for most paths.
 
-- [ ] **Web layer: 0% coverage.** No Svelte component tests exist. sse.js and sfx.js are testable JS modules.
+- [x]**Web layer: 0% coverage.** No Svelte component tests exist. sse.js and sfx.js are testable JS modules.
 
 ---
 
