@@ -57,11 +57,13 @@ Ask "why" before "how." Don't add a library because it's popular — add it beca
 
 Each module owns one responsibility:
 
-- **Transport** (`server/src/index.js`) — HTTP routing, SSE connections, request parsing
+- **Transport** (`server/src/index.js`) — SSE, event/hook endpoints, server lifecycle
+- **API Routes** (`server/src/routes-api.js`) — Projects, avatars, focus, launch
 - **State** (`server/src/session-tracker.js`) — Session registry, state transitions
 - **Presentation** (`server/src/personality.js`) — Status message templates
 - **OS Integration** (`server/src/focus.js`) — Terminal focus
 - **CLI Integration** (`server/src/hooks.js`) — Hook config management
+- **Upload Parsing** (`server/src/multipart.js`) — Multipart form-data parser
 - **UI** (`packages/web/`) — Renders state
 
 If you find yourself importing across these boundaries in unexpected directions, the design is wrong. Fix the boundary, don't bridge it.
