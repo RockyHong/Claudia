@@ -34,9 +34,11 @@ async function spawnWindows(cwd) {
 
   // Launch in a dedicated WT window via PowerShell (resolves Store app alias).
   // --suppressApplicationTitle keeps our title even after Claude starts.
+  // Pass -ArgumentList as a single quoted string with inner quoting so that
+  // Start-Process preserves spaces in --title and -d values on the command line.
   const wtArgs = ["-w", "new", "--title", terminalTitle, "--suppressApplicationTitle", "-d", fwdCwd, "cmd", "/k", "claude"];
-  const psList = wtArgs.map((a) => '"' + a.replace(/"/g, '`"') + '"').join(",");
-  const ps = `Start-Process wt -ArgumentList @(${psList})`;
+  const wtArgLine = wtArgs.map((a) => (/[\s"]/.test(a) ? `"${a.replace(/"/g, '`"')}"` : a)).join(" ");
+  const ps = `Start-Process wt -ArgumentList '${wtArgLine.replace(/'/g, "''")}'`;
 
   await runPowerShell(ps);
 
