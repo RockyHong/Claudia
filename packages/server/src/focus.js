@@ -219,6 +219,34 @@ function focusFallback() {
   return Promise.resolve(false);
 }
 
+/**
+ * Check which window handles from the given array are no longer valid.
+ * Returns a Set of handles whose windows have been closed.
+ * Only works on win32 — returns empty set on other platforms.
+ */
+export function findDeadWindows(handles) {
+  if (currentPlatform !== "win32" || handles.length === 0) {
+    return Promise.resolve(new Set());
+  }
+
+  const handleList = handles.join(",");
+  const ps = [
+    'Add-Type -Language CSharp @"\nusing System; using System.Runtime.InteropServices;\npublic class WinCheck { [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr hWnd); }\n"@',
+    `$handles = @(${handleList})`,
+    "$handles | ForEach-Object { if (-not [WinCheck]::IsWindow([IntPtr]$_)) { $_ } }",
+  ].join("\n");
+
+  return new Promise((resolve) => {
+    execFile("powershell", ["-NoProfile", "-Command", ps], { timeout: 10000 }, (err, stdout) => {
+      if (err) return resolve(new Set());
+      const dead = new Set(
+        stdout.trim().split(/\r?\n/).filter(Boolean).map(Number).filter((n) => n > 0),
+      );
+      resolve(dead);
+    });
+  });
+}
+
 // Allowlist: only keep characters safe for window title matching
 function sanitize(str) {
   return str.replace(/[^a-zA-Z0-9\-_. ]/g, "");

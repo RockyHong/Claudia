@@ -6,7 +6,7 @@ import os from "node:os";
 import express from "express";
 import { createSessionTracker } from "./session-tracker.js";
 import { getStatusMessage } from "./personality.js";
-import { focusTerminal } from "./focus.js";
+import { focusTerminal, findDeadWindows } from "./focus.js";
 import { getGitStatus } from "./git-status.js";
 import { trackProject, listProjects, removeProject } from "./project-storage.js";
 import { spawnSession, browseFolder } from "./spawner.js";
@@ -116,7 +116,7 @@ app.post("/hook/:type", (req, res) => {
     return res.status(400).json({ error: "Unknown hook type" });
   }
 
-  if (type === "Notification" || type === "Stop") {
+  if (type === "Notification" || type === "Stop" || type === "SessionEnd") {
     console.log(`[hook] ${type} stdin:`, JSON.stringify(req.body));
   }
 
@@ -511,9 +511,32 @@ function extractParts(body, boundary) {
   return files;
 }
 
+const WINDOW_CHECK_INTERVAL_MS = 5_000;
+let windowCheckRunning = false;
+
+async function pruneDeadSpawnedSessions() {
+  if (windowCheckRunning) return;
+  windowCheckRunning = true;
+  try {
+    const spawned = tracker.getSessions().filter((s) => s.spawned && s.windowHandle);
+    if (spawned.length === 0) return;
+
+    const dead = await findDeadWindows(spawned.map((s) => s.windowHandle));
+    for (const session of spawned) {
+      if (dead.has(session.windowHandle)) {
+        console.log(`[prune] window closed for "${session.displayName}" (hwnd=${session.windowHandle})`);
+        tracker.handleEvent({ session: session.id, state: "stopped" });
+      }
+    }
+  } finally {
+    windowCheckRunning = false;
+  }
+}
+
 export async function startServer(port = PORT) {
   await ensureDefaults();
   tracker.start();
+  const windowCheckInterval = setInterval(pruneDeadSpawnedSessions, WINDOW_CHECK_INTERVAL_MS);
 
   const shutdownToken = randomUUID();
   await fs.writeFile(SHUTDOWN_TOKEN_PATH, shutdownToken);
@@ -525,6 +548,7 @@ export async function startServer(port = PORT) {
     });
 
     const shutdown = () => {
+      clearInterval(windowCheckInterval);
       tracker.stop();
       for (const client of sseClients) {
         client.end();

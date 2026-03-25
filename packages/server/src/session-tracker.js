@@ -182,6 +182,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
       pendingMessage: s.pendingMessage,
       spawned: s.spawned,
       terminalTitle: s.terminalTitle,
+      windowHandle: s.windowHandle,
       git: s.git,
     }));
   }
