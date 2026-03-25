@@ -19,8 +19,15 @@ afterEach(async () => {
 	}
 });
 
+// EBML header for .webm, "ftyp" at offset 4 for .mp4
+const WEBM_MAGIC = Buffer.from([0x1a, 0x45, 0xdf, 0xa3]);
+const MP4_MAGIC = Buffer.from([0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70]);
+
 function fakeFile(name, size = 100) {
-	return { name, data: Buffer.alloc(size, 0x42) };
+	const data = Buffer.alloc(size, 0x42);
+	const magic = name.endsWith(".webm") ? WEBM_MAGIC : MP4_MAGIC;
+	magic.copy(data);
+	return { name, data };
 }
 
 describe("isValidSetName", () => {
@@ -125,6 +132,11 @@ describe("createSet", () => {
 
 	it("rejects invalid filenames", async () => {
 		await expect(storage.createSet("bad-files", [{ name: "malware.exe", data: Buffer.alloc(10) }])).rejects.toThrow("Invalid filename");
+	});
+
+	it("rejects files with wrong magic bytes", async () => {
+		const badContent = { name: "idle.webm", data: Buffer.alloc(100, 0x00) };
+		await expect(storage.createSet("bad-magic", [badContent])).rejects.toThrow("Invalid file content");
 	});
 
 	it("rejects files over size limit", async () => {

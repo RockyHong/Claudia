@@ -7,6 +7,19 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export const VALID_FILENAMES = new Set(["idle.webm", "idle.mp4", "busy.webm", "busy.mp4", "pending.webm", "pending.mp4"]);
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+// Magic bytes for video format validation
+const MAGIC_BYTES = {
+	webm: { offset: 0, bytes: [0x1a, 0x45, 0xdf, 0xa3] },   // EBML header
+	mp4:  { offset: 4, bytes: [0x66, 0x74, 0x79, 0x70] },    // "ftyp"
+};
+
+function hasValidMagicBytes(data, filename) {
+	const ext = filename.split(".").pop();
+	const magic = MAGIC_BYTES[ext];
+	if (!magic || data.length < magic.offset + magic.bytes.length) return false;
+	return magic.bytes.every((b, i) => data[magic.offset + i] === b);
+}
 const SET_NAME_RE = /^[a-zA-Z0-9][a-zA-Z0-9 _-]{0,48}[a-zA-Z0-9]$/;
 const BUNDLED_AVATARS = path.resolve(__dirname, "../assets/avatar");
 
@@ -99,6 +112,9 @@ export function createAvatarStorage(baseDir) {
 			}
 			if (file.data.length > MAX_FILE_SIZE) {
 				throw new Error(`File too large: ${file.name}`);
+			}
+			if (!hasValidMagicBytes(file.data, file.name)) {
+				throw new Error(`Invalid file content: ${file.name}`);
 			}
 			await fs.writeFile(path.join(setPath, file.name), file.data);
 		}
