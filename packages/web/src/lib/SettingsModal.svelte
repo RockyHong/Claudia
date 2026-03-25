@@ -556,16 +556,6 @@
   }
 
   .set-name-input {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .set-name-input {
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 6px;
