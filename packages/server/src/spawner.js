@@ -223,7 +223,3 @@ function browseLinux() {
 function escapeAppleScript(str) {
   return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
