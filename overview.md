@@ -328,12 +328,16 @@ Monorepo using npm workspaces. `packages/server` and `packages/web` are the only
 
 ## Event Protocol
 
-### Hook → Claudia (HTTP POST to localhost:7890/event)
+### Hook → Claudia (HTTP POST)
 
 Claude Code passes hook context via **stdin as JSON** (not environment variables).
-Hooks read stdin, extract `session_id`, `tool_name`, `cwd`, etc., and POST to Claudia.
+Hooks pipe raw stdin to `POST /hook/:type` — the server transforms it via `hook-transform.js`.
+
+A legacy `POST /event` endpoint also exists, accepting pre-formatted `{session, state, tool, cwd, message, ts}`.
 
 Hooks are installed in `~/.claude/settings.json` under a `"hooks"` wrapper key.
+
+**Transformed event format** (what the server produces from raw stdin):
 
 ```json
 {
@@ -348,13 +352,16 @@ Hooks are installed in `~/.claude/settings.json` under a `"hooks"` wrapper key.
 
 #### Hook events used
 
-| Claude Code Event | Claudia State | Purpose |
-|-------------------|---------------|---------|
-| `SessionStart`    | `idle`        | Register session immediately on start |
-| `PreToolUse`      | `busy`        | Tool starting |
-| `PostToolUse`     | `busy`        | Tool finished, Claude still working between tools |
-| `Notification`    | `pending`     | Permission prompt (matcher: `permission_prompt`) |
-| `Stop`            | `idle`        | Claude finished its turn, waiting for user input |
+| Claude Code Event    | Claudia State | Purpose |
+|----------------------|---------------|---------|
+| `SessionStart`       | `idle`        | Register session immediately on start |
+| `UserPromptSubmit`   | `busy`        | User submitted prompt, Claude is working |
+| `PreToolUse`         | `busy`        | Tool starting |
+| `PostToolUse`        | `busy`        | Tool finished, Claude still working between tools |
+| `PermissionRequest`  | `pending`     | Tool needs user permission |
+| `Notification`       | `pending`     | Notification text from Claude |
+| `Stop`               | `idle`        | Claude finished its turn, waiting for user input |
+| `SessionEnd`         | `stopped`     | Session closed |
 
 ### Claudia Internal State (per session)
 
