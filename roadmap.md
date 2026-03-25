@@ -10,14 +10,13 @@ The backbone. Receive hook events, manage session state, broadcast via SSE.
 
 ### Session Tracker (`packages/server/src/session-tracker.js`)
 - [x] Define session data model (id, state, cwd, lastTool, lastEvent, pendingMessage)
-- [x] Define state enum (Idle, Working, Pending, Thinking)
+- [x] Define state enum (Idle, Busy, Pending)
 - [x] Implement `handleEvent(event)` — state transitions from hook events
-- [x] Implement idle debounce — wait 2s before transitioning Working to Idle
-- [x] Implement Thinking detection — no event for >5s after Working
+- [x] ~~Idle debounce / Thinking detection~~ — eliminated by design (see overview.md "No Debouncing Needed")
 - [x] Implement stale session pruning — remove after 10min of silence
 - [x] Implement `getSessionDisplayName(cwd)` — extract directory name, handle duplicates
 - [x] Implement `getSessions()` — return current session list
-- [x] Implement `getAggregateState()` — Pending > Working > Thinking > Idle priority
+- [x] Implement `getAggregateState()` — Pending > Busy > Idle priority
 - [x] Write tests for all state transitions
 - [x] Write tests for debounce timing
 - [x] Write tests for pruning logic
@@ -55,7 +54,7 @@ The UI. Display session state in a browser tab.
 ### Session List
 - [x] `SessionList.svelte` — renders list of active sessions
 - [x] `SessionCard.svelte` — single session row: name, state dot, time, focus button
-- [x] State indicator colors: gray (idle), blue (working), orange (pending), purple (thinking)
+- [x] State indicator colors: green (idle), blue (busy, pulsing), orange (pending, pulsing)
 - [x] Time-in-state display, updating every second
 - [x] Empty state: "No active sessions" message
 
@@ -115,7 +114,7 @@ The character. Claudia isn't a dashboard, she's a receptionist.
 
 ### Avatar Panel
 - [x] Add `<video>` element to dashboard UI
-- [x] Map aggregate state to video source (idle/working/pending/thinking)
+- [x] Map aggregate state to video source (idle/busy/pending)
 - [x] Smooth video transitions on state change
 ### UI Polish
 - [x] Favicon changes based on aggregate state
