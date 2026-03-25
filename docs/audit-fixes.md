@@ -62,6 +62,32 @@ Checklist of doc issues found in the 2026-03-25 audit. Code is source of truth �
 
 ---
 
+# Code Fixes
+
+Issues found in the 2026-03-25 audit. Ordered by effort (quick wins first).
+
+## Quick Fixes
+
+- [ ] **Dead code: unused `sleep()` in spawner.js:227-229.** Defined but never called. Delete it.
+
+- [ ] **SpawnPopover browse race condition (SpawnPopover.svelte:56-68).** If `launch()` fails after `browse()`, `browsing` stays `true` permanently — button disabled forever. Add `finally { browsing = false; }`.
+
+- [ ] **CSS duplicate `.set-name-input` in SettingsModal.svelte:558-577.** Two rule blocks for the same selector — first is fully overwritten by second. Remove the dead first block.
+
+- [ ] **AudioContext.resume() not awaited in sfx.js:48-52.** `resume()` returns a promise but isn't awaited. First SFX can fail silently on Safari/Chrome when context is suspended. Await it or chain playback after resume.
+
+## Medium Fixes
+
+- [ ] **A11y: Space key not handled on button-role elements.** `SessionCard.svelte:46` and `SettingsModal.svelte:154-160` only handle Enter, not Space. Elements with `role="button"` should respond to both. Also `SpawnPopover.svelte:82` backdrop has no role/aria attributes.
+
+- [ ] **No SSE disconnect indicator (sse.js).** When the server is down, the UI shows stale data with no visual hint. Add a connection status signal so the UI can show a "disconnected" state.
+
+## Larger Refactors
+
+- [ ] **index.js is 583 lines (~3x the ~200 line ceiling).** Mixes routing, multipart parsing, SFX preview HTML, avatar middleware caching, and shutdown logic. Split into focused modules (e.g. `routes/`, `multipart-parser.js`). This is the biggest CLAUDE.md principle violation in the codebase.
+
+---
+
 ## Notes
 
 - `.webm` avatar files in `packages/server/assets/avatar/` — **by design**, skip
