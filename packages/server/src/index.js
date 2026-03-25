@@ -63,13 +63,13 @@ const ALLOWED_ORIGINS = [
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (ALLOWED_ORIGINS.includes(origin)) {
-    res.set("Access-Control-Allow-Origin", origin);
+    res.set({
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    });
+    if (req.method === "OPTIONS") return res.sendStatus(204);
   }
-  res.set({
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  });
-  if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });
 
@@ -114,10 +114,6 @@ app.post("/hook/:type", (req, res) => {
   const { type } = req.params;
   if (!VALID_HOOK_TYPES.has(type)) {
     return res.status(400).json({ error: "Unknown hook type" });
-  }
-
-  if (type === "Notification" || type === "Stop" || type === "SessionEnd") {
-    console.log(`[hook] ${type} stdin:`, JSON.stringify(req.body));
   }
 
   const event = transformHookPayload(type, req.body);
@@ -539,7 +535,7 @@ export async function startServer(port = PORT) {
   const windowCheckInterval = setInterval(pruneDeadSpawnedSessions, WINDOW_CHECK_INTERVAL_MS);
 
   const shutdownToken = randomUUID();
-  await fs.writeFile(SHUTDOWN_TOKEN_PATH, shutdownToken);
+  await fs.writeFile(SHUTDOWN_TOKEN_PATH, shutdownToken, { mode: 0o600 });
 
   return new Promise((resolve) => {
     const server = app.listen(port, "127.0.0.1", () => {
