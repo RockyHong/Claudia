@@ -80,7 +80,7 @@ Names are documentation. `getSessionDisplayName(cwd)` not `getName(s)`. Booleans
 
 - Each package owns its dependencies — no reaching into internals
 - Server↔Web contract is the SSE event protocol (see `overview.md`)
-- Claude Code↔Claudia contract is `POST /event`
+- Claude Code↔Claudia contract is `POST /hook/:type` (primary) and `POST /event` (legacy)
 - Platform-specific code lives exclusively in `focus.js`
 
 ## Coding Standards
@@ -117,17 +117,14 @@ npm run lint:fix     # Auto-fix lint issues
 
 ## Event Protocol (Quick Reference)
 
-Hook POST to `localhost:7890/event`:
-```json
-{
-  "session": "abc123",
-  "state": "busy | idle | pending",
-  "tool": "Edit",
-  "cwd": "/path/to/project",
-  "message": "optional, for pending state",
-  "ts": 1711100000
-}
+Hooks pipe raw Claude Code stdin JSON to the server, which transforms it:
+
 ```
+POST /hook/:type    (primary — used by hooks, raw stdin JSON, server transforms via hook-transform.js)
+POST /event         (legacy — pre-formatted {session, state, tool, cwd, message, ts})
+```
+
+Hook types: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PermissionRequest`, `Notification`, `Stop`, `SessionEnd`
 
 SSE stream at `GET /events` pushes state updates to the browser. See `overview.md` for the full protocol.
 
