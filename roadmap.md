@@ -160,6 +160,34 @@ The last 20%. Native features that a browser tab can't provide.
 
 ---
 
+## Phase 8: Test Coverage
+
+Expand test coverage beyond the core logic. Prioritized by testability and value.
+
+### Tier 1: Pure Logic (no mocks needed)
+- [x] `personality.js` — verify message templates for each state transition, multi-pending, all-idle
+- [x] `multipart.js` — parse valid multipart bodies, reject malformed input, boundary edge cases
+- [x] `project-storage.js` — read/write JSON, handle missing file, handle corrupt file, deduplication
+
+### Tier 2: API Layer (light mocking of dependencies)
+- [ ] `routes-api.js` — test each route handler: `/api/sessions`, `/api/projects`, `/api/launch`, `/api/avatar/*`
+- [ ] `index.js` — SSE connection lifecycle, event broadcast, static file serving, hook endpoint wiring
+- [ ] `sfx-preview.js` — serve audio files, 404 on missing file
+
+### Tier 3: OS-Dependent (need platform mocks or conditional tests)
+- [x] `git-status.js` — mock `child_process.exec`, test branch/dirty/clean/non-repo parsing
+- [ ] `focus.js` — mock platform APIs, test strategy selection per OS, fallback behavior
+- [ ] `spawner.js` — mock `child_process.spawn`, test terminal launch command per platform
+
+### Tier 4: Frontend
+- [ ] Set up Svelte component testing (vitest + @testing-library/svelte)
+- [ ] `SessionCard.svelte` — renders state dot, name, time, git info
+- [ ] `SessionList.svelte` — ordering, empty state, card transitions
+- [ ] `sse.js` — EventSource connection, reconnect, state parsing
+- [ ] Settings modal — mute toggle, volume slider, avatar set switching
+
+---
+
 ## Phase 6: Session Launcher & Control
 
 Claudia becomes a true receptionist — she spawns sessions, owns their lifecycle, and controls navigation. No more guessing which terminal belongs to which session.
@@ -267,3 +295,4 @@ User-facing settings modal and persistent avatar management. Moves user data out
 | 5. OS Integration | **Done** | Terminal focus works |
 | 6. Session Launcher & Control | **Done** | Spawn, navigate, flash — own the lifecycle |
 | 7. Settings & Avatar Sets | **Done** | Upload, switch, persist avatar sets |
+| 8. Test Coverage | **TODO** | Pure logic → API → OS → Frontend |
