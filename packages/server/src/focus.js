@@ -109,7 +109,7 @@ function focusWindows(name, color, windowHandle) {
     ? ["$hwnd = [IntPtr]" + windowHandle]
     : [
         "$hwnd = [IntPtr]::Zero",
-        "$p = Get-Process | Where-Object { $_.MainWindowTitle -match [regex]::Escape('" + name + "') -and $_.MainWindowHandle -ne 0 } | Select-Object -First 1",
+        "$p = Get-Process | Where-Object { $_.MainWindowTitle -match [regex]::Escape('" + name.replace(/'/g, "''") + "') -and $_.MainWindowHandle -ne 0 } | Select-Object -First 1",
         "if ($p) { $hwnd = $p.MainWindowHandle }",
       ];
 
