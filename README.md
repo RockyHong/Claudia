@@ -6,7 +6,7 @@ A personal receptionist for all your Claude Code agents.
   ┌──────────────────────────────────┐
   │  Claudia              localhost  │
   │                                  │
-  │  ● api-server       Working  3s │
+  │  ● api-server          Busy  3s │
   │  ◉ frontend      Needs you  12s │
   │  ○ pipeline           Idle  2m  │
   │                                  │
@@ -33,7 +33,7 @@ That's it. Open the dashboard, run your Claude sessions, and Claudia will show y
 ## Features
 
 - **Live session tracking** — see all active Claude Code sessions at a glance
-- **State detection** — Idle, Working, Pending (needs you), Thinking
+- **State detection** — Idle, Busy, Pending (needs you)
 - **Browser notifications** — get notified the moment a session needs your attention
 - **Terminal focus** — click to jump to the right terminal (Windows, macOS, Linux)
 - **Personality** — Claudia is a receptionist, not a dashboard. She talks like one.
@@ -55,7 +55,7 @@ Terminal 3 (claude code)  ──┘
                     Browser dashboard
 ```
 
-Claude Code [hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) fire on tool use, notification, and session stop, sending a small JSON payload to Claudia's local server. Claudia tracks session state, detects idle/working/pending/thinking transitions, and pushes updates to your browser via Server-Sent Events.
+Claude Code [hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) fire on tool use, notification, and session stop, sending a small JSON payload to Claudia's local server. Claudia tracks session state, detects idle/busy/pending transitions, and pushes updates to your browser via Server-Sent Events.
 
 All localhost. Nothing leaves your machine.
 
@@ -63,10 +63,9 @@ All localhost. Nothing leaves your machine.
 
 | State | Meaning | Visual |
 |---|---|---|
-| **Idle** | Waiting for input or between tasks | ○ gray |
-| **Working** | Running tools, writing code | ● blue (pulsing) |
+| **Idle** | Waiting for input or between tasks | ○ green |
+| **Busy** | Running tools, writing code | ● blue (pulsing) |
 | **Pending** | Needs your approval or input | ◉ orange (pulsing) + notification |
-| **Thinking** | No output for >5s after working | ◐ purple (pulsing) |
 
 ## Commands
 
