@@ -11,6 +11,8 @@ export default defineConfig({
       "/api": "http://localhost:7890",
       "/focus": "http://localhost:7890",
       "/avatar": "http://localhost:7890",
+      "/sfx": "http://localhost:7890",
+      "/hook": "http://localhost:7890",
     },
   },
   build: {
