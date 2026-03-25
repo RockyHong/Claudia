@@ -30,13 +30,13 @@ function createAudioWithFallback(src, fallbackFn) {
 
   return (volume) => {
     if (fileAvailable === false) {
-      fallbackFn(volume);
+      ensureContextReady().then(() => fallbackFn(volume));
       return;
     }
     audio.volume = volume;
     audio.currentTime = 0;
     audio.play().catch(() => {
-      fallbackFn(volume);
+      ensureContextReady().then(() => fallbackFn(volume));
     });
   };
 }
@@ -44,11 +44,19 @@ function createAudioWithFallback(src, fallbackFn) {
 // --- Web Audio API synthesis fallback ---
 
 let audioContext = null;
+let resumePromise = null;
 
 function getContext() {
   if (!audioContext) audioContext = new AudioContext();
-  if (audioContext.state === "suspended") audioContext.resume();
+  if (audioContext.state === "suspended" && !resumePromise) {
+    resumePromise = audioContext.resume().then(() => { resumePromise = null; });
+  }
   return audioContext;
+}
+
+function ensureContextReady() {
+  getContext();
+  return resumePromise || Promise.resolve();
 }
 
 function synthPendingChime(volume) {
