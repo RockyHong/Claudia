@@ -93,7 +93,6 @@ One glance at Claudia tells you if you need to do anything or not.
             ├── Session list (Svelte 5)
             ├── Avatar video (HTML <video>)
             ├── Status messages (personality)
-            └── Browser Notification API
 ```
 
 ### Components
@@ -159,13 +158,13 @@ State logic — three states from the user's perspective:
 
 A browser-based dashboard served by Express:
 
-- **App.svelte** — Root component: layout, reactive state, notification permissions, document title updates
+- **App.svelte** — Root component: layout, reactive state, document title updates
 - **SessionList.svelte** — Renders list of active sessions, empty state
 - **SessionCard.svelte** — Single session: display name, state dot, elapsed time, last tool, focus button
 - **StatusBar.svelte** — Footer with aggregate state, personality message, session count
 - **sse.js** — EventSource client with auto-reconnect (3s retry)
 
-Uses Svelte 5 runes (`$state`, `$derived`, `$effect`) for reactivity. Browser Notification API fires when any session enters Pending.
+Uses Svelte 5 runes (`$state`, `$derived`, `$effect`) for reactivity.
 
 **5. Terminal Focus (`packages/server/src/focus.js`)**
 
@@ -183,7 +182,7 @@ Fallback: if window matching fails, bring the terminal application to front and 
 
 | State | Trigger | Avatar Behavior | Icon |
 |---|---|---|---|
-| **Pending** | Permission prompt / plan approval needed | Looking at you, waving, tapping desk | ◉ orange (+ browser notification) |
+| **Pending** | Permission prompt / plan approval needed | Looking at you, waving, tapping desk | ◉ orange |
 | **Busy** | Any tool use, or between tools during a turn | Typing, focused, busy | ● blue |
 | **Idle** | `Stop` hook — Claude finished, waiting for user input | Relaxed, looking around, maybe reading | ○ gray |
 
@@ -221,7 +220,7 @@ npx claudia         # starts the receptionist
 
 This is the product. It starts a Node.js server on `localhost:7890` and opens a dashboard in the user's default browser. No cloning, no building, no global install. The only prerequisite is Node.js, which anyone running Claude Code already has.
 
-**What you get:** full session dashboard, browser Notification API alerts when a session enters `Pending`, avatar display, personality messages, terminal focus via platform shell commands.
+**What you get:** full session dashboard, avatar display, personality messages, terminal focus via platform shell commands.
 
 ### The `claudia init` Command
 
@@ -277,7 +276,7 @@ This is not planned for v1. The browser dashboard covers the core value proposit
 
 ### Why Browser-First?
 
-**A browser tab covers 80% of the value with 0% install friction.** The session dashboard and notifications work perfectly in a browser. The only thing a browser *can't* do is focus other OS windows — and knowing *which* terminal needs you (then alt-tabbing to it) is almost as good as auto-focusing.
+**A browser tab covers 80% of the value with 0% install friction.** The session dashboard works perfectly in a browser. The only thing a browser *can't* do is focus other OS windows — and knowing *which* terminal needs you (then alt-tabbing to it) is almost as good as auto-focusing.
 
 Production has one dependency: `express`. This is intentional. See `techstack.md` for full reasoning behind each choice.
 

@@ -64,11 +64,6 @@ The UI. Display session state in a browser tab.
 - [x] Server calls `focus.js` strategy for the target session
 - [x] Graceful failure: show "couldn't focus" message, never crash
 
-### Browser Notifications
-- [x] Request notification permission on first visit
-- [x] Fire browser notification when any session enters Pending
-- [x] Notification click focuses the Claudia tab
-
 **Shippable after Phase 2:** Open browser, see live session states, get notified when Claude needs you.
 
 ---

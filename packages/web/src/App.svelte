@@ -39,7 +39,6 @@
       if (prev === s.state) continue;
 
       if (s.state === "pending") {
-        sendNotification(s);
         sfx.playPending();
       } else if (s.state === "busy") {
         sfx.playBusy();
@@ -49,21 +48,6 @@
     }
 
     previousStates = newStates;
-  }
-
-  function sendNotification(session) {
-    if (Notification.permission === "default") {
-      Notification.requestPermission();
-      return;
-    }
-    if (Notification.permission !== "granted") return;
-
-    const body = session.pendingMessage || "Needs your attention";
-    const n = new Notification(`Claudia: ${session.displayName}`, { body });
-    n.onclick = () => {
-      window.focus();
-      n.close();
-    };
   }
 
   function updateDocumentTitle(state, sessions) {
@@ -102,9 +86,6 @@
     link.href = url;
   }
 
-  function requestNotificationPermission() {
-    Notification.requestPermission();
-  }
 </script>
 
 <div class="app" class:bg-mode={bgMode}>
@@ -117,11 +98,6 @@
           <SpawnPopover onclose={() => showSpawn = false} />
         {/if}
       </div>
-      {#if typeof Notification !== "undefined" && Notification.permission === "default"}
-        <button class="header-btn" onclick={requestNotificationPermission}>
-          Enable notifications
-        </button>
-      {/if}
       <button class="header-btn" class:active={bgMode} onclick={() => { bgMode = !bgMode; localStorage.setItem("claudia-immersive", bgMode); }}>
         Immersive
       </button>

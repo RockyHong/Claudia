@@ -34,7 +34,6 @@ That's it. Open the dashboard, run your Claude sessions, and Claudia will show y
 
 - **Live session tracking** — see all active Claude Code sessions at a glance
 - **State detection** — Idle, Busy, Pending (needs you)
-- **Browser notifications** — get notified the moment a session needs your attention
 - **Terminal focus** — click to jump to the right terminal (Windows, macOS, Linux)
 - **Personality** — Claudia is a receptionist, not a dashboard. She talks like one.
 - **Dynamic favicon** — tab icon changes color by state, so you can spot it even when minimized
@@ -65,7 +64,7 @@ All localhost. Nothing leaves your machine.
 |---|---|---|
 | **Idle** | Waiting for input or between tasks | ○ green |
 | **Busy** | Running tools, writing code | ● blue (pulsing) |
-| **Pending** | Needs your approval or input | ◉ orange (pulsing) + notification |
+| **Pending** | Needs your approval or input | ◉ orange (pulsing) |
 
 ## Commands
 

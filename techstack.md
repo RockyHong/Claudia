@@ -11,7 +11,7 @@ These principles guide every choice below:
 1. **Fast init/install** — `npx claudia` and you're running. No build step for the user, no global install required.
 2. **Low OS coupling** — Core functionality is pure Node.js + browser. OS-specific features (terminal focus) are isolated behind a pluggable abstraction.
 3. **Quick launch** — Server starts in <1s. UI is a browser tab, not a heavy app shell.
-4. **Don't reinvent the wheel** — Use built-in platform capabilities (SSE, browser Notifications, HTML `<video>`) before reaching for libraries.
+4. **Don't reinvent the wheel** — Use built-in platform capabilities (SSE, HTML `<video>`) before reaching for libraries.
 5. **Separation of concerns** — Transport, state, presentation, and OS integration are independent layers.
 6. **First principles** — Every dependency earns its place. If the platform provides it, don't wrap it.
 
@@ -41,7 +41,6 @@ This eliminates `ws`, `socket.io`, and their associated complexity.
 The overview frames the browser version as a "zero install compromise" with Tauri as the real target. From first principles, that's backwards:
 
 - A browser tab displaying session state covers the core value proposition
-- Browser Notification API handles alerts when a session needs attention
 - The only thing a browser *can't* do is focus other OS windows — and knowing *which* terminal needs you (then alt-tabbing) is 90% of the value
 
 **Tier 1 (Node.js + browser) is the product.** Tauri is a future enhancement layer, not the goal. This means:
@@ -132,7 +131,7 @@ Express server (localhost:7890)
                     ├── Session list (reactive, Svelte)
                     ├── Avatar video (HTML <video>)
                     ├── Status messages (personality templates)
-                    └── Browser Notification API (on Pending state)
+                    └── SFX (Web Audio API, on state transitions)
 ```
 
 All localhost. Nothing leaves the machine. If Claudia isn't running, hooks fail silently. Claude Code is completely unaffected.
