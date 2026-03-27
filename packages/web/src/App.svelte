@@ -226,8 +226,11 @@
   }
 
   h1 {
+    font-family: var(--font-heading);
     font-size: 18px;
     font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--brand);
   }
 
   main {
@@ -246,42 +249,55 @@
   }
 
   .header-btn {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 4px 12px;
-    font-size: 12px;
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    background: transparent;
     color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 16px;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all var(--duration-normal, 150ms) var(--ease-in-out, ease);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
   }
 
   .header-btn:hover {
-    background: var(--border);
+    background: var(--bg-raised);
     color: var(--text);
+    border-color: var(--border-active);
   }
 
   .header-btn.active {
-    background: var(--border);
-    border-color: var(--text-muted);
-    color: var(--text);
+    background: var(--brand);
+    color: #fff;
+    border-color: var(--brand);
+  }
+
+  .header-btn.active:hover {
+    background: var(--brand-hover);
+    border-color: var(--brand-hover);
   }
 
   .app.bg-mode .header-btn {
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(12px);
-    border-color: rgba(255, 255, 255, 0.2);
-    color: rgba(255, 255, 255, 0.7);
+    -webkit-backdrop-filter: blur(12px);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.85);
   }
 
   .app.bg-mode .header-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: #fff;
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.2);
   }
 
   .app.bg-mode .header-btn.active {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(193, 95, 60, 0.3);
+    border-color: rgba(193, 95, 60, 0.4);
     color: #fff;
   }
 
@@ -309,21 +325,41 @@
     max-width: 600px;
   }
 
+  .app.bg-mode :global(.card) {
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .app.bg-mode :global(.card.pending) {
+    background: rgba(229, 160, 58, 0.15);
+    border-color: rgba(229, 160, 58, 0.25);
+    box-shadow: none;
+  }
+
+  .app.bg-mode :global(.card .name) {
+    color: #fff;
+  }
+
+  .app.bg-mode :global(.card .card-state) {
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  .app.bg-mode :global(.card .card-detail) {
+    color: rgba(255, 255, 255, 0.25);
+  }
+
+  .app.bg-mode :global(.card .card-detail svg) {
+    stroke: rgba(255, 255, 255, 0.25);
+  }
+
   .app.bg-mode :global(.status-bar) {
     position: relative;
     z-index: 2;
     background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(12px);
-    border-top-color: rgba(255, 255, 255, 0.1);
-  }
-
-  .app.bg-mode :global(.card) {
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(12px);
-    border-color: rgba(255, 255, 255, 0.1);
-  }
-
-  .app.bg-mode :global(.card.pending) {
-    border-color: var(--orange);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top-color: rgba(255, 255, 255, 0.08);
   }
 </style>
