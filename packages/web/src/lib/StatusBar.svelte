@@ -4,7 +4,7 @@
   let dotClass = $derived(disconnected ? "dot-disconnected" : `dot-${aggregateState}`);
 </script>
 
-<div class="status-bar">
+<div class="status-bar" class:pending={!disconnected && aggregateState === "pending"}>
   <span class="dot {dotClass}"></span>
   <span class="message">{statusMessage}</span>
   <span class="count">{sessionCount} session{sessionCount !== 1 ? "s" : ""}</span>
@@ -22,6 +22,13 @@
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 10px;
+    transition: all 150ms ease;
+  }
+
+  .status-bar.pending {
+    background: rgba(229, 160, 58, 0.14);
+    border-color: rgba(229, 160, 58, 0.35);
+    box-shadow: 0 0 16px rgba(229, 160, 58, 0.1);
   }
 
   .dot {

@@ -153,6 +153,9 @@
     inset: 0;
     margin: 0;
     border-radius: 0;
+    max-height: none;
+    border: none;
+    background: #000;
     z-index: 0;
   }
 
