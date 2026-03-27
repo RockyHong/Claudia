@@ -176,10 +176,10 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--text-muted);
-    background: var(--border);
-    padding: 1px 5px;
-    border-radius: 3px;
+    color: var(--text-faint);
+    background: var(--bg-raised);
+    padding: 2px 6px;
+    border-radius: 6px;
     margin-left: 6px;
     vertical-align: middle;
   }
