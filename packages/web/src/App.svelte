@@ -132,33 +132,71 @@
   }
 
   :global(:root) {
-    --bg: #0f1117;
-    --card-bg: #1a1d27;
-    --border: #2a2d3a;
-    --text: #e1e4ed;
-    --text-muted: #8b8fa3;
-    --gray: #6b7280;
-    --green: #22c55e;
-    --blue: #3b82f6;
-    --orange: #f59e0b;
+    /* Brand */
+    --brand: #c15f3c;
+    --brand-hover: #d97b56;
+
+    /* Surfaces */
+    --bg: #141110;
+    --bg-card: #1c1816;
+    --bg-raised: #252019;
+    --border: #302922;
+    --border-active: #3d332a;
+
+    /* Text */
+    --text: #ede6df;
+    --text-muted: #948b82;
+    --text-faint: #5c554e;
+
+    /* Semantic */
+    --green: #4aba6a;
+    --blue: #5b8fd9;
+    --amber: #e5a03a;
+    --red: #d95555;
+    --gray: #5c554e;
+
+    /* Typography */
+    --font-heading: 'Space Grotesk', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* Animation */
+    --duration-fast: 100ms;
+    --duration-normal: 150ms;
+    --duration-slow: 300ms;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Backward-compat aliases */
+    --card-bg: #1c1816;
+    --orange: #e5a03a;
   }
 
   @media (prefers-color-scheme: light) {
     :global(:root) {
-      --bg: #f8f9fb;
+      --bg: #faf7f5;
+      --bg-card: #ffffff;
+      --bg-raised: #f3eeea;
+      --border: #e8e1da;
+      --border-active: #d4cac0;
+      --text: #1c1816;
+      --text-muted: #6e655d;
+      --text-faint: #a39a91;
+      --brand: #a84e31;
+      --brand-hover: #c15f3c;
+      --green: #2d9a4e;
+      --blue: #3a75c4;
+      --amber: #c4880f;
+      --red: #c43c3c;
+      --gray: #a39a91;
+      --orange: #c4880f;
       --card-bg: #ffffff;
-      --border: #e2e4ea;
-      --text: #1a1d27;
-      --text-muted: #6b7280;
-      --gray: #9ca3af;
-      --green: #16a34a;
-      --blue: #2563eb;
-      --orange: #d97706;
     }
   }
 
   :global(body) {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
     background: var(--bg);
     color: var(--text);
     line-height: 1.5;
