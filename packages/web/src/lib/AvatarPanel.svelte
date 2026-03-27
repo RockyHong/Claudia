@@ -141,8 +141,10 @@
   .avatar-panel {
     position: relative;
     margin: 16px 12px 0;
-    border-radius: 12px;
+    border-radius: 16px;
     overflow: hidden;
+    background: var(--bg-card, var(--card-bg));
+    border: 1px solid var(--border);
   }
 
   .avatar-panel.bg-mode {
@@ -160,7 +162,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 12px;
+    border-radius: 16px;
     opacity: 0;
     transition: opacity 0.3s ease;
   }

@@ -47,9 +47,11 @@
     font-size: 16px;
     font-weight: 600;
     margin-bottom: 4px;
+    font-family: var(--font-heading);
   }
 
   .empty-sub {
     font-size: 13px;
+    color: var(--text-muted);
   }
 </style>
