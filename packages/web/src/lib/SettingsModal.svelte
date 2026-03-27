@@ -256,7 +256,7 @@
     position: fixed;
     inset: 0;
     z-index: 100;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(10, 8, 7, 0.7);
     backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
@@ -270,9 +270,10 @@
   }
 
   .modal {
-    background: var(--card-bg);
+    background: var(--bg-card, var(--card-bg));
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 16px;
+    font-family: var(--font-body);
     width: 90%;
     max-width: 480px;
     max-height: 80vh;
@@ -298,6 +299,7 @@
   .modal-header h2 {
     font-size: 16px;
     font-weight: 600;
+    font-family: var(--font-heading);
   }
 
   .close-btn {
@@ -326,6 +328,7 @@
   section h3 {
     font-size: 12px;
     font-weight: 600;
+    font-family: var(--font-heading);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-muted);
@@ -415,12 +418,12 @@
 
   .set-card:hover {
     border-color: var(--text-muted);
-    background: var(--card-bg);
+    background: var(--bg-card, var(--card-bg));
   }
 
   .set-card.active {
-    border-color: var(--blue);
-    box-shadow: 0 0 0 1px var(--blue);
+    border-color: var(--brand);
+    box-shadow: 0 0 0 1px rgba(193, 95, 60, 0.15);
   }
 
   .set-thumb {
@@ -513,7 +516,7 @@
 
   .sfx-volume input[type="range"] {
     flex: 1;
-    accent-color: var(--blue);
+    accent-color: var(--brand);
     height: 4px;
   }
 
@@ -556,7 +559,7 @@
   }
 
   .set-name-input {
-    background: var(--card-bg);
+    background: var(--bg-card, var(--card-bg));
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 8px 10px;
@@ -612,7 +615,7 @@
   }
 
   .upload-btn {
-    background: var(--blue);
+    background: var(--brand);
     color: white;
     border: none;
     border-radius: 6px;
@@ -620,12 +623,12 @@
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: opacity 0.15s;
+    transition: background 0.15s;
     align-self: flex-end;
   }
 
   .upload-btn:hover {
-    opacity: 0.9;
+    background: var(--brand-hover);
   }
 
   .upload-btn:disabled {
