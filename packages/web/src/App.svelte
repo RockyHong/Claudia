@@ -5,7 +5,6 @@
   import StatusBar from "./lib/StatusBar.svelte";
   import AvatarPanel from "./lib/AvatarPanel.svelte";
   import SettingsModal from "./lib/SettingsModal.svelte";
-  import SpawnPopover from "./lib/SpawnPopover.svelte";
 
   let sessions = $state([]);
   let aggregateState = $state("idle");
@@ -94,28 +93,23 @@
     <div class="header-actions">
       <button class="header-btn" onclick={() => showSettings = true}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        Settings
+        {#if !bgMode}Settings{/if}
       </button>
       <button class="header-btn" class:active={bgMode} onclick={() => { bgMode = !bgMode; localStorage.setItem("claudia-immersive", bgMode); }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-        Immersive
-      </button>
-      <div class="spawn-anchor">
-        <button class="header-btn primary" onclick={() => showSpawn = !showSpawn}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          New agent
-        </button>
-        {#if showSpawn}
-          <SpawnPopover onclose={() => showSpawn = false} />
+        {#if bgMode}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 4l6 6"/><path d="M10 14l-6 6"/></svg>
+        {:else}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+          Immersive
         {/if}
-      </div>
+      </button>
     </div>
   </header>
 
   <AvatarPanel {aggregateState} background={bgMode} version={avatarVersion} />
 
   <main>
-    <SessionList {sessions} />
+    <SessionList {sessions} {showSpawn} ontogglespawn={() => showSpawn = !showSpawn} onclosespawn={() => showSpawn = false} />
   </main>
 
   <StatusBar {aggregateState} statusMessage={sseConnected ? statusMessage : "Disconnected — retrying…"} sessionCount={sessions.length} disconnected={!sseConnected} />
@@ -248,10 +242,6 @@
     gap: 8px;
   }
 
-  .spawn-anchor {
-    display: flex;
-  }
-
   .header-btn {
     font-family: var(--font-body);
     font-size: 0.8125rem;
@@ -273,18 +263,6 @@
     background: var(--bg-raised);
     color: var(--text);
     border-color: var(--border-active);
-  }
-
-  .header-btn.primary {
-    background: var(--brand);
-    color: #fff;
-    border-color: var(--brand);
-  }
-
-  .header-btn.primary:hover {
-    background: var(--brand-hover);
-    border-color: var(--brand-hover);
-    box-shadow: 0 0 16px rgba(193, 95, 60, 0.2);
   }
 
   .header-btn.active {
@@ -309,12 +287,6 @@
   .app.bg-mode .header-btn:hover {
     background: rgba(255, 255, 255, 0.18);
     border-color: rgba(255, 255, 255, 0.2);
-  }
-
-  .app.bg-mode .header-btn.primary {
-    background: rgba(193, 95, 60, 0.4);
-    border-color: rgba(193, 95, 60, 0.5);
-    color: #fff;
   }
 
   .app.bg-mode .header-btn.active {

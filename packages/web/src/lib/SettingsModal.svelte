@@ -1,4 +1,6 @@
 <script>
+  import Modal from "./Modal.svelte";
+
   let { onclose, onavatarchange, sfx } = $props();
 
   let sfxVolume = $state(0.5);
@@ -23,11 +25,6 @@
 
   $effect(() => {
     fetchSets();
-    function onKey(e) {
-      if (e.key === "Escape") onclose();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
   });
 
   async function fetchSets() {
@@ -105,10 +102,6 @@
     uploading = false;
   }
 
-  function handleBackdrop(e) {
-    if (e.target === e.currentTarget) onclose();
-  }
-
   function thumbnailUrl(set) {
     const idleFile = set.files.find((f) => f.startsWith("idle"));
     if (!idleFile) return null;
@@ -116,215 +109,132 @@
   }
 </script>
 
-<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<div class="backdrop" onclick={handleBackdrop} onkeydown={() => {}} role="dialog" aria-modal="true" aria-label="Settings">
-  <div class="modal">
-    <div class="modal-header">
-      <h2>Settings</h2>
-      <button class="close-btn" onclick={onclose} aria-label="Close">&times;</button>
+<Modal title="Settings" {onclose}>
+  {#if error}
+    <div class="error-bar">{error}</div>
+  {/if}
+
+  {#if confirmDelete}
+    <div class="confirm-bar">
+      <span>Delete "{confirmDelete}"?</span>
+      <div class="confirm-actions">
+        <button class="confirm-yes" onclick={confirmDeleteSet}>Delete</button>
+        <button class="confirm-no" onclick={() => confirmDelete = null}>Cancel</button>
+      </div>
     </div>
+  {/if}
 
-    <div class="modal-body">
-      {#if error}
-        <div class="error-bar">{error}</div>
-      {/if}
+  <section>
+    <h3>Avatar Sets</h3>
 
-      {#if confirmDelete}
-        <div class="confirm-bar">
-          <span>Delete "{confirmDelete}"?</span>
-          <div class="confirm-actions">
-            <button class="confirm-yes" onclick={confirmDeleteSet}>Delete</button>
-            <button class="confirm-no" onclick={() => confirmDelete = null}>Cancel</button>
+    {#if loading}
+      <p class="muted">Loading...</p>
+    {:else if sets.length === 0}
+      <p class="muted">No avatar sets found. Upload one below.</p>
+    {:else}
+      <div class="set-grid">
+        {#each sets as set (set.name)}
+          {@const thumb = thumbnailUrl(set)}
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div
+            class="set-card"
+            class:active={set.active}
+            onclick={() => switchSet(set.name)}
+            onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); switchSet(set.name); } }}
+            role="button"
+            tabindex="0"
+          >
+            <div class="set-thumb">
+              {#if thumb}
+                <!-- svelte-ignore a11y_media_has_caption -->
+                <video
+                  src={thumb}
+                  preload="auto"
+                  muted
+                  playsinline
+                  onloadeddata={(e) => { e.target.currentTime = 0.1; e.target.pause(); }}
+                ></video>
+              {:else}
+                <div class="no-thumb"></div>
+              {/if}
+            </div>
+            <span class="set-name">{set.name}</span>
+            {#if set.active}
+              <span class="active-badge">Active</span>
+            {/if}
+            {#if !set.active}
+              <button
+                class="delete-btn"
+                onclick={(e) => { e.stopPropagation(); confirmDelete = set.name; }}
+                aria-label="Delete {set.name}"
+              >&times;</button>
+            {/if}
           </div>
-        </div>
-      {/if}
+        {/each}
+      </div>
+    {/if}
+  </section>
 
-      <section>
-        <h3>Avatar Sets</h3>
-
-        {#if loading}
-          <p class="muted">Loading...</p>
-        {:else if sets.length === 0}
-          <p class="muted">No avatar sets found. Upload one below.</p>
-        {:else}
-          <div class="set-grid">
-            {#each sets as set (set.name)}
-              {@const thumb = thumbnailUrl(set)}
-              <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div
-                class="set-card"
-                class:active={set.active}
-                onclick={() => switchSet(set.name)}
-                onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); switchSet(set.name); } }}
-                role="button"
-                tabindex="0"
-              >
-                <div class="set-thumb">
-                  {#if thumb}
-                    <!-- svelte-ignore a11y_media_has_caption -->
-                    <video
-                      src={thumb}
-                      preload="auto"
-                      muted
-                      playsinline
-                      onloadeddata={(e) => { e.target.currentTime = 0.1; e.target.pause(); }}
-                    ></video>
-                  {:else}
-                    <div class="no-thumb"></div>
-                  {/if}
-                </div>
-                <span class="set-name">{set.name}</span>
-                {#if set.active}
-                  <span class="active-badge">Active</span>
-                {/if}
-                {#if !set.active}
-                  <button
-                    class="delete-btn"
-                    onclick={(e) => { e.stopPropagation(); confirmDelete = set.name; }}
-                    aria-label="Delete {set.name}"
-                  >&times;</button>
-                {/if}
-              </div>
-            {/each}
-          </div>
-        {/if}
-      </section>
-
-      <section>
-        <h3>Sound Effects</h3>
-        <div class="sfx-controls">
-          <label class="sfx-volume">
-            <span>{sfxVolume === 0 ? "Off" : `${Math.round(sfxVolume * 100)}%`}</span>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={sfxVolume}
-              oninput={(e) => {
-                sfxVolume = +e.target.value;
-              }}
-              onchange={(e) => {
-                sfxVolume = +e.target.value;
-                sfx.volume = sfxVolume || 0.01;
-                sfx.muted = sfxVolume === 0;
-                if (sfxVolume > 0) sfx.preview("pending");
-              }}
-            />
-          </label>
-        </div>
-      </section>
-
-      <details class="upload-section">
-        <summary>Upload New Set</summary>
-        <div class="upload-content">
-          <input
-            class="set-name-input"
-            type="text"
-            bind:value={newSetName}
-            placeholder="Set name"
-            maxlength="50"
-          />
-          <div class="file-fields">
-            <label class="file-field">
-              <span>Idle</span>
-              <input type="file" accept=".webm,.mp4" onchange={(e) => fileIdle = e.target.files[0]} />
-              {#if fileIdle}<span class="file-name">{fileIdle.name}</span>{/if}
-            </label>
-            <label class="file-field">
-              <span>Busy</span>
-              <input type="file" accept=".webm,.mp4" onchange={(e) => fileBusy = e.target.files[0]} />
-              {#if fileBusy}<span class="file-name">{fileBusy.name}</span>{/if}
-            </label>
-            <label class="file-field">
-              <span>Pending</span>
-              <input type="file" accept=".webm,.mp4" onchange={(e) => filePending = e.target.files[0]} />
-              {#if filePending}<span class="file-name">{filePending.name}</span>{/if}
-            </label>
-          </div>
-          <button class="upload-btn" onclick={uploadSet} disabled={uploading}>
-            {uploading ? "Uploading..." : "Upload"}
-          </button>
-        </div>
-      </details>
+  <section>
+    <h3>Sound Effects</h3>
+    <div class="sfx-controls">
+      <label class="sfx-volume">
+        <span>{sfxVolume === 0 ? "Off" : `${Math.round(sfxVolume * 100)}%`}</span>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          value={sfxVolume}
+          oninput={(e) => {
+            sfxVolume = +e.target.value;
+          }}
+          onchange={(e) => {
+            sfxVolume = +e.target.value;
+            sfx.volume = sfxVolume || 0.01;
+            sfx.muted = sfxVolume === 0;
+            if (sfxVolume > 0) sfx.preview("pending");
+          }}
+        />
+      </label>
     </div>
-  </div>
-</div>
+  </section>
+
+  <details class="upload-section">
+    <summary>Upload New Set</summary>
+    <div class="upload-content">
+      <input
+        class="set-name-input"
+        type="text"
+        bind:value={newSetName}
+        placeholder="Set name"
+        maxlength="50"
+      />
+      <div class="file-fields">
+        <label class="file-field">
+          <span>Idle</span>
+          <input type="file" accept=".webm,.mp4" onchange={(e) => fileIdle = e.target.files[0]} />
+          {#if fileIdle}<span class="file-name">{fileIdle.name}</span>{/if}
+        </label>
+        <label class="file-field">
+          <span>Busy</span>
+          <input type="file" accept=".webm,.mp4" onchange={(e) => fileBusy = e.target.files[0]} />
+          {#if fileBusy}<span class="file-name">{fileBusy.name}</span>{/if}
+        </label>
+        <label class="file-field">
+          <span>Pending</span>
+          <input type="file" accept=".webm,.mp4" onchange={(e) => filePending = e.target.files[0]} />
+          {#if filePending}<span class="file-name">{filePending.name}</span>{/if}
+        </label>
+      </div>
+      <button class="upload-btn" onclick={uploadSet} disabled={uploading}>
+        {uploading ? "Uploading..." : "Upload"}
+      </button>
+    </div>
+  </details>
+</Modal>
 
 <style>
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-    background: rgba(10, 8, 7, 0.7);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: fadeIn 0.15s ease;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  .modal {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    font-family: var(--font-body);
-    width: 90%;
-    max-width: 480px;
-    max-height: 80vh;
-    display: flex;
-    flex-direction: column;
-    animation: slideUp 0.2s ease;
-    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
-  }
-
-  @keyframes slideUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .modal-header h2 {
-    font-size: 16px;
-    font-weight: 600;
-    font-family: var(--font-heading);
-  }
-
-  .close-btn {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    font-size: 22px;
-    cursor: pointer;
-    padding: 0 4px;
-    line-height: 1;
-    transition: color 0.15s;
-  }
-
-  .close-btn:hover {
-    color: var(--text);
-  }
-
-  .modal-body {
-    padding: 20px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-
   section h3 {
     font-size: 12px;
     font-weight: 600;
