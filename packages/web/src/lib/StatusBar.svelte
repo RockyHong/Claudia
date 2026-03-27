@@ -16,7 +16,7 @@
     align-items: center;
     gap: 8px;
     padding: 10px 16px;
-    margin: 12px;
+    margin: 0 0 16px;
     font-size: 0.8125rem;
     color: var(--text-muted);
     background: var(--bg-card);

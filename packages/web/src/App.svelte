@@ -204,11 +204,12 @@
   }
 
   .app {
-    max-width: 600px;
+    max-width: 640px;
     margin: 0 auto;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    padding: 0 16px;
   }
 
   @media (max-width: 480px) {
@@ -221,7 +222,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px;
+    padding: 32px 0 0;
   }
 
   h1 {
@@ -238,7 +239,7 @@
 
   main {
     flex: 1;
-    padding: 12px;
+    padding: 32px 0;
   }
 
   .header-actions {
@@ -325,14 +326,15 @@
   /* Background / immersive mode */
   .app.bg-mode {
     max-width: 100%;
+    padding: 0 16px;
     background: transparent;
   }
 
   .app.bg-mode header {
     position: relative;
     z-index: 2;
+    padding: 16px 0 0;
     background: transparent;
-    border-bottom-color: transparent;
     color: #fff;
   }
 

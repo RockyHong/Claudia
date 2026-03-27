@@ -140,7 +140,7 @@
 <style>
   .avatar-panel {
     position: relative;
-    margin: 0 12px;
+    margin: 32px 0 0;
     border-radius: 16px;
     overflow: hidden;
     background: var(--bg-card);
