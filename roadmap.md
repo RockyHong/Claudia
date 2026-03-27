@@ -299,3 +299,4 @@ User-facing settings modal and persistent avatar management. Moves user data out
 ## Known Bugs
 
 - [x] **SFX not playing** — Root cause: AudioContext created from SSE handler (non-user-gesture) stays suspended. Fix: unlock AudioContext on first click/keydown interaction.
+- [ ] **Browse folder dialog opens behind browser (Windows)** — `browseWindows()` in `spawner.js` calls COM `IFileOpenDialog.Show(IntPtr.Zero)` with no parent HWND, so the native picker has no owner window and often opens behind the browser. Additionally, if the user closes the dialog without selecting a folder, the "Waiting for selection..." button state can get stuck (PowerShell process may hang or timeout after 60s).
