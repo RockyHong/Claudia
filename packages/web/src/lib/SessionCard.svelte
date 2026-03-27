@@ -76,7 +76,7 @@
 
 <style>
   .card {
-    background: var(--bg-card, var(--card-bg));
+    background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 12px 16px;
@@ -158,8 +158,8 @@
     animation: glow-dot 2.5s ease-in-out infinite;
   }
   .dot-pending {
-    background: var(--amber, var(--orange));
-    box-shadow: 0 0 6px var(--amber, var(--orange));
+    background: var(--amber);
+    box-shadow: 0 0 6px var(--amber);
     animation: glow-dot 1.8s ease-in-out infinite;
   }
   .dot-disconnected {

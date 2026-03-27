@@ -131,7 +131,7 @@
     width: 100%;
     z-index: 101;
     max-height: 400px;
-    background: var(--bg-card, var(--card-bg));
+    background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
@@ -208,7 +208,7 @@
   }
 
   .remove-btn:hover {
-    color: var(--orange);
+    color: var(--amber);
   }
 
   .project-name {

@@ -270,7 +270,7 @@
   }
 
   .modal {
-    background: var(--bg-card, var(--card-bg));
+    background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 16px;
     font-family: var(--font-body);
@@ -418,7 +418,7 @@
 
   .set-card:hover {
     border-color: var(--text-muted);
-    background: var(--bg-card, var(--card-bg));
+    background: var(--bg-card);
   }
 
   .set-card.active {
@@ -559,7 +559,7 @@
   }
 
   .set-name-input {
-    background: var(--bg-card, var(--card-bg));
+    background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 8px 10px;

@@ -30,7 +30,7 @@
 
   .dot-idle { background: var(--green); }
   .dot-busy { background: var(--blue); }
-  .dot-pending { background: var(--amber, var(--orange)); }
+  .dot-pending { background: var(--amber); }
   .dot-disconnected {
     background: var(--gray);
     animation: pulse 2s infinite;

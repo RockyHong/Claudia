@@ -70,7 +70,7 @@
     const colorMap = {
       idle: style.getPropertyValue("--green").trim(),
       busy: style.getPropertyValue("--blue").trim(),
-      pending: style.getPropertyValue("--orange").trim(),
+      pending: style.getPropertyValue("--amber").trim(),
     };
 
     const color = colorMap[state] || colorMap.idle;
@@ -167,9 +167,6 @@
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
     --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
-    /* Backward-compat aliases */
-    --card-bg: #1c1816;
-    --orange: #e5a03a;
   }
 
   @media (prefers-color-scheme: light) {
@@ -189,8 +186,6 @@
       --amber: #c4880f;
       --red: #c43c3c;
       --gray: #a39a91;
-      --orange: #c4880f;
-      --card-bg: #ffffff;
     }
   }
 
