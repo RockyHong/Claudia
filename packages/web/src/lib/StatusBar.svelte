@@ -16,7 +16,7 @@
     align-items: center;
     gap: 8px;
     padding: 10px 16px;
-    font-size: 13px;
+    font-size: 0.8125rem;
     color: var(--text-muted);
     border-top: 1px solid var(--border);
   }
@@ -30,20 +30,25 @@
 
   .dot-idle { background: var(--green); }
   .dot-busy { background: var(--blue); }
-  .dot-pending { background: var(--orange); }
-  .dot-disconnected { background: var(--gray); animation: pulse 2s infinite; }
+  .dot-pending { background: var(--amber, var(--orange)); }
+  .dot-disconnected {
+    background: var(--gray);
+    animation: pulse 2s infinite;
+  }
 
   @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.3; }
   }
 
-  .message {
-    flex: 1;
+  @media (prefers-reduced-motion: reduce) {
+    .dot-disconnected { animation: none; }
   }
 
+  .message { flex: 1; }
+
   .count {
-    font-size: 12px;
+    font-size: 0.75rem;
     opacity: 0.7;
   }
 </style>
