@@ -1,7 +1,8 @@
 <script>
   import Modal from "./Modal.svelte";
+  import ToggleSlider from "./ToggleSlider.svelte";
 
-  let { onclose, onavatarchange, sfx } = $props();
+  let { onclose, onavatarchange, sfx, nightMode = true, onnightmodechange } = $props();
 
   let sfxVolume = $state(0.5);
 
@@ -123,6 +124,11 @@
       </div>
     </div>
   {/if}
+
+  <section>
+    <h3>Appearance</h3>
+    <ToggleSlider label="Night mode" checked={nightMode} onchange={onnightmodechange} />
+  </section>
 
   <section>
     <h3>Avatar Sets</h3>

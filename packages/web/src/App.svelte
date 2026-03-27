@@ -15,6 +15,14 @@
   let showSpawn = $state(false);
   let avatarVersion = $state(0);
   let sseConnected = $state(true);
+  let nightMode = $state(localStorage.getItem("claudia-theme") !== "light");
+
+  function applyTheme(dark) {
+    document.documentElement.classList.toggle("light", !dark);
+    localStorage.setItem("claudia-theme", dark ? "dark" : "light");
+  }
+
+  applyTheme(localStorage.getItem("claudia-theme") !== "light");
 
   const sfx = createSFXController();
 
@@ -119,6 +127,8 @@
       onclose={() => showSettings = false}
       onavatarchange={() => avatarVersion++}
       {sfx}
+      {nightMode}
+      onnightmodechange={(v) => { nightMode = v; applyTheme(v); }}
     />
   {/if}
 </div>
@@ -168,24 +178,22 @@
 
   }
 
-  @media (prefers-color-scheme: light) {
-    :global(:root) {
-      --bg: #faf7f5;
-      --bg-card: #ffffff;
-      --bg-raised: #f3eeea;
-      --border: #e8e1da;
-      --border-active: #d4cac0;
-      --text: #1c1816;
-      --text-muted: #6e655d;
-      --text-faint: #a39a91;
-      --brand: #a84e31;
-      --brand-hover: #c15f3c;
-      --green: #2d9a4e;
-      --blue: #3a75c4;
-      --amber: #c4880f;
-      --red: #c43c3c;
-      --gray: #a39a91;
-    }
+  :global(:root.light) {
+    --bg: #faf7f5;
+    --bg-card: #ffffff;
+    --bg-raised: #f3eeea;
+    --border: #e8e1da;
+    --border-active: #d4cac0;
+    --text: #1c1816;
+    --text-muted: #6e655d;
+    --text-faint: #a39a91;
+    --brand: #a84e31;
+    --brand-hover: #c15f3c;
+    --green: #2d9a4e;
+    --blue: #3a75c4;
+    --amber: #c4880f;
+    --red: #c43c3c;
+    --gray: #a39a91;
   }
 
   :global(body) {
