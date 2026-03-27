@@ -149,6 +149,7 @@ The last 20%. Native features that a browser tab can't provide.
 - [x] To customize: replace MP3 files in `packages/server/assets/sfx/`
 
 ### Future (Not Planned for v1)
+- [ ] **Account usage display** — Read OAuth token from `~/.claude/.credentials.json`, fetch Anthropic usage API (`/api/oauth/usage`) on aggregate state changes (idle↔busy↔pending) with 5-minute cache cooldown. Display 5h/7d utilization percentages and reset countdowns on dashboard. No polling — if idle for hours, no wasted calls. On 429, show cached data. Single fetch point eliminates per-session API spam.
 - [ ] **Standalone executable** — Use Node SEA (Single Executable Application) to bundle server + web into a single `.exe`/binary. No Node.js install required. Cross-platform: build for Windows (.exe), macOS (universal binary), and Linux (x64/arm64) via CI. Users just download and run.
 - [ ] Multi-machine monitoring
 - [ ] Quick actions (approve/deny from Claudia) — blocked by lack of Claude Code approval API
