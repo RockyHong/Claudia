@@ -130,6 +130,10 @@ Hook types: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Pe
 
 SSE stream at `GET /events` pushes state updates to the browser. See `overview.md` for the full protocol.
 
+## Shell Notes
+
+- **Never use `cd`** — The cd-guard hook blocks `cd` commands. Use `git -C <path>` for git commands, and absolute paths for everything else. Never `cd D:/Git/Claudia && ...`.
+
 ## Git Notes
 
 - **No Git LFS** — This repo does not use LFS. However, the dev machine has LFS installed globally, which can cause push failures (`This repository exceeded its LFS budget`). If this happens, disable the LFS filter locally:
