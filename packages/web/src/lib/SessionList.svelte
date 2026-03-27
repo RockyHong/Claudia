@@ -2,7 +2,7 @@
   import SessionCard from "./SessionCard.svelte";
   import SpawnPopover from "./SpawnPopover.svelte";
 
-  let { sessions = [], showSpawn = false, ontogglespawn, onclosespawn } = $props();
+  let { sessions = [], showSpawn = false, immersive = false, ontogglespawn, onclosespawn } = $props();
 
   const statePriority = { pending: 0, idle: 1, busy: 2 };
 
@@ -20,15 +20,15 @@
   <div class="section-label">Active Sessions</div>
 {/if}
 
-<div class="list">
+<div class="list" class:immersive>
+  <button class="add-card" onclick={ontogglespawn}>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    <span>New session</span>
+  </button>
+
   {#each sorted as session (session.id)}
     <SessionCard {session} />
   {/each}
-
-  <button class="add-card" onclick={ontogglespawn}>
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    <span>New agent</span>
-  </button>
 
   {#if showSpawn}
     <SpawnPopover onclose={onclosespawn} />
@@ -53,6 +53,7 @@
   }
 
   .add-card {
+    order: 1;
     width: 100%;
     display: flex;
     align-items: center;
@@ -68,6 +69,10 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 150ms ease;
+  }
+
+  .immersive .add-card {
+    order: -1;
   }
 
   .add-card:hover {

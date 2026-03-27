@@ -109,7 +109,7 @@
   <AvatarPanel {aggregateState} background={bgMode} version={avatarVersion} />
 
   <main>
-    <SessionList {sessions} {showSpawn} ontogglespawn={() => showSpawn = !showSpawn} onclosespawn={() => showSpawn = false} />
+    <SessionList {sessions} {showSpawn} immersive={bgMode} ontogglespawn={() => showSpawn = !showSpawn} onclosespawn={() => showSpawn = false} />
   </main>
 
   <StatusBar {aggregateState} statusMessage={sseConnected ? statusMessage : "Disconnected — retrying…"} sessionCount={sessions.length} disconnected={!sseConnected} />

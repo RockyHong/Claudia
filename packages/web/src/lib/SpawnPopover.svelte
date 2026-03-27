@@ -70,7 +70,7 @@
   }
 </script>
 
-<Modal title="Launch session" {onclose}>
+<Modal title="New session" {onclose}>
   {#if loading}
     <div class="empty">Loading...</div>
   {:else}
