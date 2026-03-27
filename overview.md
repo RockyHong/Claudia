@@ -48,7 +48,7 @@ You, working on something else
   │  "Web team needs your OK on a          │
   │   file edit — go say hi"               │
   ├────────────────────────────────────────┤
-  │  localhost:7890 (event receiver)       │
+  │  localhost:48901 (event receiver)       │
   │  ← hooks from all Claude sessions      │
   └────────────────────────────────────────┘
 ```
@@ -75,7 +75,7 @@ One glance at Claudia tells you if you need to do anything or not.
 │                                                  │
 │  ┌────────────────┐  ┌────────────────────────┐  │
 │  │ Express Server │  │ Session Tracker        │  │
-│  │ localhost:7890 │──│ state per session       │  │
+│  │ localhost:48901 │──│ state per session       │  │
 │  │ receives hooks │  │ timestamps, metadata   │  │
 │  └────────┬───────┘  └───────────┬────────────┘  │
 │           │                      │               │
@@ -88,7 +88,7 @@ One glance at Claudia tells you if you need to do anything or not.
 └───────────┼──────────────────────────────────────┘
             │  SSE (EventSource)
             ▼
-   Browser tab (localhost:7890)
+   Browser tab (localhost:48901)
             │
             ├── Session list (Svelte 5)
             ├── Avatar video (HTML <video>)
@@ -118,7 +118,7 @@ See `packages/server/src/hooks.js` for the full commands.
 
 **2. Express Server (`packages/server/src/index.js`)**
 
-A minimal HTTP server on `localhost:7890` that:
+A minimal HTTP server on `localhost:48901` that:
 
 - Receives POST events from hooks at `/event`
 - Maintains a session registry via the session tracker
@@ -218,7 +218,7 @@ npx claudia init    # patches ~/.claude/settings.json with hooks
 npx claudia         # starts the receptionist
 ```
 
-This is the product. It starts a Node.js server on `localhost:7890` and opens a dashboard in the user's default browser. No cloning, no building, no global install. The only prerequisite is Node.js, which anyone running Claude Code already has.
+This is the product. It starts a Node.js server on `localhost:48901` and opens a dashboard in the user's default browser. No cloning, no building, no global install. The only prerequisite is Node.js, which anyone running Claude Code already has.
 
 **What you get:** full session dashboard, avatar display, personality messages, terminal focus via platform shell commands.
 

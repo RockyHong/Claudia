@@ -6,13 +6,13 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/event": "http://localhost:7890",
-      "/events": "http://localhost:7890",
-      "/api": "http://localhost:7890",
-      "/focus": "http://localhost:7890",
-      "/avatar": "http://localhost:7890",
-      "/sfx": "http://localhost:7890",
-      "/hook": "http://localhost:7890",
+      "/event": "http://localhost:48901",
+      "/events": "http://localhost:48901",
+      "/api": "http://localhost:48901",
+      "/focus": "http://localhost:48901",
+      "/avatar": "http://localhost:48901",
+      "/sfx": "http://localhost:48901",
+      "/hook": "http://localhost:48901",
     },
   },
   build: {

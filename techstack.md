@@ -114,10 +114,10 @@ The overview frames the browser version as a "zero install compromise" with Taur
 ~/.claude/settings.json (hooks)
         │
         │  Claude Code fires shell commands on events
-        │  curl -s POST http://localhost:7890/event {...}
+        │  curl -s POST http://localhost:48901/event {...}
         │
         ▼
-Express server (localhost:7890)
+Express server (localhost:48901)
         │
         ├── POST /event          ← receives hook data
         ├── GET  /events         ← SSE stream for UI
@@ -126,7 +126,7 @@ Express server (localhost:7890)
                     │
                     │  SSE (EventSource)
                     ▼
-           Browser tab (localhost:7890)
+           Browser tab (localhost:48901)
                     │
                     ├── Session list (reactive, Svelte)
                     ├── Avatar video (HTML <video>)

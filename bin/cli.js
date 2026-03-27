@@ -134,14 +134,14 @@ async function runTeardown() {
 // --- shutdown ---
 
 async function runShutdown() {
-  const port = process.env.CLAUDIA_PORT || 7890;
+  const port = process.env.CLAUDIA_PORT || 48901;
   await killExistingInstance(port);
 }
 
 // --- start ---
 
 async function runStart() {
-  const port = process.env.CLAUDIA_PORT || 7890;
+  const port = process.env.CLAUDIA_PORT || 48901;
 
   const portInUse = await checkPort(port);
   if (portInUse) {

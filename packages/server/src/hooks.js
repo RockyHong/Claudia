@@ -5,18 +5,12 @@ import path from "node:path";
 import os from "node:os";
 
 const SETTINGS_PATH = path.join(os.homedir(), ".claude", "settings.json");
-const CLAUDIA_MARKER = "127.0.0.1:7890/hook";
-const LEGACY_MARKER = "port:7890,path:'/event'";
+const CLAUDIA_MARKER = "127.0.0.1:48901/hook";
 
 // Hook commands pipe raw stdin JSON to the server via curl.
 // The server does the field mapping (session_id → session, etc.) — no node cold start.
 function hookCommand(hookType) {
-  return `curl -sfS -X POST -H "Content-Type: application/json" -d @- http://127.0.0.1:7890/hook/${hookType} 2>/dev/null || true`;
-}
-
-// Legacy node one-liner for systems without curl
-function legacyHookCommand(fields) {
-  return `node -e "let b='';process.stdin.on('data',c=>b+=c);process.stdin.on('end',()=>{try{const i=JSON.parse(b),h=require('http'),d=JSON.stringify({session:i.session_id,${fields},cwd:i.cwd,ts:Math.floor(Date.now()/1e3)});const r=h.request({hostname:'localhost',port:7890,path:'/event',method:'POST',headers:{'Content-Type':'application/json'}},()=>{});r.on('error',()=>{});r.end(d)}catch(e){}})"`;
+  return `curl -sfS -X POST -H "Content-Type: application/json" -d @- http://127.0.0.1:48901/hook/${hookType} 2>/dev/null || true`;
 }
 
 function hookEntry(hookType, matcher = ".*") {
@@ -38,16 +32,14 @@ const CLAUDIA_HOOKS = {
 };
 
 function commandIsClaudia(cmd) {
-  return typeof cmd === "string" && (cmd.includes(CLAUDIA_MARKER) || cmd.includes(LEGACY_MARKER));
+  return typeof cmd === "string" && cmd.includes(CLAUDIA_MARKER);
 }
 
 function isClaudiaHook(hook) {
   if (!hook) return false;
-  // Match nested format: { matcher, hooks: [{ type, command }] }
   if (Array.isArray(hook.hooks)) {
     return hook.hooks.some((h) => commandIsClaudia(h.command));
   }
-  // Match old bare format: { command }
   return commandIsClaudia(hook.command);
 }
 
@@ -114,4 +106,4 @@ export function getSettingsPath() {
   return SETTINGS_PATH;
 }
 
-export { CLAUDIA_HOOKS, CLAUDIA_MARKER, LEGACY_MARKER, legacyHookCommand };
+export { CLAUDIA_HOOKS, CLAUDIA_MARKER };

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { mergeHooks, removeHooks, hasClaudiaHooks, CLAUDIA_MARKER, LEGACY_MARKER } from "./hooks.js";
+import { mergeHooks, removeHooks, hasClaudiaHooks, CLAUDIA_MARKER } from "./hooks.js";
 
 describe("hasClaudiaHooks", () => {
   it("returns false for empty settings", () => {
@@ -38,19 +38,6 @@ describe("hasClaudiaHooks", () => {
     expect(hasClaudiaHooks(settings)).toBe(true);
   });
 
-  it("detects legacy node one-liner hooks", () => {
-    const settings = {
-      hooks: {
-        PreToolUse: [
-          {
-            matcher: ".*",
-            hooks: [{ type: "command", command: `node -e "...${LEGACY_MARKER}..."` }],
-          },
-        ],
-      },
-    };
-    expect(hasClaudiaHooks(settings)).toBe(true);
-  });
 });
 
 describe("mergeHooks", () => {
@@ -117,23 +104,6 @@ describe("mergeHooks", () => {
     expect(result.hooks.PreToolUse).toHaveLength(1);
     expect(result.hooks.PreToolUse[0].matcher).toBe(".*");
     expect(result.hooks.PreToolUse[0].hooks[0].command).toContain(CLAUDIA_MARKER);
-  });
-
-  it("upgrades legacy node one-liner hooks to curl", () => {
-    const settings = {
-      hooks: {
-        PreToolUse: [
-          {
-            matcher: ".*",
-            hooks: [{ type: "command", command: `node -e "...${LEGACY_MARKER}..."` }],
-          },
-        ],
-      },
-    };
-    const result = mergeHooks(settings);
-    expect(result.hooks.PreToolUse).toHaveLength(1);
-    expect(result.hooks.PreToolUse[0].hooks[0].command).toContain("curl");
-    expect(result.hooks.PreToolUse[0].hooks[0].command).not.toContain("node -e");
   });
 
   it("does not mutate the original settings", () => {
@@ -244,20 +214,4 @@ describe("removeHooks", () => {
     expect(result.theme).toBe("dark");
   });
 
-  it("removes legacy node one-liner hooks", () => {
-    const settings = {
-      hooks: {
-        PreToolUse: [
-          { matcher: "", hooks: [{ type: "command", command: "echo user-hook" }] },
-          {
-            matcher: ".*",
-            hooks: [{ type: "command", command: `node -e "...${LEGACY_MARKER}..."` }],
-          },
-        ],
-      },
-    };
-    const result = removeHooks(settings);
-    expect(result.hooks.PreToolUse).toHaveLength(1);
-    expect(result.hooks.PreToolUse[0].hooks[0].command).toBe("echo user-hook");
-  });
 });

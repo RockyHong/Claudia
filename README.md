@@ -47,7 +47,7 @@ Terminal 1 (claude code)  ──┐
 Terminal 2 (claude code)  ──┤ hooks (curl POST)
 Terminal 3 (claude code)  ──┘
                             ▼
-              Claudia server (localhost:7890)
+              Claudia server (localhost:48901)
                             │
                             │ SSE stream
                             ▼

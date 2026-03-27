@@ -17,7 +17,7 @@ import { registerSfxPreview } from "./sfx-preview.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIST = path.resolve(__dirname, "../../web/dist");
 
-const PORT = process.env.CLAUDIA_PORT || 7890;
+const PORT = process.env.CLAUDIA_PORT || 48901;
 const SHUTDOWN_TOKEN_PATH = path.join(os.homedir(), ".claudia", "shutdown-token");
 
 const sseClients = new Set();
