@@ -140,11 +140,12 @@
 <style>
   .avatar-panel {
     position: relative;
-    margin: 16px 12px 0;
+    margin: 0 12px;
     border-radius: 16px;
     overflow: hidden;
     background: var(--bg-card);
     border: 1px solid var(--border);
+    max-height: 360px;
   }
 
   .avatar-panel.bg-mode {

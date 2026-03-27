@@ -23,6 +23,7 @@
     </p>
   </div>
 {:else}
+  <div class="section-label">Active Sessions</div>
   <div class="list">
     {#each sorted as session (session.id)}
       <SessionCard {session} />
@@ -31,6 +32,16 @@
 {/if}
 
 <style>
+  .section-label {
+    font-family: var(--font-heading);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    margin-bottom: 12px;
+  }
+
   .list {
     display: flex;
     flex-direction: column;
