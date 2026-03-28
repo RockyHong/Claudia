@@ -42,6 +42,9 @@ src-tauri/target/
 # Claudia runtime state
 .claudia/
 
+# Superpowers runtime state
+.superpowers/
+
 # Avatar videos (user-provided, not shipped)
 packages/web/public/avatar/*.webm
 packages/web/public/avatar/*.mp4
