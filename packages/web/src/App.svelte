@@ -368,4 +368,16 @@
     stroke: rgba(255, 255, 255, 0.25);
   }
 
+  .app.bg-mode :global(.usage-rings .ring-bg) {
+    stroke: rgba(255, 255, 255, 0.08);
+  }
+
+  .app.bg-mode :global(.usage-rings .ring-fill) {
+    stroke: rgba(255, 255, 255, 0.25);
+  }
+
+  .app.bg-mode :global(.usage-rings .ring-item) {
+    color: rgba(255, 255, 255, 0.25);
+  }
+
 </style>
