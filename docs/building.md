@@ -32,9 +32,9 @@ That's it. No build step beyond the web UI.
 
 ## 2. Standalone Desktop App
 
-**What you get:** `Claudia-Setup.exe` (Windows) or `Claudia.dmg` (macOS). Native window, taskbar icon, no Node.js required.
+**What you get:** `Claudia-Windows.zip` (extract and run) or `Claudia.dmg` (drag to Applications). Native window, taskbar icon, no Node.js required. Close window = stop server.
 
-**How it works:** Tauri provides the native window shell (~5 MB). Inside it, a Node SEA (Single Executable Application) runs the server. Tauri's webview loads `localhost:48901`.
+**How it works:** Tauri provides the native window shell (~5 MB). Inside it, a Node SEA (Single Executable Application) runs the server. Tauri's webview loads `localhost:48901`. No installer — just the exe.
 
 ### Prerequisites
 
@@ -55,11 +55,11 @@ This runs three things in sequence:
 
 1. **`build:sea:x64`** -- bundles the server into a single `.exe` via Node SEA
 2. **`npm run build`** -- builds the web UI
-3. **`npx tauri build`** -- wraps everything into a native installer
+3. **`npx tauri build`** -- builds the native window shell
 
-Output lands in `src-tauri/target/release/bundle/`:
-- Windows: `nsis/Claudia-Setup.exe`
-- macOS: `dmg/Claudia.dmg`
+Output:
+- Windows: `src-tauri/target/release/Claudia.exe` + sidecar — zip them together
+- macOS: `src-tauri/target/release/bundle/dmg/Claudia.dmg`
 
 ### What's inside the SEA
 
@@ -150,16 +150,16 @@ git push origin v0.1.0
 The workflow (`.github/workflows/build.yml`) runs:
 
 ```
-build-sea-x64 (Windows) -----> build-tauri-win ----+
-                                                    +--> release
-build-sea-x86 (Windows) -----> package-we ----------+        |
-                                                    +--> GitHub Release
-build-tauri-mac (macOS)  --------------------------+    with all artifacts
+build-sea-x64 (Windows) --> build-standalone-win (zip) --+
+                                                          +--> release
+build-sea-x86 (Windows) --> package-we (zip) ------------+        |
+                                                          +--> GitHub Release
+build-standalone-mac -----> Claudia.dmg -----------------+    with all artifacts
 ```
 
 Artifacts attached to the release:
-- `Claudia-Setup.exe` -- Windows installer
-- `Claudia.dmg` -- macOS disk image
+- `Claudia-Windows.zip` -- portable exe (extract and run)
+- `Claudia.dmg` -- macOS disk image (drag to Applications)
 - `claudia-wallpaper.zip` -- Wallpaper Engine package
 
 Manual trigger: Actions tab > "Build Distribution Artifacts" > Run workflow.
