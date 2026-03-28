@@ -95,6 +95,12 @@ export function createAvatarStorage(baseDir) {
 			throw new Error("Invalid set name");
 		}
 
+		// Require all three avatar states
+		const states = new Set(files.map((f) => f.name.split(".")[0]));
+		if (!states.has("idle") || !states.has("busy") || !states.has("pending")) {
+			throw new Error("All three videos required: idle, busy, pending");
+		}
+
 		const setPath = getSetPath(name);
 
 		try {
