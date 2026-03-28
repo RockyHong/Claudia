@@ -1,34 +1,51 @@
 <script>
-  let { aggregateState = "idle", statusMessage = "", sessionCount = 0, disconnected = false } = $props();
+  let { aggregateState = "idle", statusMessage = "", sessionCount = 0, disconnected = false, immersive = false } = $props();
 
   let dotClass = $derived(disconnected ? "dot-disconnected" : `dot-${aggregateState}`);
 </script>
 
-<div class="status-bar" class:pending={!disconnected && aggregateState === "pending"}>
-  <span class="dot {dotClass}"></span>
-  <span class="message">{statusMessage}</span>
-  <span class="count">{sessionCount} session{sessionCount !== 1 ? "s" : ""}</span>
-</div>
+<footer class="status-bar" class:pending={!disconnected && aggregateState === "pending"} class:immersive>
+  <div class="status-inner">
+    <span class="dot {dotClass}"></span>
+    <span class="message">{statusMessage}</span>
+    <span class="count">{sessionCount} session{sessionCount !== 1 ? "s" : ""}</span>
+  </div>
+</footer>
 
 <style>
   .status-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    margin: 0 0 16px;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
     font-size: 0.8125rem;
     color: var(--text-muted);
     background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    border-top: 1px solid var(--border);
     transition: all 150ms ease;
   }
 
   .status-bar.pending {
     background: rgba(229, 160, 58, 0.14);
-    border-color: rgba(229, 160, 58, 0.35);
-    box-shadow: 0 0 16px rgba(229, 160, 58, 0.1);
+    border-top-color: rgba(229, 160, 58, 0.35);
+  }
+
+  .status-bar.immersive {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top-color: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .status-inner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 10px 16px;
   }
 
   .dot {

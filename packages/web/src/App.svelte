@@ -120,8 +120,6 @@
     <SessionList {sessions} {showSpawn} immersive={bgMode} ontogglespawn={() => showSpawn = !showSpawn} onclosespawn={() => showSpawn = false} />
   </main>
 
-  <StatusBar {aggregateState} statusMessage={sseConnected ? statusMessage : "Disconnected — retrying…"} sessionCount={sessions.length} disconnected={!sseConnected} />
-
   {#if showSettings}
     <SettingsModal
       onclose={() => showSettings = false}
@@ -132,6 +130,8 @@
     />
   {/if}
 </div>
+
+<StatusBar {aggregateState} statusMessage={sseConnected ? statusMessage : "Disconnected — retrying…"} sessionCount={sessions.length} disconnected={!sseConnected} immersive={bgMode} />
 
 <style>
   :global(*) {
@@ -211,7 +211,7 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    padding: 0 16px;
+    padding: 0 16px 40px;
   }
 
   @media (max-width: 480px) {
@@ -241,7 +241,7 @@
 
   main {
     flex: 1;
-    padding: 32px 0;
+    padding: 32px 0 64px;
   }
 
   .header-actions {
@@ -366,12 +366,4 @@
     stroke: rgba(255, 255, 255, 0.25);
   }
 
-  .app.bg-mode :global(.status-bar) {
-    position: relative;
-    z-index: 2;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-color: rgba(255, 255, 255, 0.08);
-  }
 </style>
