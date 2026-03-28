@@ -210,7 +210,22 @@ async function pruneDeadSpawnedSessions() {
   }
 }
 
-export async function startServer(port = PORT) {
+export async function startServer(port = PORT, options = {}) {
+  const { managed = false } = options;
+
+  if (managed) {
+    const { setManaged } = await import("./spawner.js");
+    const { createJobObject } = await import("./job-object.js");
+    const { setJobHandle } = await import("./lifecycle.js");
+
+    setManaged(true);
+    const handle = createJobObject();
+    if (handle && handle !== "0") {
+      setJobHandle(handle);
+      console.log(`[lifecycle] Job Object created (handle=${handle})`);
+    }
+  }
+
   await ensureDefaults();
   tracker.start();
   usageClient.refreshUsage().catch(() => {});
