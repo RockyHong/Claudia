@@ -178,7 +178,10 @@ export function registerApiRoutes(app, tracker, usageClient) {
       await updateSet(name, { rename, files });
       res.json({ ok: true, name: rename || name });
     } catch (err) {
-      res.status(400).json({ error: err.message });
+      const status = err.message.includes("not found") ? 404
+        : err.message.includes("already exists") ? 409
+        : 400;
+      res.status(status).json({ error: err.message });
     }
   });
 

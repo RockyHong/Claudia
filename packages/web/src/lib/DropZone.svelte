@@ -34,7 +34,15 @@
     inputEl?.click();
   }
 
-  let displayUrl = $derived(file ? URL.createObjectURL(file) : previewUrl);
+  let blobUrl = $state(null);
+
+  $effect(() => {
+    if (blobUrl) URL.revokeObjectURL(blobUrl);
+    blobUrl = file ? URL.createObjectURL(file) : null;
+    return () => { if (blobUrl) URL.revokeObjectURL(blobUrl); };
+  });
+
+  let displayUrl = $derived(blobUrl || previewUrl);
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->

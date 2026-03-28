@@ -250,7 +250,7 @@ describe("PUT /api/avatars/sets/:name", () => {
       rename: "new-name",
     });
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: "Set not found" });
   });
 });
