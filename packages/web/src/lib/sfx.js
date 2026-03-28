@@ -22,14 +22,23 @@ function savePreferences(prefs) {
 // --- Audio file playback ---
 
 function createAudioWithFallback(src, fallbackFn) {
-  const audio = new Audio(src);
-  let fileAvailable = null;
+  let audio = null;
+  let fileAvailable = false;
 
-  audio.addEventListener("canplaythrough", () => { fileAvailable = true; }, { once: true });
-  audio.addEventListener("error", () => { fileAvailable = false; }, { once: true });
+  // Probe with fetch to avoid browser console errors on 404
+  fetch(src, { method: "HEAD" })
+    .then((res) => {
+      if (res.ok) {
+        audio = new Audio(src);
+        fileAvailable = true;
+      }
+    })
+    .catch(() => {
+      // Network error — stay on synth fallback
+    });
 
   return (volume) => {
-    if (fileAvailable === false) {
+    if (!fileAvailable || !audio) {
       ensureContextReady().then(() => fallbackFn(volume));
       return;
     }
