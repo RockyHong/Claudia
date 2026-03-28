@@ -184,6 +184,7 @@
     border-radius: 16px;
     opacity: 0;
     transition: opacity 0.3s ease;
+    image-rendering: pixelated;
   }
 
   .bg-mode .slot {
