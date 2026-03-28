@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { focusTerminal, listTerminalWindows, renameTerminal } from "./focus.js";
 import { generateTerminalTitle } from "./terminal-title.js";
 import { trackProject, listProjects, removeProject } from "./project-storage.js";
-import { spawnSession, browseFolder, cancelBrowse, openFolder } from "./spawner.js";
+import { spawnSession, browseFolder, cancelBrowse, openFolder, openTerminal } from "./spawner.js";
 import { parseMultipart } from "./multipart.js";
 import {
   getActiveSetPath,
@@ -94,6 +94,19 @@ export function registerApiRoutes(app, tracker, usageClient) {
     }
     try {
       openFolder(cwd);
+      res.status(204).end();
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/open-terminal", (req, res) => {
+    const { cwd } = req.body;
+    if (!cwd || typeof cwd !== "string") {
+      return res.status(400).json({ error: "Missing cwd" });
+    }
+    try {
+      openTerminal(cwd);
       res.status(204).end();
     } catch (err) {
       res.status(500).json({ error: err.message });

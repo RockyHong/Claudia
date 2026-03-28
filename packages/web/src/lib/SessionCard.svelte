@@ -65,6 +65,19 @@
     }
   }
 
+  async function openTerminal(e) {
+    e.stopPropagation();
+    try {
+      await fetch("/api/open-terminal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cwd: session.cwd }),
+      });
+    } catch {
+      // best-effort
+    }
+  }
+
   async function openLinkDropdown(e) {
     e.stopPropagation();
     if (showLinkDropdown) {
@@ -161,10 +174,14 @@
         </span>
       {/if}
       {#if session.cwd}
-        <button class="open-folder-btn" onclick={openFolder} title="Open in file explorer">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-          Open folder
-        </button>
+        <div class="detail-actions">
+          <button class="detail-icon-btn" onclick={openFolder} title="Open in explorer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          </button>
+          <button class="detail-icon-btn" onclick={openTerminal} title="Open terminal here">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          </button>
+        </div>
       {/if}
     </div>
   {/if}
@@ -335,24 +352,29 @@
     color: var(--text-faint);
   }
 
-  .open-folder-btn {
+  .detail-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+  }
+
+  .detail-icon-btn {
     all: unset;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    font-family: var(--font-body, sans-serif);
-    font-size: 0.75rem;
     color: var(--text-faint, #5c554e);
     cursor: pointer;
-    margin-left: auto;
+    padding: 2px;
+    border-radius: 4px;
     transition: color var(--duration-normal, 150ms) var(--ease-in-out, ease);
   }
 
-  .open-folder-btn:hover {
+  .detail-icon-btn:hover {
     color: var(--text-muted, #948b82);
   }
 
-  .open-folder-btn svg {
+  .detail-icon-btn svg {
     width: 12px;
     height: 12px;
     flex-shrink: 0;

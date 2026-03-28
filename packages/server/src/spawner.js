@@ -280,6 +280,44 @@ export function openFolder(cwd) {
   spawn(cmd, [cwd], { detached: true, stdio: "ignore" }).unref();
 }
 
+const terminalStrategies = {
+  win32: (cwd) => {
+    const fwdCwd = cwd.replace(/\\/g, "/");
+    const wtArgs = ["-w", "new", "-d", fwdCwd];
+    const wtArgLine = wtArgs.map((a) => (/[\s"]/.test(a) ? `"${a.replace(/"/g, '`"')}"` : a)).join(" ");
+    const ps = `Start-Process wt -ArgumentList '${wtArgLine.replace(/'/g, "''")}'`;
+    runPowerShell(ps);
+  },
+  darwin: (cwd) => {
+    const escaped = cwd.replace(/'/g, "'\\''");
+    spawn("open", ["-a", "Terminal", escaped], { detached: true, stdio: "ignore" }).unref();
+  },
+  linux: (cwd) => {
+    const escaped = cwd.replace(/'/g, "'\\''");
+    const terminals = [
+      { cmd: "gnome-terminal", args: ["--working-directory", cwd] },
+      { cmd: "xterm", args: ["-e", `cd '${escaped}'; exec bash`] },
+      { cmd: "x-terminal-emulator", args: ["-e", `cd '${escaped}'; exec bash`] },
+    ];
+    for (const { cmd, args } of terminals) {
+      try {
+        spawn(cmd, args, { detached: true, stdio: "ignore", cwd }).unref();
+        return;
+      } catch { /* try next */ }
+    }
+    throw new Error("No terminal emulator found");
+  },
+};
+
+/**
+ * Open a terminal at the given directory. Fire-and-forget.
+ */
+export function openTerminal(cwd) {
+  const strategy = terminalStrategies[currentPlatform];
+  if (!strategy) throw new Error(`Unsupported platform: ${currentPlatform}`);
+  strategy(cwd);
+}
+
 function escapeAppleScript(str) {
   return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
