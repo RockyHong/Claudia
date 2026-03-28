@@ -84,6 +84,7 @@ function request(server, method, urlPath, body) {
 const mockTracker = {
   getSession: vi.fn(),
   storeSpawnedInfo: vi.fn(),
+  linkSessionById: vi.fn(),
   getLinkedHandles: vi.fn(),
 };
 
@@ -481,6 +482,6 @@ describe("POST /api/link/:sessionId", () => {
     expect(res.body.ok).toBe(true);
     expect(res.body.terminalTitle).toMatch(/^claudia · proj-[0-9a-z]{2,}$/);
     expect(renameTerminal).toHaveBeenCalledWith(456, res.body.terminalTitle);
-    expect(mockTracker.storeSpawnedInfo).toHaveBeenCalledWith("/proj", res.body.terminalTitle, 456);
+    expect(mockTracker.linkSessionById).toHaveBeenCalledWith("s1", res.body.terminalTitle, 456);
   });
 });

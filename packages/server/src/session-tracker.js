@@ -226,16 +226,36 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
     const normalized = cwd.replace(/\\/g, "/");
     spawnedInfo.set(normalized, { terminalTitle, windowHandle });
 
-    // Retroactively mark any session that arrived before the info was stored
+    // Retroactively mark the most recent unlinked session with this cwd
+    // (handles race where SessionStart hook fires before spawn returns).
+    // Only match ONE session — others with the same cwd are independent instances.
+    let newest = null;
     for (const session of sessions.values()) {
       const sessionCwd = session.cwd ? session.cwd.replace(/\\/g, "/") : null;
       if (sessionCwd === normalized && !session.spawned) {
-        session.spawned = true;
-        session.terminalTitle = terminalTitle;
-        session.windowHandle = windowHandle;
-        notify();
+        if (!newest || session.lastEvent > newest.lastEvent) {
+          newest = session;
+        }
       }
     }
+    if (newest) {
+      newest.spawned = true;
+      newest.terminalTitle = terminalTitle;
+      newest.windowHandle = windowHandle;
+      // Consume — the entry was matched, don't let new-session path double-match
+      spawnedInfo.delete(normalized);
+      notify();
+    }
+  }
+
+  function linkSessionById(sessionId, terminalTitle, windowHandle) {
+    const session = sessions.get(sessionId);
+    if (!session) return false;
+    session.spawned = true;
+    session.terminalTitle = terminalTitle;
+    session.windowHandle = windowHandle;
+    notify();
+    return true;
   }
 
   function getSession(id) {
@@ -274,6 +294,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
     getAggregateState,
     getSessionDisplayName,
     storeSpawnedInfo,
+    linkSessionById,
     getLinkedHandles,
     pruneStale,
     start,

@@ -297,7 +297,10 @@ export function registerApiRoutes(app, tracker, usageClient) {
 
     const terminalTitle = generateTerminalTitle(session.cwd);
     await renameTerminal(windowHandle, terminalTitle);
-    tracker.storeSpawnedInfo(session.cwd, terminalTitle, windowHandle);
+    tracker.linkSessionById(req.params.sessionId, terminalTitle, windowHandle);
+
+    // Flash the terminal to confirm the link visually (fire-and-forget)
+    focusTerminal(terminalTitle, "navigate", windowHandle);
 
     console.log(`[link] session=${session.displayName} title=${terminalTitle} hwnd=${windowHandle}`);
     res.json({ ok: true, terminalTitle });

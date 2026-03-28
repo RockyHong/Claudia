@@ -96,7 +96,12 @@ function buildWindowsFlashScript(color) {
     "      $form.Location = New-Object System.Drawing.Point($rect.Left, $rect.Top)",
     "      $form.Size = New-Object System.Drawing.Size($w, $h)",
     "      $form.Show()",
-    "      Start-Sleep -Milliseconds 400",
+    "      Start-Sleep -Milliseconds 200",
+    "      for ($i = 6; $i -ge 0; $i--) {",
+    "        $form.Opacity = $i * 0.05",
+    "        $form.Refresh()",
+    "        Start-Sleep -Milliseconds 30",
+    "      }",
     "      $form.Close()",
     "    }",
     "  }",
@@ -139,7 +144,11 @@ function focusMac(name, color, _windowHandle) {
       overlay's setBackgroundColor:(current application's NSColor's colorWithRed:${(color.r / 255).toFixed(2)} green:${(color.g / 255).toFixed(2)} blue:${(color.b / 255).toFixed(2)} alpha:0.3)
       overlay's setIgnoresMouseEvents:true
       overlay's makeKeyAndOrderFront:missing value
-      delay 0.4
+      delay 0.2
+      repeat with i from 6 to 0 by -1
+        overlay's setAlphaValue:(i * 0.05)
+        delay 0.03
+      end repeat
       overlay's orderOut:missing value
     end flashOverWindow
 
@@ -204,8 +213,13 @@ root.attributes('-alpha', 0.3)
 root.configure(bg='${color.hex}')
 root.geometry(f'$WIDTH' + 'x' + '$HEIGHT' + '+' + '$X' + '+' + '$Y')
 root.update()
-root.after(400, root.destroy)
-root.mainloop()
+import time
+time.sleep(0.2)
+for i in range(6, -1, -1):
+    root.attributes('-alpha', i * 0.05)
+    root.update()
+    time.sleep(0.03)
+root.destroy()
 " &
         fi
         xdotool windowactivate "$WID"
