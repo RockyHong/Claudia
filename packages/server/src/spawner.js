@@ -243,6 +243,20 @@ function browseLinux() {
   });
 }
 
+const openStrategies = {
+  win32: "explorer.exe",
+  darwin: "open",
+};
+
+/**
+ * Open a folder in the OS file explorer. Fire-and-forget.
+ */
+export function openFolder(cwd) {
+  const cmd = openStrategies[currentPlatform];
+  if (!cmd) throw new Error(`Unsupported platform: ${currentPlatform}`);
+  spawn(cmd, [cwd], { detached: true, stdio: "ignore" }).unref();
+}
+
 function escapeAppleScript(str) {
   return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }

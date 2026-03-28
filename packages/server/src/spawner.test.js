@@ -500,6 +500,79 @@ describe("browseFolder — linux", () => {
 });
 
 // ---------------------------------------------------------------------------
+// openFolder
+// ---------------------------------------------------------------------------
+
+describe("openFolder — win32", () => {
+  let openFolder;
+
+  beforeEach(async () => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    mockPlatform.mockReturnValue("win32");
+    const mod = await import("./spawner.js");
+    openFolder = mod.openFolder;
+  });
+
+  it("spawns explorer.exe with the given path", () => {
+    const child = createMockChild();
+    mockSpawn.mockReturnValue(child);
+    openFolder("C:\\Users\\user\\project");
+    expect(mockSpawn).toHaveBeenCalledWith(
+      "explorer.exe",
+      ["C:\\Users\\user\\project"],
+      { detached: true, stdio: "ignore" },
+    );
+  });
+
+  it("calls unref on the child process", () => {
+    const child = createMockChild();
+    mockSpawn.mockReturnValue(child);
+    openFolder("C:\\Users\\user\\project");
+    expect(child.unref).toHaveBeenCalled();
+  });
+});
+
+describe("openFolder — darwin", () => {
+  let openFolder;
+
+  beforeEach(async () => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    mockPlatform.mockReturnValue("darwin");
+    const mod = await import("./spawner.js");
+    openFolder = mod.openFolder;
+  });
+
+  it("spawns open with the given path", () => {
+    const child = createMockChild();
+    mockSpawn.mockReturnValue(child);
+    openFolder("/Users/user/project");
+    expect(mockSpawn).toHaveBeenCalledWith(
+      "open",
+      ["/Users/user/project"],
+      { detached: true, stdio: "ignore" },
+    );
+  });
+});
+
+describe("openFolder — unsupported platform", () => {
+  let openFolder;
+
+  beforeEach(async () => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    mockPlatform.mockReturnValue("freebsd");
+    const mod = await import("./spawner.js");
+    openFolder = mod.openFolder;
+  });
+
+  it("throws for unsupported platform", () => {
+    expect(() => openFolder("/some/path")).toThrow("Unsupported platform");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // cancelBrowse
 // ---------------------------------------------------------------------------
 
