@@ -3,6 +3,8 @@ import { platform } from "node:os";
 
 const currentPlatform = platform();
 
+let activeBrowseProcess = null;
+
 /**
  * Spawn a terminal running `claude` in the given directory.
  * Returns { terminalTitle, windowHandle } — a unique title set on the terminal
@@ -132,6 +134,13 @@ export async function browseFolder() {
   return strategy();
 }
 
+export function cancelBrowse() {
+  if (activeBrowseProcess) {
+    activeBrowseProcess.kill();
+    activeBrowseProcess = null;
+  }
+}
+
 const browseStrategies = {
   win32: browseWindows,
   darwin: browseMac,
@@ -186,37 +195,41 @@ const FOLDER_PICKER_CS = [
 
 function browseWindows() {
   return new Promise((resolve) => {
-    const ps = [
+    const child = execFile("powershell", ["-NoProfile", "-STA", "-Command", [
       'Add-Type -Language CSharp @"\n' + FOLDER_PICKER_CS + '\n"@',
       "[FolderPicker]::Pick()",
-    ].join("; ");
-
-    execFile("powershell", ["-NoProfile", "-STA", "-Command", ps], { timeout: 60000 }, (err, stdout) => {
+    ].join("; ")], (err, stdout) => {
+      activeBrowseProcess = null;
       if (err) return resolve(null);
       const selected = stdout.trim();
       resolve(selected || null);
     });
+    activeBrowseProcess = child;
   });
 }
 
 function browseMac() {
   return new Promise((resolve) => {
     const script = 'try\nset f to POSIX path of (choose folder with prompt "Select project folder")\nf\non error\n""\nend try';
-    execFile("osascript", ["-e", script], { timeout: 60000 }, (err, stdout) => {
+    const child = execFile("osascript", ["-e", script], (err, stdout) => {
+      activeBrowseProcess = null;
       if (err) return resolve(null);
       const selected = stdout.trim();
       resolve(selected || null);
     });
+    activeBrowseProcess = child;
   });
 }
 
 function browseLinux() {
   return new Promise((resolve) => {
-    execFile("zenity", ["--file-selection", "--directory", "--title=Select project folder"], { timeout: 60000 }, (err, stdout) => {
+    const child = execFile("zenity", ["--file-selection", "--directory", "--title=Select project folder"], (err, stdout) => {
+      activeBrowseProcess = null;
       if (err) return resolve(null);
       const selected = stdout.trim();
       resolve(selected || null);
     });
+    activeBrowseProcess = child;
   });
 }
 

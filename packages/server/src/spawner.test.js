@@ -477,3 +477,44 @@ describe("browseFolder — linux", () => {
     expect(result).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// cancelBrowse
+// ---------------------------------------------------------------------------
+
+describe("cancelBrowse", () => {
+  let browseFolder, cancelBrowse;
+
+  beforeEach(async () => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    mockPlatform.mockReturnValue("win32");
+    const mod = await import("./spawner.js");
+    browseFolder = mod.browseFolder;
+    cancelBrowse = mod.cancelBrowse;
+  });
+
+  it("kills the active browse process", async () => {
+    const mockKill = vi.fn();
+    mockExecFile.mockImplementation((cmd, args, cb) => {
+      // Don't call cb — simulate a hanging dialog
+      return { kill: mockKill };
+    });
+
+    // Start browse but don't await (it will hang)
+    const browsePromise = browseFolder();
+
+    cancelBrowse();
+    expect(mockKill).toHaveBeenCalled();
+
+    // Clean up: the kill triggers the callback with an error
+    const cb = mockExecFile.mock.calls[0][2];
+    cb(new Error("killed"), "", "");
+    await browsePromise;
+  });
+
+  it("does nothing when no browse is active", () => {
+    // Should not throw
+    cancelBrowse();
+  });
+});
