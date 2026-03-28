@@ -60,7 +60,10 @@ export function createUsageClient() {
     if (inFlight) return cached;
 
     const token = await readToken();
-    if (!token) return null;
+    if (!token) {
+      console.log("[usage] no credentials found");
+      return null;
+    }
 
     inFlight = true;
     lastFetchAt = now;
@@ -69,12 +72,14 @@ export function createUsageClient() {
       const result = await fetchUsage(token);
 
       if (result.error) {
+        console.log(`[usage] API error: ${result.status}`);
         if (result.status === 429) {
           backoffMs = Math.min(backoffMs * 2, MAX_BACKOFF_MS);
         }
         return cached;
       }
 
+      console.log(`[usage] 5h=${result.fiveHour.utilization}% 7d=${result.sevenDay.utilization}%`);
       backoffMs = COOLDOWN_MS;
       cached = {
         fiveHour: result.fiveHour,
@@ -82,7 +87,8 @@ export function createUsageClient() {
         fetchedAt: Date.now(),
       };
       return cached;
-    } catch {
+    } catch (err) {
+      console.log(`[usage] fetch error: ${err.message}`);
       return cached;
     } finally {
       inFlight = false;
