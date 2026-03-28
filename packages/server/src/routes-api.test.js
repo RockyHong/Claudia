@@ -391,6 +391,43 @@ describe("GET /api/hooks/status", () => {
   });
 });
 
+describe("POST /api/hooks/install", () => {
+  it("installs hooks and returns success", async () => {
+    const settings = {};
+    const merged = { hooks: { PreToolUse: [{ matcher: ".*", hooks: [{ type: "command", command: "curl 127.0.0.1:48901/hook/PreToolUse" }] }] } };
+    readSettings.mockResolvedValue(settings);
+    mergeHooks.mockReturnValue(merged);
+    writeSettings.mockResolvedValue(undefined);
+
+    const res = await request(server, "POST", "/api/hooks/install");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ success: true });
+    expect(mergeHooks).toHaveBeenCalledWith(settings);
+    expect(writeSettings).toHaveBeenCalledWith(merged);
+  });
+
+  it("returns success: false on write error", async () => {
+    readSettings.mockResolvedValue({});
+    mergeHooks.mockReturnValue({});
+    writeSettings.mockRejectedValue(new Error("Permission denied"));
+
+    const res = await request(server, "POST", "/api/hooks/install");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ success: false, error: "Permission denied" });
+  });
+
+  it("returns success: false on read error", async () => {
+    readSettings.mockRejectedValue(new Error("Malformed JSON"));
+
+    const res = await request(server, "POST", "/api/hooks/install");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ success: false, error: "Malformed JSON" });
+  });
+});
+
 describe("POST /api/link/:sessionId", () => {
   it("returns 404 for unknown session", async () => {
     mockTracker.getSession.mockReturnValue(null);
