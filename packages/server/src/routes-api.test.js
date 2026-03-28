@@ -33,6 +33,12 @@ vi.mock("./avatar-storage.js", () => ({
   getSetPath: vi.fn((n) => `/tmp/avatars/${n}`),
   VALID_FILENAMES: new Set(["idle.webm", "idle.mp4", "busy.webm", "busy.mp4", "pending.webm", "pending.mp4"]),
 }));
+vi.mock("./hooks.js", () => ({
+  readSettings: vi.fn(),
+  hasClaudiaHooks: vi.fn(),
+  mergeHooks: vi.fn(),
+  writeSettings: vi.fn(),
+}));
 
 import { registerApiRoutes } from "./routes-api.js";
 import fs from "node:fs/promises";
@@ -40,6 +46,7 @@ import { focusTerminal, listTerminalWindows, renameTerminal } from "./focus.js";
 import { listProjects, removeProject, trackProject } from "./project-storage.js";
 import { spawnSession, cancelBrowse, openFolder } from "./spawner.js";
 import { listSets, getActiveSet, setActiveSet, deleteSet, updateSet } from "./avatar-storage.js";
+import { readSettings, hasClaudiaHooks, mergeHooks, writeSettings } from "./hooks.js";
 
 function request(server, method, urlPath, body) {
   return new Promise((resolve, reject) => {
@@ -349,6 +356,38 @@ describe("GET /api/terminals", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ terminals: [], supported: true });
+  });
+});
+
+describe("GET /api/hooks/status", () => {
+  it("returns installed: true when hooks are present", async () => {
+    const settings = { hooks: { PreToolUse: [{ matcher: ".*", hooks: [{ type: "command", command: "curl 127.0.0.1:48901/hook/PreToolUse" }] }] } };
+    readSettings.mockResolvedValue(settings);
+    hasClaudiaHooks.mockReturnValue(true);
+
+    const res = await request(server, "GET", "/api/hooks/status");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ installed: true });
+  });
+
+  it("returns installed: false when hooks are missing", async () => {
+    readSettings.mockResolvedValue({});
+    hasClaudiaHooks.mockReturnValue(false);
+
+    const res = await request(server, "GET", "/api/hooks/status");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ installed: false });
+  });
+
+  it("returns 500 on settings read error", async () => {
+    readSettings.mockRejectedValue(new Error("Malformed JSON"));
+
+    const res = await request(server, "GET", "/api/hooks/status");
+
+    expect(res.status).toBe(500);
+    expect(res.body.error).toBe("Malformed JSON");
   });
 });
 
