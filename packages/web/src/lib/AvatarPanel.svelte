@@ -109,16 +109,11 @@
 </script>
 
 {#if available}
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
     class="avatar-panel"
     class:bg-mode={background}
-    class:clickable={!background && onavatarclick}
+    class:hoverable={!background && onavatarclick}
     style:aspect-ratio={background ? undefined : aspectRatio}
-    onclick={() => { if (!background && onavatarclick) onavatarclick(); }}
-    onkeydown={(e) => { if (!background && onavatarclick && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onavatarclick(); } }}
-    role={!background && onavatarclick ? "button" : undefined}
-    tabindex={!background && onavatarclick ? 0 : undefined}
   >
     <!-- svelte-ignore a11y_media_has_caption -->
     <video
@@ -146,9 +141,13 @@
     ></video>
 
     {#if !background && onavatarclick}
-      <div class="avatar-overlay">
+      <button
+        class="avatar-btn"
+        onclick={() => onavatarclick()}
+        aria-label="Change avatar"
+      >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 8h.01M3 16l5-5a2.5 2.5 0 0 1 3.5 0l5 5"/><path d="M14 14l1-1a2.5 2.5 0 0 1 3.5 0L21 16"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-      </div>
+      </button>
     {/if}
   </div>
 {/if}
@@ -196,31 +195,35 @@
     opacity: 1;
   }
 
-  .clickable {
-    cursor: pointer;
-  }
-
-  .avatar-overlay {
+  .avatar-btn {
     position: absolute;
-    inset: 0;
-    background: rgba(193, 95, 60, 0.35);
+    top: 8px;
+    right: 8px;
+    z-index: 1;
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    border-radius: 8px;
+    padding: 6px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0;
-    transition: opacity 0.2s;
-    z-index: 1;
-    border-radius: 16px;
   }
 
-  .avatar-overlay svg {
-    width: 48px;
-    height: 48px;
+  .avatar-btn svg {
+    width: 20px;
+    height: 20px;
     color: #fff;
-    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+    filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.4));
   }
 
-  .clickable:hover .avatar-overlay {
+  .avatar-btn:hover {
+    background: rgba(0, 0, 0, 0.7);
+  }
+
+  .hoverable:hover .avatar-btn {
     opacity: 1;
   }
 </style>
