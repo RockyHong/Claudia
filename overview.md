@@ -1,444 +1,190 @@
-# Claudia
+# Claudia — Project Overview
 
-**Claude + IA (Inteligencia Artificial)**
-A personal receptionist app for all your Claude Code agents.
-
----
-
-## Purpose
-
-When running multiple Claude Code sessions across different terminals, you constantly tab-switch to check: *Is it done? Does it need my permission? Which terminal was that?* Claudia eliminates this friction entirely.
-
-Claudia is **not** another Claude agent. She is the **receptionist** — a lightweight system tray app that monitors all active Claude Code sessions on your machine via hooks, displays their states at a glance, notifies you when attention is needed, and lets you jump to the right terminal with one click.
-
-She doesn't duplicate what the CLI already shows. She tells you *when* and *where* to look.
+Local session monitor for Claude Code. Just hooks, state tracking, and a dashboard.
 
 ---
 
-## Context & Origin
+## Problem
 
-The idea evolved through three iterations:
+A developer running multiple Claude Code sessions across terminals has no centralized view. They tab-switch constantly to check: is it done? Does it need permission? Which terminal? The more sessions, the worse it gets.
 
-1. **Wrapper approach** — embed Claude Code inside an Electron app with xterm.js and a video panel. Rejected because wrapping the terminal risks losing native CLI features (tmux, shell config, clipboard, font rendering). The terminal *is* the product; degrading it defeats the purpose.
+## Solution
 
-2. **Sidecar approach** — keep Claude Code in your native terminal, run a separate display app that reads hook state for one session. Better, but scoped to a single session and the avatar was decorative without real utility.
+Claudia is a local receptionist that watches all Claude Code sessions from one place. It uses Claude Code's hook system to receive events, tracks state per session, and renders a live dashboard showing who's idle, who's busy, and who's waiting on the user — with one-click terminal focus.
 
-3. **Receptionist approach (Claudia)** — monitor *all* Claude Code sessions, serve as a centralized attention hub with navigation. The parallel state conflict from the sidecar approach vanishes because each session is its own row, not a merged state. This is the design.
+No AI, no LLM. Template-based personality messages. Pure event-driven state tracking.
+
+## User
+
+Solo developer or power user running 2+ Claude Code sessions simultaneously. Already has Node.js (required by Claude Code).
+
+## User Flow
+
+1. `npx claudia init` — installs hooks into `~/.claude/settings.json` (one-time)
+2. `npx claudia` — starts server on `localhost:48901`, opens browser dashboard
+3. User works in their terminals as usual — hooks fire automatically
+4. Dashboard shows all sessions: state, elapsed time, current tool, project name
+5. Session enters pending → avatar changes, sound plays, personality message appears
+6. User clicks session card → terminal focus jumps to that window
+7. `npx claudia teardown` — removes hooks cleanly
+
+If Claudia isn't running, hooks fail silently. Claude Code is unaffected.
+
+## Features
+
+- **Session list** — all active Claude Code sessions with live state, elapsed time, last tool
+- **State detection** — idle (green), busy (blue pulsing), pending (orange pulsing)
+- **Terminal focus** — click to raise the right terminal window (Windows/macOS/Linux)
+- **Avatar** — video avatar that changes by aggregate state (pending > busy > idle)
+- **Custom avatar sets** — upload/manage via settings, stored in `~/.claudia/avatars/`
+- **Sound effects** — Web Audio synth tones on state transitions, custom MP3 override
+- **Personality messages** — receptionist-style status text from templates (`personality.js`)
+- **Session spawning** — launch new Claude Code sessions from the dashboard
+- **Usage display** — API cost/usage rings from credentials
+- **Hook gate** — first-run UX prompts hook installation if missing
+- **Project browser** — browse/select known project folders
+- **Dynamic favicon** — tab icon color matches aggregate state
+- **Dark/light mode** — follows system preference
 
 ---
 
-## Core Concept
+## Data Flow
 
 ```
-You, working on something else
-        │
-        ▼
-  ┌─ System Tray ─────────────────────────┐
-  │  Claudia                               │
-  │                                        │
-  │  ┌──────────┐  ┌───────────────────┐   │
-  │  │  Avatar   │  │  Sessions        │   │
-  │  │  (video/  │  │                  │   │
-  │  │   anim)   │  │  ● api   busy    │   │
-  │  │           │  │  ◉ web   NEEDS U │   │
-  │  │   😌💬    │  │  ○ data  idle    │   │
-  │  └──────────┘  │         [focus]   │   │
-  │                 └───────────────────┘   │
-  │                                        │
-  │  "Web team needs your OK on a          │
-  │   file edit — go say hi"               │
-  ├────────────────────────────────────────┤
-  │  localhost:48901 (event receiver)       │
-  │  ← hooks from all Claude sessions      │
-  └────────────────────────────────────────┘
+Claude Code sessions ──► hooks (stdin JSON via POST) ──► Claudia server ──► SSE ──► Dashboard
+                                                              │
+                                                         state machine
+                                                         per session
 ```
 
-One glance at Claudia tells you if you need to do anything or not.
+- **In**: `POST /hook/:type` — raw Claude Code stdin JSON, transformed by `hook-transform.js`
+- **In (legacy)**: `POST /event` — pre-formatted `{session, state, tool, cwd, message, ts}`
+- **Out**: `GET /events` — SSE `state_update` messages to browser (`EventSource`)
+- **API**: `routes-api.js` — projects, avatars, usage, focus, launch, terminals, hooks status
 
----
+## Session States
 
-## Architecture
-
-### System Overview
-
-```
-┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│ Terminal 1   │  │ Terminal 2   │  │ Terminal 3   │
-│ claude code  │  │ claude code  │  │ claude code  │
-│ (api-server) │  │ (frontend)   │  │ (pipeline)   │
-└──────┬───────┘  └──────┬───────┘  └──────┬───────┘
-       │ hooks           │ hooks           │ hooks
-       │                 │                 │
-       ▼                 ▼                 ▼
-┌──────────────────────────────────────────────────┐
-│  Claudia (Node.js server + browser dashboard)    │
-│                                                  │
-│  ┌────────────────┐  ┌────────────────────────┐  │
-│  │ Express Server │  │ Session Tracker        │  │
-│  │ localhost:48901 │──│ state per session       │  │
-│  │ receives hooks │  │ timestamps, metadata   │  │
-│  └────────┬───────┘  └───────────┬────────────┘  │
-│           │                      │               │
-│  ┌────────▼───────┐  ┌──────────▼─────────────┐  │
-│  │ SSE Stream     │  │ Terminal Focus         │  │
-│  │ GET /events    │  │ (shell commands)       │  │
-│  └────────┬───────┘  │ osascript / wmctrl /   │  │
-│           │          │ PowerShell             │  │
-│           │          └────────────────────────┘  │
-└───────────┼──────────────────────────────────────┘
-            │  SSE (EventSource)
-            ▼
-   Browser tab (localhost:48901)
-            │
-            ├── Session list (Svelte 5)
-            ├── Avatar video (HTML <video>)
-            ├── Status messages (personality)
-```
-
-### Components
-
-**1. Hook Configuration (Claude Code side)**
-
-All Claude Code instances on the machine share the same `~/.claude/settings.json`. Hooks fire automatically for every session — no per-terminal setup required. Run `claudia init` to configure them automatically.
-
-Hooks use `node -e` instead of `curl` to avoid shell injection — `JSON.stringify` safely escapes all env var content (notification messages, paths with special characters, etc.).
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [{ "command": "node -e \"...JSON.stringify({session, state:'busy', tool, cwd, ts})...\"" }],
-    "PostToolUse": [{ "command": "node -e \"...JSON.stringify({session, state:'busy', tool, cwd, ts})...\"" }],
-    "Notification": [{ "command": "node -e \"...JSON.stringify({session, state:'pending', message, cwd, ts})...\"" }],
-    "Stop": [{ "command": "node -e \"...JSON.stringify({session, state:'idle', cwd, ts})...\"" }]
-  }
-}
-```
-
-See `packages/server/src/hooks.js` for the full commands.
-
-**2. Express Server (`packages/server/src/index.js`)**
-
-A minimal HTTP server on `localhost:48901` that:
-
-- Receives POST events from hooks at `/event`
-- Maintains a session registry via the session tracker
-- Broadcasts state changes to connected browsers via SSE at `/events`
-- Serves the built Svelte dashboard at `/`
-- Provides REST fallback at `/api/sessions` for initial state load
-- Accepts focus requests at `/focus/:sessionId`
-
-**3. Session Tracker (`packages/server/src/session-tracker.js`)**
-
-In-memory state store using plain JavaScript objects:
-
-```javascript
-// Session shape
-{
-  id,              // CLAUDE_SESSION_ID
-  state,           // 'idle' | 'busy' | 'pending'
-  cwd,             // working directory (used as display name)
-  lastTool,        // most recent tool name (cleared on idle)
-  lastEvent,       // timestamp of last event
-  pendingMessage,  // message from Notification hook
-}
-```
-
-State logic — three states from the user's perspective:
-
-| Hook Event | Resulting State | Rationale |
+| State | Trigger hooks | Meaning |
 |---|---|---|
-| `PreToolUse` fires | → **Busy** | Tool starting |
-| `PostToolUse` fires | → **Busy** | Claude is still working between tools |
-| `Notification` fires | → **Pending** | Needs user attention |
-| `Stop` fires | → **Idle** | Claude finished its turn, waiting for user input |
-| `SessionStart` fires | → **Idle** | Session just began |
-| No event for >10min | → session pruned from list |
+| `idle` | `SessionStart`, `Stop` | Waiting for user input |
+| `busy` | `UserPromptSubmit`, `PreToolUse`, `PostToolUse` | Working |
+| `pending` | `PermissionRequest`, `Notification` | Needs user attention |
+| `stopped` | `SessionEnd` | Session closed |
 
-**4. Svelte Dashboard (`packages/web/src/`)**
+Aggregate rule: `pending` > `busy` > `idle` (highest priority wins for avatar/favicon).
 
-A browser-based dashboard served by Express:
+No debouncing — `PreToolUse`/`PostToolUse` both map to `busy`, stays busy until `Stop`.
 
-- **App.svelte** — Root component: layout, reactive state, document title updates
-- **SessionList.svelte** — Renders list of active sessions, empty state
-- **SessionCard.svelte** — Single session: display name, state dot, elapsed time, last tool, focus button
-- **StatusBar.svelte** — Footer with aggregate state, personality message, session count
-- **sse.js** — EventSource client with auto-reconnect (3s retry)
+Stale pruning: no event for 10 min → session removed.
 
-Uses Svelte 5 runes (`$state`, `$derived`, `$effect`) for reactivity.
+## Hook Protocol
 
-**5. Terminal Focus (`packages/server/src/focus.js`)**
+Hooks installed in `~/.claude/settings.json` via `claudia init`. Claude Code passes context as **stdin JSON** (not env vars). The `"hooks"` key wraps all hook arrays. See `packages/server/src/hooks.js` for exact config shape.
 
-When the user clicks `[Focus]` on a session row, Claudia finds and raises the correct terminal window via platform shell commands:
+8 hook types: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PermissionRequest`, `Notification`, `Stop`, `SessionEnd`.
 
-- **macOS**: `osascript` — match terminal by window title
-- **Linux**: `wmctrl -a` or `xdotool search --name` — activate by window name
-- **Windows**: PowerShell — find process by window title, `SetForegroundWindow`
-
-Fallback: if window matching fails, bring the terminal application to front and let the user pick the tab/window. Focus is best-effort — failure is silent, never crashes.
-
----
-
-## States & Avatar Mapping
-
-| State | Trigger | Avatar Behavior | Icon |
-|---|---|---|---|
-| **Pending** | Permission prompt / plan approval needed | Looking at you, waving, tapping desk | ◉ orange |
-| **Busy** | Any tool use, or between tools during a turn | Typing, focused, busy | ● blue |
-| **Idle** | `Stop` hook — Claude finished, waiting for user input | Relaxed, looking around, maybe reading | ○ gray |
-
-Aggregate avatar logic (when multiple sessions are active):
-
-- If **any** session is `Pending` → avatar shows pending (highest priority — user needs to act)
-- Else if **any** session is `Busy` → avatar shows busy
-- Else → avatar shows idle
-
----
-
-## Personality Layer
-
-Claudia isn't just a dashboard. She's the receptionist. She can have character in her status messages:
-
-- Session finishes a big task → *"Terminal 2 just wrapped up the API refactor."*
-- Two sessions need permission simultaneously → *"You're popular — both the frontend and backend crews need you."*
-- Everything idle for 10+ minutes → *"All quiet. Go grab a coffee."*
-- Session enters pending → *"The api-server team needs your sign-off on a file edit."*
-
-These messages are generated from templates based on state transitions, not from an LLM — keeping Claudia lightweight and instant.
-
----
-
-## Distribution & Installation
-
-Claudia is an open source tool for personal use. The distribution strategy prioritizes zero-friction adoption: one command to configure, one command to run.
-
-### `npx claudia` (zero install)
-
-```bash
-npx claudia init    # patches ~/.claude/settings.json with hooks
-npx claudia         # starts the receptionist
-```
-
-This is the product. It starts a Node.js server on `localhost:48901` and opens a dashboard in the user's default browser. No cloning, no building, no global install. The only prerequisite is Node.js, which anyone running Claude Code already has.
-
-**What you get:** full session dashboard, avatar display, personality messages, terminal focus via platform shell commands.
-
-### The `claudia init` Command
-
-The biggest friction point for new users isn't installing Claudia — it's configuring the Claude Code hooks. The `init` command eliminates this:
-
-```bash
-npx claudia init
-```
-
-What it does:
-
-1. Reads `~/.claude/settings.json` (creates it if missing)
-2. Merges Claudia's hook configuration into the existing hooks (preserving any user-defined hooks already present)
-3. Confirms the changes to the user before writing
-
-What it does NOT do:
-
-- Overwrite existing hooks
-- Require sudo or elevated permissions
-- Modify anything outside `~/.claude/settings.json`
-
-Uninstall is equally clean: `npx claudia teardown` removes only the hooks Claudia added.
-
-### Graceful Degradation
-
-If Claudia is not running, the `curl` commands in the hooks fail silently (`-s` flag, fire-and-forget, no timeout blocking). Claude Code is completely unaffected. Claudia is purely additive — removing it changes nothing about the CLI experience.
-
-### Future: Native Tier
-
-If community demand warrants it, a native tier could add:
-
-- System tray icon with notification badge
-- Native OS notifications (not browser-based)
-- Standalone binary distribution (Tauri — .dmg, .msi, .AppImage)
-
-This is not planned for v1. The browser dashboard covers the core value proposition.
-
----
-
-## Technology Stack
-
-| Component | Choice | Rationale |
-|---|---|---|
-| **Runtime** | Node.js 18+ | Claude Code already requires it — zero extra ask from users |
-| **Server** | Express 5 | Universal knowledge, boring in the best way, 4 routes |
-| **Real-time** | SSE (Server-Sent Events) | Unidirectional data flow → unidirectional primitive. Zero client library (native EventSource) |
-| **UI** | Svelte 5 + Vite | Compiles to tiny vanilla JS, built-in reactivity via runes, near-zero config |
-| **Testing** | Vitest | Vite-native, fast, Jest-compatible API |
-| **Linting** | Biome | Single tool replaces ESLint + Prettier |
-| **Video playback** | HTML `<video>` element with `loop` attribute | Native browser support, no extra libraries |
-| **OS integration** | Platform shell commands | osascript (macOS), wmctrl/xdotool (Linux), PowerShell (Windows) — already installed, no native addons |
-| **Package manager** | npm workspaces | Ships with Node, `npx` is npm-native. No pnpm/yarn overhead |
-
-### Why Browser-First?
-
-**A browser tab covers 80% of the value with 0% install friction.** The session dashboard works perfectly in a browser. The only thing a browser *can't* do is focus other OS windows — and knowing *which* terminal needs you (then alt-tabbing to it) is almost as good as auto-focusing.
-
-Production has one dependency: `express`. This is intentional. See `techstack.md` for full reasoning behind each choice.
-
----
-
-## Project Structure
-
-```
-claudia/
-├── bin/
-│   └── cli.js                       # Entry point: npx claudia, claudia init
-│
-├── packages/
-│   ├── server/                      # Express event server & session tracking
-│   │   ├── package.json             # @claudia/server
-│   │   └── src/
-│   │       ├── index.js             # Express server, SSE, HTTP routes
-│   │       ├── session-tracker.js   # Session registry, state machine, debouncing
-│   │       ├── session-tracker.test.js
-│   │       ├── personality.js       # Status message templates (Phase 4)
-│   │       ├── hooks.js             # Hook config management (Phase 3)
-│   │       └── focus.js             # Terminal focus strategy (Phase 5)
-│   │
-│   └── web/                         # Svelte 5 browser dashboard
-│       ├── package.json             # @claudia/web
-│       ├── index.html
-│       ├── vite.config.js
-│       ├── svelte.config.js
-│       └── src/
-│           ├── main.js              # Svelte app mount point
-│           ├── App.svelte           # Root component: layout, state, notifications
-│           └── lib/
-│               ├── sse.js           # SSE client with auto-reconnect
-│               ├── SessionList.svelte
-│               ├── SessionCard.svelte
-│               └── StatusBar.svelte
-│
-├── package.json                     # Workspace root
-├── CLAUDE.md
-├── overview.md
-├── roadmap.md
-└── techstack.md
-```
-
-Monorepo using npm workspaces. `packages/server` and `packages/web` are the only packages needed — no native tier required for v1.
-
----
-
-## Event Protocol
-
-### Hook → Claudia (HTTP POST)
-
-Claude Code passes hook context via **stdin as JSON** (not environment variables).
-Hooks pipe raw stdin to `POST /hook/:type` — the server transforms it via `hook-transform.js`.
-
-A legacy `POST /event` endpoint also exists, accepting pre-formatted `{session, state, tool, cwd, message, ts}`.
-
-Hooks are installed in `~/.claude/settings.json` under a `"hooks"` wrapper key.
-
-**Transformed event format** (what the server produces from raw stdin):
-
-```json
-{
-  "session": "abc123",
-  "state": "busy" | "idle" | "pending" | "stopped",
-  "tool": "Edit",
-  "cwd": "/home/user/projects/api-server",
-  "message": "Permission needed for file edit",
-  "ts": 1711100000
-}
-```
-
-#### Hook events used
-
-| Claude Code Event    | Claudia State | Purpose |
-|----------------------|---------------|---------|
-| `SessionStart`       | `idle`        | Register session immediately on start |
-| `UserPromptSubmit`   | `busy`        | User submitted prompt, Claude is working |
-| `PreToolUse`         | `busy`        | Tool starting |
-| `PostToolUse`        | `busy`        | Tool finished, Claude still working between tools |
-| `PermissionRequest`  | `pending`     | Tool needs user permission |
-| `Notification`       | `pending`     | Notification text from Claude |
-| `Stop`               | `idle`        | Claude finished its turn, waiting for user input |
-| `SessionEnd`         | `stopped`     | Session closed |
-
-### Claudia Internal State (per session)
-
-```json
-{
-  "sessions": {
-    "abc123": {
-      "displayName": "api-server",
-      "state": "busy",
-      "lastTool": "Edit",
-      "lastEvent": "2026-03-22T14:30:00Z",
-      "timeInState": "12s",
-      "pendingMessage": null
-    },
-    "def456": {
-      "displayName": "frontend",
-      "state": "pending",
-      "lastTool": null,
-      "lastEvent": "2026-03-22T14:30:05Z",
-      "timeInState": "7s",
-      "pendingMessage": "Needs approval for npm install"
-    }
-  },
-  "aggregateState": "pending"
-}
-```
-
-### Claudia → Browser (SSE at GET /events)
-
-Each SSE message is a `state_update` event with JSON data:
+## SSE Payload
 
 ```json
 {
   "type": "state_update",
-  "sessions": [ ... ],
+  "sessions": [{ "id", "state", "cwd", "displayName", "lastTool", "lastEvent", "pendingMessage" }],
   "aggregateState": "pending",
   "statusMessage": "The frontend crew needs your sign-off."
 }
 ```
 
-The browser connects via native `EventSource` API with automatic reconnection.
+## Display Name
+
+`cwd` → last path segment. `/home/user/projects/api-server` → `api-server`. Duplicate cwds get a short session ID suffix. Logic in `session-tracker.js:extractDisplayName()`.
 
 ---
 
-## Key Design Decisions
+## Distribution
 
-### No Debouncing Needed
+Three entry points, same server code. Build details in `docs/building.md`.
 
-Both `PreToolUse` and `PostToolUse` map to `busy`. A session stays busy from the first tool call until Claude's turn completes (`Stop` hook). This eliminates the flickering problem entirely — no debounce timers or thinking detection needed.
+| Entry | Shell | Runtime |
+|---|---|---|
+| `bin/cli.js` | Browser tab | Node.js (npx) |
+| `bin/standalone.js` | Tauri native window | Node SEA 64-bit + Tauri |
+| `bin/wallpaper.js` | Wallpaper Engine | Node SEA 32-bit + WE iframe |
 
-### Session Naming
-
-Sessions are identified by `session_id` from Claude Code's stdin JSON (opaque string). For display, Claudia derives a human-readable name from the `cwd`:
-
-- `/home/user/projects/api-server` → **api-server**
-- `/home/user/projects/frontend` → **frontend**
-
-If two sessions share the same cwd (rare), append a short session ID suffix: **api-server (a3f)**.
-
-### Stale Session Pruning
-
-If no event is received from a session for 10 minutes (configurable), it's removed from the list. This handles cases where Claude Code exits without a clean "goodbye" event.
+CLI: `npx claudia init` / `npx claudia` / `npx claudia teardown`
 
 ---
 
-## Future Possibilities
+## Server Modules — `packages/server/src/`
 
-- **Sound cues** — subtle audio pings when a session enters `Pending` (configurable, off by default)
-- **Session history** — log of state transitions per session, for reviewing how long tasks took
-- **Quick actions** — buttons to send common responses (approve, deny) directly from Claudia back to the terminal via stdin injection (complex but possible)
-- **Multi-machine** — if Claude Code runs on a remote server, hooks could POST to a non-localhost address, letting Claudia monitor remote sessions
-- **Theme/skin support** — custom avatar packs, UI themes
-- **Plugin system** — let users add custom state detectors or notification behaviors
+| File | Does |
+|---|---|
+| `index.js` | Express app, SSE broadcast, `/hook/:type`, `/event`, server lifecycle |
+| `routes-api.js` | REST endpoints: projects, avatars, usage, focus, launch, terminals, hooks |
+| `session-tracker.js` | Session registry, state machine, display names, stale pruning |
+| `hook-transform.js` | Raw stdin JSON → internal event format |
+| `hooks.js` | Read/write `~/.claude/settings.json` hook config |
+| `personality.js` | Status message templates per state transition |
+| `focus.js` | Terminal focus — platform shell commands (PowerShell / osascript / xdotool) |
+| `spawner.js` | Launch Claude Code sessions from dashboard |
+| `terminal-title.js` | Unique terminal title generation for spawned sessions |
+| `avatar-storage.js` | Avatar set CRUD (`~/.claudia/avatars/`) |
+| `multipart.js` | Multipart form-data parser (hand-rolled, no deps) |
+| `project-storage.js` | Known project paths cache (`~/.claudia/projects.json`) |
+| `git-status.js` | Git branch/status for session metadata |
+| `usage.js` | Claude API usage/cost from `~/.claude/.credentials.json` |
+| `sfx-preview.js` | Inline HTML page for SFX testing |
+| `job-object.js` | Windows Job Object — child process cleanup for standalone/WE |
+| `lifecycle.js` | Shared lifecycle state for managed distributions |
+
+## Web — `packages/web/src/`
+
+| File | Does |
+|---|---|
+| `App.svelte` | Root layout, reactive state, document title, theme |
+| `lib/SessionList.svelte` | Session card list, empty state |
+| `lib/SessionCard.svelte` | Single session row: name, state dot, elapsed time, tool, focus |
+| `lib/StatusBar.svelte` | Footer: aggregate state, personality message, count |
+| `lib/AvatarPanel.svelte` | Video avatar, switches source by aggregate state |
+| `lib/AvatarModal.svelte` | Avatar set browser/selector |
+| `lib/AvatarSetEditor.svelte` | Upload/manage files in an avatar set |
+| `lib/AvatarTab.svelte` | Settings tab: avatar config |
+| `lib/ConfigTab.svelte` | Settings tab: general config |
+| `lib/SettingsModal.svelte` | Settings modal with tabs |
+| `lib/SpawnPopover.svelte` | Launch new Claude Code session |
+| `lib/HookGate.svelte` | First-run gate: prompts hook installation |
+| `lib/UsageRings.svelte` | API usage/cost ring visualization |
+| `lib/DropZone.svelte` | Drag-and-drop file upload |
+| `lib/ConfirmDialog.svelte` | Confirmation dialog |
+| `lib/ToggleSlider.svelte` | Toggle switch |
+| `lib/Modal.svelte` | Reusable modal shell |
+| `lib/sse.js` | EventSource client, auto-reconnect, connection status |
+| `lib/sfx.js` | Sound effects: Web Audio API synth + MP3 fallback |
+
+## Other Paths
+
+| Path | Contains |
+|---|---|
+| `src-tauri/` | Tauri config, Rust shell, sidecar binaries |
+| `scripts/` | `bundle-server.js`, `build-sea.js`, `package-we.js` |
+| `docs/building.md` | Build instructions for all 3 distributions |
+| `packages/server/assets/` | Default avatar videos (`avatar/`), sound files (`sfx/`) |
 
 ---
 
-## Summary
+## File Tree
 
-Claudia is a personal, lightweight, system-tray receptionist for Claude Code. She watches all your agent sessions, tells you who needs what, and gets you there in one click. She doesn't replace the terminal — she makes sure you're in the right terminal at the right time.
-
-The hardest part isn't the code. It's making good avatar videos.
+```
+claudia/
+├── bin/cli.js, standalone.js, wallpaper.js
+├── packages/
+│   ├── server/src/          # 17 modules (see table)
+│   │   └── assets/          # avatars/, sfx/
+│   └── web/src/             # 19 files (see table)
+├── src-tauri/               # Tauri shell
+├── scripts/                 # Build scripts
+├── docs/building.md
+├── CLAUDE.md                # Dev instructions (read first)
+├── overview.md              # This file
+├── techstack.md             # Tech choices & patterns
+└── todo.md                  # Open work items
+```

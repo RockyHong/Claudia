@@ -1,137 +1,134 @@
 # Tech Stack
 
-Decisions and reasoning for Claudia's technology choices.
+Ground rules for technology choices, patterns, and architecture.
 
 ---
 
-## Design Principles
+## Stack
 
-These principles guide every choice below:
+| Layer | Choice | Config/Entry |
+|---|---|---|
+| Runtime | Node.js 18+, ES modules | `"type": "module"` in all package.json |
+| Package manager | npm, workspaces | Root `package.json` → `packages/*` |
+| Server | Express 5 | `packages/server/src/index.js` |
+| Real-time | SSE (Server-Sent Events) | `res.write()` on held response, `GET /events` |
+| Frontend | Svelte 5, Vite | `packages/web/`, runes syntax |
+| Testing | Vitest | `vitest.config.js`, `*.test.js` co-located |
+| Linting | Biome | `biome.json` (lint + format in one tool) |
+| Desktop | Tauri (Rust shell) | `src-tauri/` |
+| Standalone binary | Node SEA (Single Executable App) | `scripts/build-sea.js` |
 
-1. **Fast init/install** — `npx claudia` and you're running. No build step for the user, no global install required.
-2. **Low OS coupling** — Core functionality is pure Node.js + browser. OS-specific features (terminal focus) are isolated behind a pluggable abstraction.
-3. **Quick launch** — Server starts in <1s. UI is a browser tab, not a heavy app shell.
-4. **Don't reinvent the wheel** — Use built-in platform capabilities (SSE, HTML `<video>`) before reaching for libraries.
-5. **Separation of concerns** — Transport, state, presentation, and OS integration are independent layers.
-6. **First principles** — Every dependency earns its place. If the platform provides it, don't wrap it.
+## Production Dependency
+
+**One: `express`.** Everything else is hand-rolled or dev-only. This is intentional — don't add dependencies without a strong reason.
+
+Hand-rolled instead of libraries:
+- SSE broadcast (`res.write()` loop in `index.js`)
+- Multipart upload parsing (`multipart.js`, ~60 lines)
+- SFX synthesis (Web Audio API in `sfx.js`)
+- Hook config management (`hooks.js`)
 
 ---
 
-## Architecture Decision: SSE Over WebSocket
+## Architecture Rules
 
-The overview implies WebSocket for real-time UI updates. But the actual data flow is:
+### Data flow is unidirectional
 
-- **Hooks to Claudia**: HTTP POST (already decided)
-- **Claudia to Browser**: unidirectional state pushes
-- **Browser to Claudia**: Focus button click (plain HTTP POST)
+```
+Hooks (POST) ──► Server (state machine) ──► SSE ──► Browser
+                                    ◄── HTTP POST (focus, launch, settings)
+```
 
-There is no bidirectional channel. **Server-Sent Events (SSE)** is the correct primitive:
+No WebSocket. SSE covers server→browser push. Browser→server is plain HTTP POST for actions. Don't introduce bidirectional channels.
 
-- Built into every browser — zero client library
-- Auto-reconnect is native behavior
-- Works over plain HTTP — no upgrade handshake
-- No server library needed — just `res.write()` on a held-open response
+### Separation of concerns
 
-This eliminates `ws`, `socket.io`, and their associated complexity.
+Each module owns one thing. Don't cross boundaries:
 
----
+- **Transport**: `index.js` — HTTP, SSE, server lifecycle
+- **API**: `routes-api.js` — all REST endpoints
+- **State**: `session-tracker.js` — session registry, transitions
+- **Transform**: `hook-transform.js` — raw stdin → event
+- **Presentation**: `personality.js` — status message text
+- **OS**: `focus.js` — platform shell commands, isolated
+- **Storage**: `avatar-storage.js`, `project-storage.js` — file I/O
 
-## Architecture Decision: Tier 1 Is the Product
+If you're importing across these in unexpected directions, the boundary is wrong.
 
-The overview frames the browser version as a "zero install compromise" with Tauri as the real target. From first principles, that's backwards:
+### Module size ceiling
 
-- A browser tab displaying session state covers the core value proposition
-- The only thing a browser *can't* do is focus other OS windows — and knowing *which* terminal needs you (then alt-tabbing) is 90% of the value
+~200 lines per file. If a module grows past this, split by responsibility.
 
-**Tier 1 (Node.js + browser) is the product.** Tauri is a future enhancement layer, not the goal. This means:
+### Function style
 
-- All core logic lives in Node.js, not Rust
-- The UI is a Svelte app served by Express, not a Tauri webview
-- Terminal focus is a best-effort feature via platform shell commands, not a hard requirement
+- Functions do one thing
+- `const` by default, `let` only for reassignment, never `var`
+- Async/await over raw promises
+- No classes unless instance state is clearly needed
+- Error handling at boundaries, not deep in logic
 
----
+### Naming
 
-## Tech Choices
-
-### Runtime & Package Management
-
-| Choice | Detail | Reasoning |
-|---|---|---|
-| **Node.js 18+** | Minimum version | Claude Code already requires it — zero extra ask from users |
-| **npm** | Package manager | Ships with Node, `npx` is npm-native. Adding pnpm/yarn is a dependency for no gain |
-| **npm workspaces** | Monorepo | Built-in, no Turborepo/Nx overhead for 2-3 packages |
-
-### Server
-
-| Choice | Detail | Reasoning |
-|---|---|---|
-| **Express 5** | HTTP server | Universal knowledge, massive middleware ecosystem, boring in the best way |
-| **SSE** | Real-time updates | Unidirectional fits perfectly, auto-reconnect free, zero dependencies |
-| **No WebSocket** | Eliminated | No bidirectional need. SSE is simpler and sufficient |
-
-### Frontend
-
-| Choice | Detail | Reasoning |
-|---|---|---|
-| **Svelte 5** | UI framework | Compiles to tiny vanilla JS (quick launch), built-in reactivity (don't reinvent the wheel), component model (SOC), natural Tauri frontend if Tier 2 ever happens |
-| **Vite** | Build tool | Only sane choice with Svelte, fast HMR, near-zero config |
-| **HTML `<video>`** | Avatar playback | Native browser element, zero dependencies, loop attribute built-in |
-
-### Quality
-
-| Choice | Detail | Reasoning |
-|---|---|---|
-| **Vitest** | Testing | Vite-native, fast, Jest-compatible API |
-| **Biome** | Lint + format | Single tool replaces ESLint+Prettier, Rust-fast, minimal config |
-
-### OS Integration
-
-| Choice | Detail | Reasoning |
-|---|---|---|
-| **Platform shell scripts** | Terminal focus | PowerShell (Windows), osascript (macOS), xdotool/wmctrl (Linux) — already installed, no native Node addons, no `node-gyp` |
-| **Pluggable strategy** | Abstraction | `focusTerminal(sessionId)` calls the right script per platform. Fails gracefully to no-op. Core app has zero OS knowledge |
+Self-documenting. `getSessionDisplayName(cwd)` not `getName(s)`. Booleans as natural language: `isStale`, `hasActiveSession`.
 
 ---
 
-## What We're Not Using (and Why)
+## Frontend Patterns
 
-| Rejected | Why |
+- **Svelte 5 runes**: `$state`, `$derived`, `$effect` — no legacy reactive syntax
+- **Props down, events up** — components don't reach into parents
+- **One component, one concern** — small, focused files
+- **No CSS framework** — hand-written CSS in component `<style>` blocks
+- **Video**: HTML `<video>` with `loop` attribute for avatars
+- **Audio**: Web Audio API for synth tones, `<audio>` for MP3 fallback
+
+## Server Patterns
+
+- **ES modules only** — `import`/`export`, never `require()`
+- **Flat module structure** — all server modules in `packages/server/src/`, no nested dirs
+- **Co-located tests** — `foo.js` and `foo.test.js` side by side
+- **Platform code isolated** — OS-specific logic only in `focus.js` and `job-object.js`
+- **Graceful degradation** — focus is best-effort (silent fail), hooks fail silently if server down
+
+## Storage Locations
+
+| What | Where |
 |---|---|
-| **WebSocket / socket.io** | SSE covers our unidirectional need without a custom protocol layer |
-| **React** | 40KB+ runtime for a session list is unjustifiable when Svelte compiles away |
-| **Electron** | ~150MB for 5 rows of text and a video. Ruled out entirely |
-| **Tauri (for v1)** | Real value is in Tier 1. Tauri is a future layer, not a prerequisite |
-| **pnpm / yarn** | npm ships with Node. Extra package manager is a dependency with no gain for this project |
-| **Turborepo / Nx** | Overkill for 2-3 packages. npm workspaces is sufficient |
-| **Native Node addons** | `node-gyp` pain, platform build toolchain requirements. Shell commands are simpler and already installed |
-| **ESLint + Prettier** | Two tools, two configs, two sets of plugins. Biome does both in one |
+| Hook config | `~/.claude/settings.json` |
+| API credentials | `~/.claude/.credentials.json` |
+| Avatar sets | `~/.claudia/avatars/{set-name}/` |
+| Known projects | `~/.claudia/projects.json` |
+| Default assets | `packages/server/assets/avatar/`, `packages/server/assets/sfx/` |
+| Shutdown token | Written at runtime, `mode 0o600` |
 
 ---
 
-## How It All Connects
+## Build & Distribution
 
-```
-~/.claude/settings.json (hooks)
-        │
-        │  Claude Code fires shell commands on events
-        │  curl -s POST http://localhost:48901/event {...}
-        │
-        ▼
-Express server (localhost:48901)
-        │
-        ├── POST /event          ← receives hook data
-        ├── GET  /events         ← SSE stream for UI
-        ├── POST /focus/:id      ← triggers terminal focus
-        └── GET  /               ← serves Svelte app (pre-built static files)
-                    │
-                    │  SSE (EventSource)
-                    ▼
-           Browser tab (localhost:48901)
-                    │
-                    ├── Session list (reactive, Svelte)
-                    ├── Avatar video (HTML <video>)
-                    ├── Status messages (personality templates)
-                    └── SFX (Web Audio API, on state transitions)
-```
+| Script | Output | Notes |
+|---|---|---|
+| `npm run dev` | Dev server with watch | |
+| `npm run build` | `packages/web/dist/` | Vite production build |
+| `npm run bundle:server` | `dist/server-bundle.js` | esbuild, express kept external |
+| `npm run build:sea:x64` | `dist/claudia-server-x64.exe` | Node SEA 64-bit |
+| `npm run build:sea:x86` | `dist/claudia-server-x86.exe` | Node SEA 32-bit (for WE) |
+| `npm run build:tauri` | Tauri app + SEA sidecar | Needs Rust toolchain |
+| `npm run build:we` | `dist/claudia-wallpaper.zip` | SEA + WE template files |
 
-All localhost. Nothing leaves the machine. If Claudia isn't running, hooks fail silently. Claude Code is completely unaffected.
+CI: `.github/workflows/build.yml` — triggered by version tag push.
+
+---
+
+## Rejected Alternatives
+
+| What | Why not |
+|---|---|
+| WebSocket / socket.io | Data flow is unidirectional, SSE is sufficient |
+| React | Runtime overhead unnecessary, Svelte compiles away |
+| Electron | ~150 MB for a simple dashboard |
+| pnpm / yarn | npm ships with Node, no gain |
+| Turborepo / Nx | Overkill for 2 packages |
+| node-gyp / native addons | Shell commands already installed on every platform |
+| ESLint + Prettier | Biome does both |
+| multer / busboy | One upload endpoint, hand-rolled parser is simpler |
+| howler.js | Web Audio API + `<audio>` covers it |
