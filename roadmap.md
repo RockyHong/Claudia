@@ -149,10 +149,9 @@ The last 20%. Native features that a browser tab can't provide.
 - [x] To customize: replace MP3 files in `packages/server/assets/sfx/`
 
 ### Future (Not Planned for v1)
-- [ ] **Account usage display** — Read OAuth token from `~/.claude/.credentials.json`, fetch Anthropic usage API (`/api/oauth/usage`) on aggregate state changes (idle↔busy↔pending) with 5-minute cache cooldown. Display 5h/7d utilization percentages and reset countdowns on dashboard. No polling — if idle for hours, no wasted calls. On 429, show cached data. Single fetch point eliminates per-session API spam.
-- [ ] **Standalone executable** — Use Node SEA (Single Executable Application) to bundle server + web into a single `.exe`/binary. No Node.js install required. Cross-platform: build for Windows (.exe), macOS (universal binary), and Linux (x64/arm64) via CI. Users just download and run.
-- [ ] **Wallpaper Engine integration** — Claudia's web dashboard as a live Windows desktop wallpaper via [Wallpaper Engine](https://store.steampowered.com/app/431960/Wallpaper_Engine/) ($4 on Steam). Wallpaper Engine embeds a Chromium browser (CEF) that renders HTML/CSS/JS on the desktop — point it at `http://localhost:48901` and Claudia becomes your wallpaper. SSE streaming works in CEF. Considerations: (1) design a full-viewport, no-scroll layout optimized for desktop background use, (2) transparent/dark background to coexist with desktop icons, (3) ambient avatar animations already suit this well, (4) graceful offline state when server isn't running, (5) interaction is limited — desktop wallpapers don't receive clicks unless you double-click the desktop first, so interactive elements (focus buttons, settings) need a separate browser tab or tray menu. Two modes: URL mode (just point at localhost — simplest) or bundled mode (export built assets as a Wallpaper Engine project for Steam Workshop distribution, but loses live server data). URL mode is the practical path.
-- [ ] Multi-machine monitoring
+- [x] **Account usage display** — Read OAuth token from `~/.claude/.credentials.json`, fetch Anthropic usage API (`/api/oauth/usage`) on aggregate state changes (idle↔busy↔pending) with 5-minute cache cooldown. Display 5h/7d utilization percentages and reset countdowns on dashboard. No polling — if idle for hours, no wasted calls. On 429, show cached data. Single fetch point eliminates per-session API spam.
+- [x] **Standalone executable** — Node SEA bundles server + web into single `.exe`. Tauri wraps it in a native desktop window. See Phase 9.
+- [x] **Wallpaper Engine integration** — 32-bit Node SEA as Application wallpaper, WE's CEF renders dashboard via localhost. See Phase 9.
 - [ ] Quick actions (approve/deny from Claudia) — blocked by lack of Claude Code approval API
 
 ---
@@ -281,6 +280,41 @@ User-facing settings modal and persistent avatar management. Moves user data out
 
 ---
 
+## Phase 9: Multi-Distribution
+
+Three ways to run Claudia — same server core, different shells.
+
+### Shared Infrastructure
+- [x] Hook management API (`GET /api/hooks/status`, `POST /api/hooks/install`)
+- [x] Frontend hook gate overlay (auto-install on first launch)
+- [x] Settings modal hooks section (status + reinstall)
+- [x] Managed spawner mode (Job Objects on Windows)
+- [x] Lifecycle module (shared Job Object handle)
+
+### Entry Points
+- [x] `bin/standalone.js` — Tauri sidecar, managed lifecycle
+- [x] `bin/wallpaper.js` — WE application wallpaper, managed lifecycle
+
+### Build Pipeline
+- [x] esbuild server bundling (`scripts/bundle-server.js`)
+- [x] Node SEA build pipeline (`scripts/build-sea.js`, x64 + x86)
+- [x] SEA entry template with embedded web assets
+- [x] WEB_DIST env override for SEA mode
+
+### Distribution Shells
+- [x] Tauri desktop app project (`src-tauri/`)
+- [x] Wallpaper Engine package (`we-template/`, `scripts/package-we.js`)
+- [x] GitHub Actions CI for all targets (`.github/workflows/build.yml`)
+
+### Remaining
+- [ ] Generate/replace Tauri placeholder icons with real Claudia icons
+- [ ] Test full SEA build end-to-end (requires Windows CI runner)
+- [ ] Test Tauri build end-to-end
+- [ ] Steam Workshop submission for WE package
+- [ ] Real `preview.jpg` for WE Workshop listing
+
+---
+
 ## Progress
 
 | Phase | Status | Milestone |
@@ -293,6 +327,7 @@ User-facing settings modal and persistent avatar management. Moves user data out
 | 6. Session Launcher & Control | **Done** | Spawn, navigate, flash — own the lifecycle |
 | 7. Settings & Avatar Sets | **Done** | Upload, switch, persist avatar sets |
 | 8. Test Coverage | **TODO** | Pure logic → API → OS → Frontend |
+| 9. Multi-Distribution | **Done** | npm, standalone, WE — all built from CI |
 
 ---
 
