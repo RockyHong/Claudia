@@ -1,5 +1,6 @@
 import { spawn, execFile } from "node:child_process";
 import { platform } from "node:os";
+import { generateTerminalTitle } from "./terminal-title.js";
 
 const currentPlatform = platform();
 
@@ -14,14 +15,6 @@ export async function spawnSession(cwd) {
   const strategy = strategies[currentPlatform];
   if (!strategy) throw new Error(`Unsupported platform: ${currentPlatform}`);
   return strategy(cwd);
-}
-
-let spawnCounter = 0;
-
-function generateTerminalTitle(cwd) {
-  const name = cwd.replace(/\\/g, "/").split("/").filter(Boolean).pop() || "session";
-  const uid = (++spawnCounter).toString(36).padStart(2, "0");
-  return `claudia · ${name}-${uid}`;
 }
 
 const strategies = {
