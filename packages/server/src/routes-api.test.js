@@ -297,6 +297,7 @@ describe("GET /api/terminals", () => {
         { hwnd: 222, title: "cmd.exe" },
         { hwnd: 333, title: "PowerShell" },
       ],
+      supported: true,
     });
     expect(mockTracker.getLinkedHandles).toHaveBeenCalled();
     expect(listTerminalWindows).toHaveBeenCalledWith(new Set([111]));
@@ -309,7 +310,7 @@ describe("GET /api/terminals", () => {
     const res = await request(server, "GET", "/api/terminals");
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ terminals: [] });
+    expect(res.body).toEqual({ terminals: [], supported: true });
   });
 });
 

@@ -2,6 +2,7 @@
 
 import fs from "node:fs/promises";
 import path from "node:path";
+import { platform } from "node:os";
 import express from "express";
 import { fileURLToPath } from "node:url";
 import { focusTerminal, listTerminalWindows, renameTerminal } from "./focus.js";
@@ -198,9 +199,13 @@ export function registerApiRoutes(app, tracker, usageClient) {
   // --- Terminal linking API ---
 
   app.get("/api/terminals", async (req, res) => {
+    const supported = platform() === "win32";
+    if (!supported) {
+      return res.json({ terminals: [], supported: false });
+    }
     const excludeHandles = tracker.getLinkedHandles();
     const terminals = await listTerminalWindows(excludeHandles);
-    res.json({ terminals });
+    res.json({ terminals, supported: true });
   });
 
   app.post("/api/link/:sessionId", async (req, res) => {

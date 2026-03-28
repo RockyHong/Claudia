@@ -315,7 +315,7 @@ export function renameTerminal(windowHandle, newTitle) {
   const escaped = newTitle.replace(/'/g, "''");
   const ps = [
     'Add-Type -Language CSharp @"\nusing System; using System.Runtime.InteropServices;\npublic class WinTitle { [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern bool SetWindowText(IntPtr hWnd, string lpString); }\n"@',
-    `[WinTitle]::SetWindowText([IntPtr]${windowHandle}, '${escaped}')`,
+    `[WinTitle]::SetWindowText([IntPtr]${Math.trunc(Number(windowHandle))}, '${escaped}')`,
   ].join("\n");
 
   return runFile("powershell", ["-NoProfile", "-Command", ps]);

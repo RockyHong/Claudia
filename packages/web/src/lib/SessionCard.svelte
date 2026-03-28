@@ -77,7 +77,12 @@
     try {
       const res = await fetch("/api/terminals");
       const data = await res.json();
-      terminalList = data.terminals || [];
+      if (data.supported === false) {
+        terminalList = [];
+        linkError = "Linking not supported on this platform yet";
+      } else {
+        terminalList = data.terminals || [];
+      }
     } catch {
       terminalList = [];
       linkError = "Failed to load terminals";
@@ -99,12 +104,7 @@
     showLinkDropdown = false;
   }
 
-  function closeLinkDropdown(e) {
-    // Close if click is outside the dropdown
-    if (showLinkDropdown) {
-      showLinkDropdown = false;
-    }
-  }
+
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
