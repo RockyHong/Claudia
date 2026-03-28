@@ -136,6 +136,7 @@ SSE stream at `GET /events` pushes state updates to the browser. See `overview.m
 
 ## Git Notes
 
+- **Only commit current session's changes** — When committing, only stage files changed in this session. If unrelated uncommitted changes exist from prior work, leave them alone. Separation of concerns applies to commits too.
 - **No Git LFS** — This repo does not use LFS. However, the dev machine has LFS installed globally, which can cause push failures (`This repository exceeded its LFS budget`). If this happens, disable the LFS filter locally:
   ```bash
   git config --local filter.lfs.required false
