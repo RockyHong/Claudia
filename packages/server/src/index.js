@@ -213,6 +213,7 @@ async function pruneDeadSpawnedSessions() {
 export async function startServer(port = PORT) {
   await ensureDefaults();
   tracker.start();
+  usageClient.refreshUsage().catch(() => {});
   const windowCheckInterval = setInterval(pruneDeadSpawnedSessions, WINDOW_CHECK_INTERVAL_MS);
 
   const shutdownToken = randomUUID();
