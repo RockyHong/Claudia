@@ -202,25 +202,22 @@
 
   .avatar-overlay {
     position: absolute;
-    bottom: 12px;
-    right: 12px;
-    width: 32px;
-    height: 32px;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(8px);
-    border-radius: 8px;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: opacity 0.15s;
+    transition: opacity 0.2s;
     z-index: 1;
+    border-radius: 16px;
   }
 
   .avatar-overlay svg {
-    width: 18px;
-    height: 18px;
-    color: rgba(255, 255, 255, 0.8);
+    width: 48px;
+    height: 48px;
+    color: #fff;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
   }
 
   .clickable:hover .avatar-overlay {
