@@ -5,6 +5,7 @@
   import StatusBar from "./lib/StatusBar.svelte";
   import AvatarPanel from "./lib/AvatarPanel.svelte";
   import SettingsModal from "./lib/SettingsModal.svelte";
+  import AvatarModal from "./lib/AvatarModal.svelte";
 
   let sessions = $state([]);
   let aggregateState = $state("idle");
@@ -12,6 +13,7 @@
   let previousStates = $state(new Map());
   let bgMode = $state(localStorage.getItem("claudia-immersive") === "true");
   let showSettings = $state(false);
+  let showAvatarModal = $state(false);
   let showSpawn = $state(false);
   let usage = $state(null);
   let avatarVersion = $state(0);
@@ -101,6 +103,11 @@
   <header>
     <h1><span>Claudia</span></h1>
     <div class="header-actions">
+      {#if bgMode}
+        <button class="header-btn" onclick={() => showAvatarModal = true} aria-label="Change avatar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 8h.01M3 16l5-5a2.5 2.5 0 0 1 3.5 0l5 5"/><path d="M14 14l1-1a2.5 2.5 0 0 1 3.5 0L21 16"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+        </button>
+      {/if}
       <button class="header-btn" onclick={() => showSettings = true}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         {#if !bgMode}Settings{/if}
@@ -116,7 +123,7 @@
     </div>
   </header>
 
-  <AvatarPanel {aggregateState} background={bgMode} version={avatarVersion} />
+  <AvatarPanel {aggregateState} background={bgMode} version={avatarVersion} onavatarclick={() => showAvatarModal = true} />
 
   <main>
     <SessionList {sessions} {showSpawn} {usage} immersive={bgMode} ontogglespawn={() => showSpawn = !showSpawn} onclosespawn={() => showSpawn = false} />
@@ -125,10 +132,16 @@
   {#if showSettings}
     <SettingsModal
       onclose={() => showSettings = false}
-      onavatarchange={() => avatarVersion++}
       {sfx}
       {nightMode}
       onnightmodechange={(v) => { nightMode = v; applyTheme(v); }}
+    />
+  {/if}
+
+  {#if showAvatarModal}
+    <AvatarModal
+      onclose={() => showAvatarModal = false}
+      onavatarchange={() => avatarVersion++}
     />
   {/if}
 </div>

@@ -1,5 +1,5 @@
 <script>
-  let { aggregateState = "idle", background = false, version = 0 } = $props();
+  let { aggregateState = "idle", background = false, version = 0, onavatarclick } = $props();
 
   const STATES = ["idle", "busy", "pending"];
 
@@ -109,7 +109,17 @@
 </script>
 
 {#if available}
-  <div class="avatar-panel" class:bg-mode={background} style:aspect-ratio={background ? undefined : aspectRatio}>
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div
+    class="avatar-panel"
+    class:bg-mode={background}
+    class:clickable={!background && onavatarclick}
+    style:aspect-ratio={background ? undefined : aspectRatio}
+    onclick={() => { if (!background && onavatarclick) onavatarclick(); }}
+    onkeydown={(e) => { if (!background && onavatarclick && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onavatarclick(); } }}
+    role={!background && onavatarclick ? "button" : undefined}
+    tabindex={!background && onavatarclick ? 0 : undefined}
+  >
     <!-- svelte-ignore a11y_media_has_caption -->
     <video
       bind:this={videoA}
@@ -134,6 +144,12 @@
       muted
       playsinline
     ></video>
+
+    {#if !background && onavatarclick}
+      <div class="avatar-overlay">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 8h.01M3 16l5-5a2.5 2.5 0 0 1 3.5 0l5 5"/><path d="M14 14l1-1a2.5 2.5 0 0 1 3.5 0L21 16"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+      </div>
+    {/if}
   </div>
 {/if}
 
@@ -177,6 +193,37 @@
   }
 
   .slot.visible {
+    opacity: 1;
+  }
+
+  .clickable {
+    cursor: pointer;
+  }
+
+  .avatar-overlay {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 1;
+  }
+
+  .avatar-overlay svg {
+    width: 18px;
+    height: 18px;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .clickable:hover .avatar-overlay {
     opacity: 1;
   }
 </style>
