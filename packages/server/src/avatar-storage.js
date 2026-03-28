@@ -181,13 +181,18 @@ export function createAvatarStorage(baseDir) {
 	}
 
 	async function deleteSet(name) {
-		const activeSet = await getActiveSet();
-		if (name === activeSet) {
-			throw new Error("Cannot delete the active set");
+		if (name === "default") {
+			throw new Error("Cannot delete the default set");
 		}
 
 		const setPath = getSetPath(name);
 		await fs.rm(setPath, { recursive: true });
+
+		// If we deleted the active set, fall back to default
+		const activeSet = await getActiveSet();
+		if (activeSet === name) {
+			await setConfig({ activeSet: "default" });
+		}
 	}
 
 	async function setActiveSet(name) {

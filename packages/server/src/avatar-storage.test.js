@@ -200,10 +200,20 @@ describe("deleteSet", () => {
 		expect(sets.find((s) => s.name === "to-delete")).toBeUndefined();
 	});
 
-	it("refuses to delete the active set", async () => {
+	it("falls back to default when deleting the active set", async () => {
+		await storage.ensureDefaults();
 		await storage.createSet("active-one", [fakeFile("idle.webm"), fakeFile("busy.webm"), fakeFile("pending.webm")]);
 		await storage.setActiveSet("active-one");
-		await expect(storage.deleteSet("active-one")).rejects.toThrow("Cannot delete the active set");
+
+		await storage.deleteSet("active-one");
+		expect(await storage.getActiveSet()).toBe("default");
+		const sets = await storage.listSets();
+		expect(sets.find((s) => s.name === "active-one")).toBeUndefined();
+	});
+
+	it("refuses to delete the default set", async () => {
+		await storage.ensureDefaults();
+		await expect(storage.deleteSet("default")).rejects.toThrow("Cannot delete the default set");
 	});
 });
 

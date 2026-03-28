@@ -54,7 +54,8 @@
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Failed to delete");
       }
-      sets = sets.filter((s) => s.name !== name);
+      await fetchSets();
+      onavatarchange?.();
     } catch (err) {
       error = err.message;
     }

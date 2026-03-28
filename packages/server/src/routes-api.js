@@ -192,7 +192,7 @@ export function registerApiRoutes(app, tracker, usageClient) {
       await deleteSet(name);
       res.json({ ok: true });
     } catch (err) {
-      const status = err.message.includes("active") ? 400 : 404;
+      const status = err.message.includes("default") ? 400 : 404;
       res.status(status).json({ error: err.message });
     }
   });
