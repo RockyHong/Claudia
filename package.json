@@ -9,7 +9,9 @@
     "packages/web"
   ],
   "bin": {
-    "claudia": "./bin/cli.js"
+    "claudia": "./bin/cli.js",
+    "claudia-standalone": "./bin/standalone.js",
+    "claudia-wallpaper": "./bin/wallpaper.js"
   },
   "scripts": {
     "dev": "npm run dev --workspace=packages/server",
