@@ -45,7 +45,12 @@ function failExecFile() {
 async function importFocus(platformName) {
   mockPlatform.mockReturnValue(platformName);
   const mod = await import("./focus.js");
-  return { focusTerminal: mod.focusTerminal, findDeadWindows: mod.findDeadWindows, listTerminalWindows: mod.listTerminalWindows };
+  return {
+    focusTerminal: mod.focusTerminal,
+    findDeadWindows: mod.findDeadWindows,
+    listTerminalWindows: mod.listTerminalWindows,
+    renameTerminal: mod.renameTerminal,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -55,11 +60,12 @@ describe("win32 platform", () => {
   let focusTerminal;
   let findDeadWindows;
   let listTerminalWindows;
+  let renameTerminal;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
-    ({ focusTerminal, findDeadWindows, listTerminalWindows } = await importFocus("win32"));
+    ({ focusTerminal, findDeadWindows, listTerminalWindows, renameTerminal } = await importFocus("win32"));
   });
 
   it("calls execFile with 'powershell' on win32", async () => {
@@ -217,6 +223,26 @@ describe("win32 platform", () => {
     const result = await listTerminalWindows(new Set());
     expect(result).toEqual([]);
   });
+
+  // ── renameTerminal ──────────────────────────────────────────────────────
+
+  it("calls SetWindowText via powershell with the new title", async () => {
+    succeedExecFile();
+    const result = await renameTerminal(12345, "claudia · myproject-01");
+    expect(mockExecFile).toHaveBeenCalledOnce();
+    expect(mockExecFile.mock.calls[0][0]).toBe("powershell");
+    const psScript = mockExecFile.mock.calls[0][1][2];
+    expect(psScript).toContain("[IntPtr]12345");
+    expect(psScript).toContain("claudia · myproject-01");
+    expect(psScript).toContain("SetWindowText");
+    expect(result).toBe(true);
+  });
+
+  it("returns false when powershell fails", async () => {
+    failExecFile();
+    const result = await renameTerminal(12345, "claudia · test");
+    expect(result).toBe(false);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -323,11 +349,12 @@ describe("unknown platform (fallback)", () => {
   let focusTerminal;
   let findDeadWindows;
   let listTerminalWindows;
+  let renameTerminal;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
-    ({ focusTerminal, findDeadWindows, listTerminalWindows } = await importFocus("freebsd"));
+    ({ focusTerminal, findDeadWindows, listTerminalWindows, renameTerminal } = await importFocus("freebsd"));
   });
 
   it("returns false without calling any shell command", async () => {
@@ -346,6 +373,12 @@ describe("unknown platform (fallback)", () => {
   it("listTerminalWindows returns empty array on non-win32 platform", async () => {
     const result = await listTerminalWindows(new Set());
     expect(result).toEqual([]);
+    expect(mockExecFile).not.toHaveBeenCalled();
+  });
+
+  it("renameTerminal returns false on non-win32 platform", async () => {
+    const result = await renameTerminal(12345, "claudia · test");
+    expect(result).toBe(false);
     expect(mockExecFile).not.toHaveBeenCalled();
   });
 });
