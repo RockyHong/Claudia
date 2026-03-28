@@ -1,0 +1,9 @@
+{
+  "title": "Claudia",
+  "type": "application",
+  "file": "server.exe",
+  "description": "Claude Code session monitor — live dashboard as your desktop wallpaper",
+  "tags": ["Utility", "Dashboard", "AI"],
+  "visibility": "public",
+  "version": 1
+}
