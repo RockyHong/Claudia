@@ -1,5 +1,6 @@
 <script>
   import AvatarSetEditor from "./AvatarSetEditor.svelte";
+  import ConfirmDialog from "./ConfirmDialog.svelte";
 
   let { onavatarchange } = $props();
 
@@ -93,13 +94,11 @@
 {/if}
 
 {#if confirmDelete}
-  <div class="confirm-bar">
-    <span>Delete "{confirmDelete}"?</span>
-    <div class="confirm-actions">
-      <button class="confirm-yes" onclick={confirmDeleteSet}>Delete</button>
-      <button class="confirm-no" onclick={() => confirmDelete = null}>Cancel</button>
-    </div>
-  </div>
+  <ConfirmDialog
+    message={`Delete "${confirmDelete}"?`}
+    onconfirm={confirmDeleteSet}
+    oncancel={() => confirmDelete = null}
+  />
 {/if}
 
 {#if activeSet}
@@ -224,50 +223,6 @@
     padding: 8px 12px;
     border-radius: 6px;
     font-size: 13px;
-  }
-
-  .confirm-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: rgba(239, 68, 68, 0.08);
-    border: 1px solid rgba(239, 68, 68, 0.25);
-    border-radius: 6px;
-    padding: 8px 12px;
-    font-size: 13px;
-  }
-
-  .confirm-actions {
-    display: flex;
-    gap: 6px;
-  }
-
-  .confirm-yes {
-    background: #ef4444;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 4px 10px;
-    font-size: 12px;
-    cursor: pointer;
-  }
-
-  .confirm-yes:hover {
-    background: #dc2626;
-  }
-
-  .confirm-no {
-    background: none;
-    color: var(--text-muted);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 4px 10px;
-    font-size: 12px;
-    cursor: pointer;
-  }
-
-  .confirm-no:hover {
-    color: var(--text);
   }
 
   /* --- Active preview --- */
