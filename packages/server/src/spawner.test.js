@@ -378,6 +378,27 @@ describe("browseFolder — win32", () => {
     const result = await browseFolder();
     expect(result).toBeNull();
   });
+
+  it("passes GetForegroundWindow as owner HWND in the C# code", async () => {
+    mockExecFile.mockImplementation((cmd, args, cb) => {
+      cb(null, "C:\\project\n", "");
+    });
+    await browseFolder();
+    const psCommand = mockExecFile.mock.calls[0][1];
+    const commandStr = Array.isArray(psCommand) ? psCommand.join(" ") : String(psCommand);
+    expect(commandStr).toContain("GetForegroundWindow");
+  });
+
+  it("uses try/finally for COM cleanup in the C# code", async () => {
+    mockExecFile.mockImplementation((cmd, args, cb) => {
+      cb(null, "C:\\project\n", "");
+    });
+    await browseFolder();
+    const psCommand = mockExecFile.mock.calls[0][1];
+    const commandStr = Array.isArray(psCommand) ? psCommand.join(" ") : String(psCommand);
+    expect(commandStr).toContain("finally");
+    expect(commandStr).toContain("ReleaseComObject");
+  });
 });
 
 // ---------------------------------------------------------------------------
