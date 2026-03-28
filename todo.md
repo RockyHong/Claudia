@@ -4,14 +4,6 @@ Actionable work items. Bug-by-bug, feature-by-feature.
 
 ---
 
-## Frontend Tests
-
-- [ ] Set up Svelte component testing (vitest + @testing-library/svelte)
-- [ ] `SessionCard.svelte` — renders state dot, name, time, git info
-- [ ] `SessionList.svelte` — ordering, empty state, card transitions
-- [ ] `sse.js` — EventSource connection, reconnect, state parsing
-- [ ] Settings modal — mute toggle, volume slider, avatar set switching
-
 ## Distribution Polish
 
 - [ ] Generate/replace Tauri placeholder icons with real Claudia icons
