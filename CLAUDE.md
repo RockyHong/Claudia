@@ -149,7 +149,7 @@ SSE stream at `GET /events` pushes state updates to the browser. See `overview.m
 
 ## Planning
 
-- `roadmap.md` — Phase-by-phase plan with checkboxes (source of truth for what's done/TODO)
+- `todo.md` — Actionable work items (source of truth for what's left)
 - `overview.md` — Full architecture, event protocol, and design decisions
 - `techstack.md` — Technology choices with rationale
 - `docs/superpowers/specs/` — Design specs from brainstorming sessions
