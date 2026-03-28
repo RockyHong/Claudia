@@ -13,6 +13,7 @@
   let bgMode = $state(localStorage.getItem("claudia-immersive") === "true");
   let showSettings = $state(false);
   let showSpawn = $state(false);
+  let usage = $state(null);
   let avatarVersion = $state(0);
   let sseConnected = $state(true);
   let nightMode = $state(localStorage.getItem("claudia-theme") !== "light");
@@ -30,6 +31,7 @@
     sessions = update.sessions;
     aggregateState = update.aggregateState;
     statusMessage = update.statusMessage || "";
+    usage = update.usage || null;
     handleSessionTransitions(update.sessions);
     updateDocumentTitle(update.aggregateState, update.sessions);
   }, (connected) => {
@@ -117,7 +119,7 @@
   <AvatarPanel {aggregateState} background={bgMode} version={avatarVersion} />
 
   <main>
-    <SessionList {sessions} {showSpawn} immersive={bgMode} ontogglespawn={() => showSpawn = !showSpawn} onclosespawn={() => showSpawn = false} />
+    <SessionList {sessions} {showSpawn} {usage} immersive={bgMode} ontogglespawn={() => showSpawn = !showSpawn} onclosespawn={() => showSpawn = false} />
   </main>
 
   {#if showSettings}

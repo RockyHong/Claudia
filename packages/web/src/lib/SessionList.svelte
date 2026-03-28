@@ -1,8 +1,9 @@
 <script>
   import SessionCard from "./SessionCard.svelte";
   import SpawnPopover from "./SpawnPopover.svelte";
+  import UsageRings from "./UsageRings.svelte";
 
-  let { sessions = [], showSpawn = false, immersive = false, ontogglespawn, onclosespawn } = $props();
+  let { sessions = [], showSpawn = false, immersive = false, usage = null, ontogglespawn, onclosespawn } = $props();
 
   const statePriority = { pending: 0, idle: 1, busy: 2 };
 
@@ -17,7 +18,10 @@
 </script>
 
 {#if sessions.length > 0}
-  <div class="section-label">Active Sessions</div>
+  <div class="section-header">
+    <span class="section-label">Active Sessions</span>
+    <UsageRings {usage} />
+  </div>
 {/if}
 
 <div class="list" class:immersive>
@@ -36,6 +40,13 @@
 </div>
 
 <style>
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
   .section-label {
     font-family: var(--font-heading);
     font-size: 0.75rem;
@@ -43,7 +54,6 @@
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--text-faint);
-    margin-bottom: 12px;
   }
 
   .list {
