@@ -166,18 +166,16 @@
           {/if}
 
           <div class="card-actions">
-            {#if !set.active}
-              <button
-                class="action-btn delete-action"
-                onclick={(e) => { e.stopPropagation(); confirmDelete = set.name; }}
-                aria-label="Delete {set.name}"
-              >&times;</button>
-            {/if}
+            <button
+              class="action-btn delete-action"
+              onclick={(e) => { e.stopPropagation(); confirmDelete = set.name; }}
+              aria-label="Delete {set.name}"
+            ><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M6 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1m2 0v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4h10Z"/></svg></button>
             <button
               class="action-btn edit-action"
               onclick={(e) => { e.stopPropagation(); openEditor("edit", set); }}
               aria-label="Edit {set.name}"
-            >&#9998;</button>
+            ><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11.5 2.5a1.4 1.4 0 0 1 2 2L5 13l-3 1 1-3Z"/></svg></button>
           </div>
         </div>
       {/each}
@@ -422,13 +420,16 @@
     width: 22px;
     height: 22px;
     border-radius: 4px;
-    font-size: 13px;
-    line-height: 1;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: color 0.15s, background 0.15s;
+  }
+
+  .action-btn svg {
+    width: 13px;
+    height: 13px;
   }
 
   .delete-action:hover {
