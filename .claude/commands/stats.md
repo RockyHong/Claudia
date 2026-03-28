@@ -1,0 +1,1 @@
+Show project stats: lines of code by language (use cloc or wc), file count by type, test count (grep for test/it blocks), and last 10 commits (one-line each).

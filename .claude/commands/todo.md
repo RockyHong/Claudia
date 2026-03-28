@@ -1,0 +1,1 @@
+Read `todo.md` and show all unchecked items. One line per task, no descriptions. End with total count.
