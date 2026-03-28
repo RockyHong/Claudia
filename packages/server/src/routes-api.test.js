@@ -14,6 +14,7 @@ vi.mock("./spawner.js", () => ({
   spawnSession: vi.fn(),
   browseFolder: vi.fn(),
   cancelBrowse: vi.fn(),
+  openFolder: vi.fn(),
 }));
 vi.mock("./multipart.js", () => ({ parseMultipart: vi.fn() }));
 vi.mock("./avatar-storage.js", () => ({
@@ -32,7 +33,7 @@ import { registerApiRoutes } from "./routes-api.js";
 import fs from "node:fs/promises";
 import { focusTerminal } from "./focus.js";
 import { listProjects, removeProject, trackProject } from "./project-storage.js";
-import { spawnSession, cancelBrowse } from "./spawner.js";
+import { spawnSession, cancelBrowse, openFolder } from "./spawner.js";
 import { listSets, getActiveSet, setActiveSet, deleteSet } from "./avatar-storage.js";
 
 function request(server, method, urlPath, body) {
@@ -217,6 +218,28 @@ describe("POST /api/browse/cancel", () => {
     expect(status).toBe(200);
     expect(body).toEqual({ ok: true });
     expect(cancelBrowse).toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/open-folder", () => {
+  it("returns 400 if cwd is missing", async () => {
+    const res = await request(server, "POST", "/api/open-folder", {});
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Missing cwd" });
+  });
+
+  it("calls openFolder and returns 204", async () => {
+    const res = await request(server, "POST", "/api/open-folder", { cwd: "/home/user/project" });
+    expect(res.status).toBe(204);
+    expect(openFolder).toHaveBeenCalledWith("/home/user/project");
+  });
+
+  it("returns 500 if openFolder throws", async () => {
+    openFolder.mockImplementation(() => { throw new Error("Unsupported platform"); });
+    const res = await request(server, "POST", "/api/open-folder", { cwd: "/home/user/project" });
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: "Unsupported platform" });
+    openFolder.mockReset();
   });
 });
 

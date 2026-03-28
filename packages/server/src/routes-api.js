@@ -6,7 +6,7 @@ import express from "express";
 import { fileURLToPath } from "node:url";
 import { focusTerminal } from "./focus.js";
 import { trackProject, listProjects, removeProject } from "./project-storage.js";
-import { spawnSession, browseFolder, cancelBrowse } from "./spawner.js";
+import { spawnSession, browseFolder, cancelBrowse, openFolder } from "./spawner.js";
 import { parseMultipart } from "./multipart.js";
 import {
   getActiveSetPath,
@@ -52,6 +52,19 @@ export function registerApiRoutes(app, tracker) {
   app.post("/api/browse/cancel", (req, res) => {
     cancelBrowse();
     res.json({ ok: true });
+  });
+
+  app.post("/api/open-folder", (req, res) => {
+    const { cwd } = req.body;
+    if (!cwd || typeof cwd !== "string") {
+      return res.status(400).json({ error: "Missing cwd" });
+    }
+    try {
+      openFolder(cwd);
+      res.status(204).end();
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   app.post("/api/launch", async (req, res) => {
