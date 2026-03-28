@@ -34,12 +34,13 @@
     inputEl?.click();
   }
 
-  let blobUrl = $state(null);
+  let prevBlobUrl = null;
 
-  $effect(() => {
-    if (blobUrl) URL.revokeObjectURL(blobUrl);
-    blobUrl = file ? URL.createObjectURL(file) : null;
-    return () => { if (blobUrl) URL.revokeObjectURL(blobUrl); };
+  let blobUrl = $derived.by(() => {
+    if (prevBlobUrl) URL.revokeObjectURL(prevBlobUrl);
+    const url = file ? URL.createObjectURL(file) : null;
+    prevBlobUrl = url;
+    return url;
   });
 
   let displayUrl = $derived(blobUrl || previewUrl);
