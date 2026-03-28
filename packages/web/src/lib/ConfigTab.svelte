@@ -10,6 +10,41 @@
       sfxVolume = sfx.muted ? 0 : sfx.volume;
     }
   });
+
+  let hooksInstalled = $state(null);
+  let reinstalling = $state(false);
+  let reinstallResult = $state("");
+
+  async function checkHookStatus() {
+    try {
+      const res = await fetch("/api/hooks/status");
+      const data = await res.json();
+      hooksInstalled = data.installed;
+    } catch {
+      hooksInstalled = null;
+    }
+  }
+
+  async function reinstallHooks() {
+    reinstalling = true;
+    reinstallResult = "";
+    try {
+      const res = await fetch("/api/hooks/install", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        hooksInstalled = true;
+        reinstallResult = "success";
+      } else {
+        reinstallResult = data.error || "Failed";
+      }
+    } catch {
+      reinstallResult = "Could not reach server";
+    } finally {
+      reinstalling = false;
+    }
+  }
+
+  checkHookStatus();
 </script>
 
 <section>
@@ -40,6 +75,30 @@
       />
     </label>
   </div>
+</section>
+
+<section>
+  <h3>Hooks</h3>
+  <div class="hooks-status">
+    {#if hooksInstalled === null}
+      <span class="status-dot unknown"></span>
+      <span class="status-label">Checking…</span>
+    {:else if hooksInstalled}
+      <span class="status-dot installed"></span>
+      <span class="status-label">Hooks installed</span>
+    {:else}
+      <span class="status-dot missing"></span>
+      <span class="status-label">Hooks not installed</span>
+    {/if}
+  </div>
+  <button class="reinstall-btn" onclick={reinstallHooks} disabled={reinstalling}>
+    {reinstalling ? "Installing…" : "Reinstall Hooks"}
+  </button>
+  {#if reinstallResult === "success"}
+    <p class="reinstall-msg success">Hooks updated. Restart Claude Code sessions to pick up changes.</p>
+  {:else if reinstallResult}
+    <p class="reinstall-msg error">{reinstallResult}</p>
+  {/if}
 </section>
 
 <style>
@@ -77,4 +136,59 @@
     accent-color: var(--brand);
     height: 4px;
   }
+
+  .hooks-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .status-dot.installed { background: var(--green); }
+  .status-dot.missing { background: var(--red); }
+  .status-dot.unknown { background: var(--gray); }
+
+  .status-label {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .reinstall-btn {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 500;
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all var(--duration-normal) var(--ease-in-out);
+  }
+
+  .reinstall-btn:hover:not(:disabled) {
+    background: var(--bg-raised);
+    color: var(--text);
+    border-color: var(--border-active);
+  }
+
+  .reinstall-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .reinstall-msg {
+    font-size: 12px;
+    margin-top: 8px;
+  }
+
+  .reinstall-msg.success { color: var(--green); }
+  .reinstall-msg.error { color: var(--red); }
 </style>
