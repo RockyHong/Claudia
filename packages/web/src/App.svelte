@@ -6,6 +6,7 @@
   import AvatarPanel from "./lib/AvatarPanel.svelte";
   import SettingsModal from "./lib/SettingsModal.svelte";
   import AvatarModal from "./lib/AvatarModal.svelte";
+  import HookGate from "./lib/HookGate.svelte";
 
   let sessions = $state([]);
   let aggregateState = $state("idle");
@@ -18,6 +19,7 @@
   let usage = $state(null);
   let avatarVersion = $state(0);
   let sseConnected = $state(true);
+  let hooksPassed = $state(false);
   let nightMode = $state(localStorage.getItem("claudia-theme") !== "light");
 
   function applyTheme(dark) {
@@ -98,6 +100,10 @@
   }
 
 </script>
+
+{#if !hooksPassed}
+  <HookGate oninstalled={() => hooksPassed = true} />
+{/if}
 
 <div class="app" class:bg-mode={bgMode}>
   <header>
