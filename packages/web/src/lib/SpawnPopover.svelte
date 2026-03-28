@@ -55,18 +55,30 @@
     }
   }
 
+  let browseController = null;
+
   async function browse() {
     browsing = true;
+    browseController = new AbortController();
     try {
-      const res = await fetch("/api/browse", { method: "POST" });
+      const res = await fetch("/api/browse", {
+        method: "POST",
+        signal: browseController.signal,
+      });
       const data = await res.json();
       if (data.path) {
         await launch(data.path);
       }
     } catch {
-      // cancelled or error
+      // cancelled, aborted, or error
     }
+    browseController = null;
     browsing = false;
+  }
+
+  function cancelBrowse() {
+    if (browseController) browseController.abort();
+    fetch("/api/browse/cancel", { method: "POST" });
   }
 </script>
 
@@ -98,10 +110,16 @@
       <div class="empty">No recent projects. Browse to launch a session.</div>
     {/if}
 
-    <button class="browse-btn" disabled={browsing} onclick={browse}>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-      {browsing ? "Waiting for selection..." : "Browse folder..."}
-    </button>
+    {#if browsing}
+      <button class="browse-btn cancel" onclick={cancelBrowse}>
+        Cancel
+      </button>
+    {:else}
+      <button class="browse-btn" onclick={browse}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        Browse folder...
+      </button>
+    {/if}
   {/if}
 </Modal>
 
@@ -209,8 +227,13 @@
     background: rgba(193, 95, 60, 0.06);
   }
 
-  .browse-btn:disabled {
-    opacity: 0.5;
-    cursor: wait;
+  .browse-btn.cancel {
+    border-color: var(--amber);
+    color: var(--amber);
+    border-style: solid;
+  }
+
+  .browse-btn.cancel:hover {
+    background: rgba(245, 158, 11, 0.06);
   }
 </style>
