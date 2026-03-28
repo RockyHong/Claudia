@@ -26,6 +26,7 @@ vi.mock("./avatar-storage.js", () => ({
   listSets: vi.fn(),
   getActiveSet: vi.fn(),
   createSet: vi.fn(),
+  updateSet: vi.fn(),
   deleteSet: vi.fn(),
   setActiveSet: vi.fn(),
   isValidSetName: vi.fn((n) => /^[a-z0-9-]+$/.test(n)),
@@ -38,7 +39,7 @@ import fs from "node:fs/promises";
 import { focusTerminal, listTerminalWindows, renameTerminal } from "./focus.js";
 import { listProjects, removeProject, trackProject } from "./project-storage.js";
 import { spawnSession, cancelBrowse, openFolder } from "./spawner.js";
-import { listSets, getActiveSet, setActiveSet, deleteSet } from "./avatar-storage.js";
+import { listSets, getActiveSet, setActiveSet, deleteSet, updateSet } from "./avatar-storage.js";
 
 function request(server, method, urlPath, body) {
   return new Promise((resolve, reject) => {
@@ -214,6 +215,43 @@ describe("DELETE /api/avatars/sets/:name", () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ ok: true });
     expect(deleteSet).toHaveBeenCalledWith("minimal");
+  });
+});
+
+describe("PUT /api/avatars/sets/:name", () => {
+  it("returns 400 for invalid set name", async () => {
+    const res = await request(server, "PUT", "/api/avatars/sets/INVALID_NAME!");
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Invalid set name" });
+  });
+
+  it("returns 400 if no fields provided", async () => {
+    const res = await request(server, "PUT", "/api/avatars/sets/test-set", {});
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "No changes provided" });
+  });
+
+  it("renames set via JSON body", async () => {
+    updateSet.mockResolvedValue(undefined);
+
+    const res = await request(server, "PUT", "/api/avatars/sets/old-name", {
+      rename: "new-name",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true, name: "new-name" });
+    expect(updateSet).toHaveBeenCalledWith("old-name", { rename: "new-name", files: [] });
+  });
+
+  it("returns error status on updateSet failure", async () => {
+    updateSet.mockRejectedValue(new Error("Set not found"));
+
+    const res = await request(server, "PUT", "/api/avatars/sets/ghost", {
+      rename: "new-name",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Set not found" });
   });
 });
 

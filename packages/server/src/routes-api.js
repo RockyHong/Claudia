@@ -15,6 +15,7 @@ import {
   listSets,
   getActiveSet,
   createSet,
+  updateSet,
   deleteSet,
   setActiveSet,
   isValidSetName,
@@ -145,6 +146,39 @@ export function registerApiRoutes(app, tracker, usageClient) {
     } catch (err) {
       const status = err.message.includes("already exists") ? 409 : 400;
       res.status(status).json({ error: err.message });
+    }
+  });
+
+  app.put("/api/avatars/sets/:name", async (req, res) => {
+    const { name } = req.params;
+    if (!isValidSetName(name)) {
+      return res.status(400).json({ error: "Invalid set name" });
+    }
+
+    const contentType = req.headers["content-type"] || "";
+    let files = [];
+    let rename;
+
+    if (contentType.startsWith("multipart/form-data")) {
+      const parsed = await parseMultipart(req);
+      files = parsed.filter((f) => VALID_FILENAMES.has(f.name));
+      // Extract rename from text fields if present
+      const renameField = parsed.find((f) => f.name === "rename");
+      if (renameField) rename = renameField.data.toString().trim();
+    } else {
+      // JSON body for rename-only
+      rename = req.body?.rename;
+    }
+
+    if (!rename && files.length === 0) {
+      return res.status(400).json({ error: "No changes provided" });
+    }
+
+    try {
+      await updateSet(name, { rename, files });
+      res.json({ ok: true, name: rename || name });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
     }
   });
 
