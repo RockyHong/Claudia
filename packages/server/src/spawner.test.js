@@ -573,6 +573,30 @@ describe("openFolder — unsupported platform", () => {
 });
 
 // ---------------------------------------------------------------------------
+// managed mode
+// ---------------------------------------------------------------------------
+
+describe("managed mode", () => {
+  it("exports setManaged function", async () => {
+    vi.resetModules();
+    const { setManaged } = await import("./spawner.js");
+    expect(typeof setManaged).toBe("function");
+  });
+
+  it("exports getManaged function", async () => {
+    vi.resetModules();
+    const { getManaged } = await import("./spawner.js");
+    expect(typeof getManaged).toBe("function");
+  });
+
+  it("defaults to non-managed mode", async () => {
+    vi.resetModules();
+    const { getManaged } = await import("./spawner.js");
+    expect(getManaged()).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // cancelBrowse
 // ---------------------------------------------------------------------------
 
