@@ -4,7 +4,11 @@ import express from "express";
 
 // Mock all external dependencies BEFORE importing the module under test
 vi.mock("node:fs/promises", () => ({ default: { access: vi.fn() } }));
-vi.mock("./focus.js", () => ({ focusTerminal: vi.fn() }));
+vi.mock("./focus.js", () => ({
+  focusTerminal: vi.fn(),
+  listTerminalWindows: vi.fn(),
+  renameTerminal: vi.fn(),
+}));
 vi.mock("./project-storage.js", () => ({
   trackProject: vi.fn(),
   listProjects: vi.fn(),
@@ -31,7 +35,7 @@ vi.mock("./avatar-storage.js", () => ({
 
 import { registerApiRoutes } from "./routes-api.js";
 import fs from "node:fs/promises";
-import { focusTerminal } from "./focus.js";
+import { focusTerminal, listTerminalWindows, renameTerminal } from "./focus.js";
 import { listProjects, removeProject, trackProject } from "./project-storage.js";
 import { spawnSession, cancelBrowse, openFolder } from "./spawner.js";
 import { listSets, getActiveSet, setActiveSet, deleteSet } from "./avatar-storage.js";
@@ -72,6 +76,7 @@ function request(server, method, urlPath, body) {
 const mockTracker = {
   getSession: vi.fn(),
   storeSpawnedInfo: vi.fn(),
+  getLinkedHandles: vi.fn(),
 };
 
 let server;
@@ -273,5 +278,94 @@ describe("GET /api/usage", () => {
   it("returns 204 when no usage data", async () => {
     const res = await request(server, "GET", "/api/usage");
     expect(res.status).toBe(204);
+  });
+});
+
+describe("GET /api/terminals", () => {
+  it("returns filtered terminal window list", async () => {
+    mockTracker.getLinkedHandles.mockReturnValue(new Set([111]));
+    listTerminalWindows.mockResolvedValue([
+      { hwnd: 222, title: "cmd.exe" },
+      { hwnd: 333, title: "PowerShell" },
+    ]);
+
+    const res = await request(server, "GET", "/api/terminals");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      terminals: [
+        { hwnd: 222, title: "cmd.exe" },
+        { hwnd: 333, title: "PowerShell" },
+      ],
+    });
+    expect(mockTracker.getLinkedHandles).toHaveBeenCalled();
+    expect(listTerminalWindows).toHaveBeenCalledWith(new Set([111]));
+  });
+
+  it("returns empty array when no terminals found", async () => {
+    mockTracker.getLinkedHandles.mockReturnValue(new Set());
+    listTerminalWindows.mockResolvedValue([]);
+
+    const res = await request(server, "GET", "/api/terminals");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ terminals: [] });
+  });
+});
+
+describe("POST /api/link/:sessionId", () => {
+  it("returns 404 for unknown session", async () => {
+    mockTracker.getSession.mockReturnValue(null);
+
+    const res = await request(server, "POST", "/api/link/unknown-id", { windowHandle: 123 });
+
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: "Session not found" });
+  });
+
+  it("returns 400 if session is already spawned", async () => {
+    mockTracker.getSession.mockReturnValue({
+      id: "s1",
+      spawned: true,
+      displayName: "proj",
+      cwd: "/proj",
+    });
+
+    const res = await request(server, "POST", "/api/link/s1", { windowHandle: 123 });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Session already linked" });
+  });
+
+  it("returns 400 if windowHandle is missing", async () => {
+    mockTracker.getSession.mockReturnValue({
+      id: "s1",
+      spawned: false,
+      displayName: "proj",
+      cwd: "/proj",
+    });
+
+    const res = await request(server, "POST", "/api/link/s1", {});
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Missing windowHandle" });
+  });
+
+  it("links session successfully", async () => {
+    mockTracker.getSession.mockReturnValue({
+      id: "s1",
+      spawned: false,
+      displayName: "proj",
+      cwd: "/proj",
+    });
+    renameTerminal.mockResolvedValue(true);
+
+    const res = await request(server, "POST", "/api/link/s1", { windowHandle: 456 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.terminalTitle).toMatch(/^claudia · proj-[0-9a-z]{2,}$/);
+    expect(renameTerminal).toHaveBeenCalledWith(456, res.body.terminalTitle);
+    expect(mockTracker.storeSpawnedInfo).toHaveBeenCalledWith("/proj", res.body.terminalTitle, 456);
   });
 });

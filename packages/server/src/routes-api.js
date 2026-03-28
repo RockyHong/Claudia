@@ -4,7 +4,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import express from "express";
 import { fileURLToPath } from "node:url";
-import { focusTerminal } from "./focus.js";
+import { focusTerminal, listTerminalWindows, renameTerminal } from "./focus.js";
+import { generateTerminalTitle } from "./terminal-title.js";
 import { trackProject, listProjects, removeProject } from "./project-storage.js";
 import { spawnSession, browseFolder, cancelBrowse, openFolder } from "./spawner.js";
 import { parseMultipart } from "./multipart.js";
@@ -193,6 +194,35 @@ export function registerApiRoutes(app, tracker, usageClient) {
   // Serve sound effects from assets/sfx/
   const SFX_DIR = path.resolve(__dirname, "../assets/sfx");
   app.use("/sfx", express.static(SFX_DIR));
+
+  // --- Terminal linking API ---
+
+  app.get("/api/terminals", async (req, res) => {
+    const excludeHandles = tracker.getLinkedHandles();
+    const terminals = await listTerminalWindows(excludeHandles);
+    res.json({ terminals });
+  });
+
+  app.post("/api/link/:sessionId", async (req, res) => {
+    const session = tracker.getSession(req.params.sessionId);
+    if (!session) {
+      return res.status(404).json({ error: "Session not found" });
+    }
+    if (session.spawned) {
+      return res.status(400).json({ error: "Session already linked" });
+    }
+    const { windowHandle } = req.body;
+    if (!windowHandle || typeof windowHandle !== "number") {
+      return res.status(400).json({ error: "Missing windowHandle" });
+    }
+
+    const terminalTitle = generateTerminalTitle(session.cwd);
+    await renameTerminal(windowHandle, terminalTitle);
+    tracker.storeSpawnedInfo(session.cwd, terminalTitle, windowHandle);
+
+    console.log(`[link] session=${session.displayName} title=${terminalTitle} hwnd=${windowHandle}`);
+    res.json({ ok: true, terminalTitle });
+  });
 
   // Trigger terminal focus for a session
   app.post("/focus/:sessionId", async (req, res) => {
