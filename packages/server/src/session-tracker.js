@@ -257,6 +257,16 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
     };
   }
 
+  function getLinkedHandles() {
+    const handles = new Set();
+    for (const session of sessions.values()) {
+      if (session.windowHandle != null) {
+        handles.add(session.windowHandle);
+      }
+    }
+    return handles;
+  }
+
   return {
     handleEvent,
     getSessions,
@@ -264,6 +274,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
     getAggregateState,
     getSessionDisplayName,
     storeSpawnedInfo,
+    getLinkedHandles,
     pruneStale,
     start,
     stop,

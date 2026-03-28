@@ -250,4 +250,28 @@ describe("session-tracker", () => {
       expect(stateChanges[1].sessions).toHaveLength(2);
     });
   });
+
+  describe("getLinkedHandles", () => {
+    it("returns empty set when no sessions have window handles", () => {
+      tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj-a" });
+      tracker.handleEvent({ session: "s2", state: "idle", cwd: "/proj-b" });
+
+      const handles = tracker.getLinkedHandles();
+      expect(handles).toEqual(new Set());
+    });
+
+    it("returns set of all non-null window handles", () => {
+      tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj-a" });
+      tracker.storeSpawnedInfo("/proj-a", "claudia · proj-a-01", 111);
+
+      tracker.handleEvent({ session: "s2", state: "idle", cwd: "/proj-b" });
+      // s2 remains unlinked
+
+      tracker.handleEvent({ session: "s3", state: "idle", cwd: "/proj-c" });
+      tracker.storeSpawnedInfo("/proj-c", "claudia · proj-c-01", 222);
+
+      const handles = tracker.getLinkedHandles();
+      expect(handles).toEqual(new Set([111, 222]));
+    });
+  });
 });
