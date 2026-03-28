@@ -22,6 +22,7 @@ import {
   getSetPath,
   VALID_FILENAMES,
 } from "./avatar-storage.js";
+import { readSettings, hasClaudiaHooks } from "./hooks.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -61,6 +62,18 @@ export function registerApiRoutes(app, tracker, usageClient) {
     const usage = usageClient ? usageClient.getUsage() : null;
     if (!usage) return res.status(204).end();
     res.json(usage);
+  });
+
+  // --- Hooks API ---
+
+  app.get("/api/hooks/status", async (req, res) => {
+    try {
+      const settings = await readSettings();
+      const installed = hasClaudiaHooks(settings);
+      res.json({ installed });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   app.post("/api/open-folder", (req, res) => {
