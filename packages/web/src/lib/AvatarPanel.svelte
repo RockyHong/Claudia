@@ -203,7 +203,7 @@
   .avatar-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(193, 95, 60, 0.35);
     display: flex;
     align-items: center;
     justify-content: center;
