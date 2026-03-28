@@ -6,6 +6,16 @@ const currentPlatform = platform();
 
 let activeBrowseProcess = null;
 
+let managed = false;
+
+export function setManaged(value) {
+  managed = value;
+}
+
+export function getManaged() {
+  return managed;
+}
+
 /**
  * Spawn a terminal running `claude` in the given directory.
  * Returns { terminalTitle, windowHandle } — a unique title set on the terminal
@@ -40,6 +50,25 @@ async function spawnWindows(cwd) {
   // Poll for the window by its unique title, then store the HWND for focus.
   const windowHandle = await findWindowByTitle(terminalTitle);
 
+  // In managed mode, assign the spawned terminal to the Job Object
+  if (managed && windowHandle) {
+    try {
+      const { assignToJob } = await import("./job-object.js");
+      const { getJobHandle } = await import("./lifecycle.js");
+      const jobHandle = getJobHandle();
+      if (jobHandle) {
+        const { execFileSync } = await import("node:child_process");
+        const pid = execFileSync("powershell", [
+          "-NoProfile", "-Command",
+          `(Get-Process | Where-Object { $_.MainWindowHandle -eq ${windowHandle} }).Id`,
+        ], { timeout: 5000, encoding: "utf-8" }).trim();
+        if (pid) assignToJob(jobHandle, parseInt(pid, 10));
+      }
+    } catch {
+      // Best-effort — focus/flash still works without job assignment
+    }
+  }
+
   return { terminalTitle, windowHandle };
 }
 
@@ -58,10 +87,11 @@ async function spawnMac(cwd) {
     do script "cd '${escapeAppleScript(escapedCwd)}' && claude"
   end tell`;
 
-  spawn("osascript", ["-e", script], {
-    detached: true,
+  const child = spawn("osascript", ["-e", script], {
+    detached: !managed,
     stdio: "ignore",
-  }).unref();
+  });
+  if (!managed) child.unref();
 
   return { terminalTitle: null, windowHandle: null };
 }
@@ -85,13 +115,13 @@ async function spawnLinux(cwd) {
 function trySpawn(cmd, args, cwd) {
   return new Promise((resolve) => {
     const child = spawn(cmd, args, {
-      detached: true,
+      detached: !managed,
       stdio: "ignore",
       cwd,
     });
     child.on("error", () => resolve(null));
     setTimeout(() => {
-      child.unref();
+      if (!managed) child.unref();
       resolve({ terminalTitle: null, windowHandle: null });
     }, 500);
   });
