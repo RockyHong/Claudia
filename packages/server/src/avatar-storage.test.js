@@ -222,6 +222,131 @@ describe("setActiveSet", () => {
 	});
 });
 
+describe("updateSet", () => {
+  it("replaces a single file in an existing set", async () => {
+    await storage.createSet("updatable", [
+      fakeFile("idle.webm"),
+      fakeFile("busy.webm"),
+      fakeFile("pending.webm"),
+    ]);
+
+    const newIdle = fakeFile("idle.webm", 200);
+    await storage.updateSet("updatable", { files: [newIdle] });
+
+    const setPath = storage.getSetPath("updatable");
+    const stat = await fs.stat(path.join(setPath, "idle.webm"));
+    expect(stat.size).toBe(200);
+  });
+
+  it("renames a set", async () => {
+    await storage.createSet("old-name", [
+      fakeFile("idle.webm"),
+      fakeFile("busy.webm"),
+      fakeFile("pending.webm"),
+    ]);
+
+    await storage.updateSet("old-name", { rename: "new-name" });
+
+    const sets = await storage.listSets();
+    expect(sets.find((s) => s.name === "old-name")).toBeUndefined();
+    expect(sets.find((s) => s.name === "new-name")).toBeTruthy();
+  });
+
+  it("renames and replaces files simultaneously", async () => {
+    await storage.createSet("combo", [
+      fakeFile("idle.webm"),
+      fakeFile("busy.webm"),
+      fakeFile("pending.webm"),
+    ]);
+
+    await storage.updateSet("combo", {
+      rename: "combo-v2",
+      files: [fakeFile("busy.mp4", 300)],
+    });
+
+    const sets = await storage.listSets();
+    const set = sets.find((s) => s.name === "combo-v2");
+    expect(set).toBeTruthy();
+    expect(set.files).toContain("busy.mp4");
+  });
+
+  it("throws for non-existent set", async () => {
+    await expect(
+      storage.updateSet("ghost", { files: [fakeFile("idle.webm")] })
+    ).rejects.toThrow("Set not found");
+  });
+
+  it("throws for invalid rename target", async () => {
+    await storage.createSet("valid", [
+      fakeFile("idle.webm"),
+      fakeFile("busy.webm"),
+      fakeFile("pending.webm"),
+    ]);
+
+    await expect(
+      storage.updateSet("valid", { rename: "../escape" })
+    ).rejects.toThrow("Invalid set name");
+  });
+
+  it("throws if rename target already exists", async () => {
+    await storage.createSet("src", [
+      fakeFile("idle.webm"),
+      fakeFile("busy.webm"),
+      fakeFile("pending.webm"),
+    ]);
+    await storage.createSet("dst", [
+      fakeFile("idle.webm"),
+      fakeFile("busy.webm"),
+      fakeFile("pending.webm"),
+    ]);
+
+    await expect(
+      storage.updateSet("src", { rename: "dst" })
+    ).rejects.toThrow("Set already exists");
+  });
+
+  it("updates active set config when renaming the active set", async () => {
+    await storage.createSet("active-rename", [
+      fakeFile("idle.webm"),
+      fakeFile("busy.webm"),
+      fakeFile("pending.webm"),
+    ]);
+    await storage.setActiveSet("active-rename");
+
+    await storage.updateSet("active-rename", { rename: "renamed-active" });
+
+    expect(await storage.getActiveSet()).toBe("renamed-active");
+  });
+
+  it("validates replacement files (magic bytes, size)", async () => {
+    await storage.createSet("validate-me", [
+      fakeFile("idle.webm"),
+      fakeFile("busy.webm"),
+      fakeFile("pending.webm"),
+    ]);
+
+    const badContent = { name: "idle.webm", data: Buffer.alloc(100, 0x00) };
+    await expect(
+      storage.updateSet("validate-me", { files: [badContent] })
+    ).rejects.toThrow("Invalid file content");
+  });
+
+  it("removes old format file when replacing with different format", async () => {
+    await storage.createSet("format-swap", [
+      fakeFile("idle.webm"),
+      fakeFile("busy.webm"),
+      fakeFile("pending.webm"),
+    ]);
+
+    await storage.updateSet("format-swap", { files: [fakeFile("idle.mp4", 150)] });
+
+    const setPath = storage.getSetPath("format-swap");
+    const files = await fs.readdir(setPath);
+    expect(files).toContain("idle.mp4");
+    expect(files).not.toContain("idle.webm");
+  });
+});
+
 describe("ensureDefaults", () => {
 	it("creates default set when no sets exist", async () => {
 		await storage.ensureDefaults();

@@ -126,6 +126,60 @@ export function createAvatarStorage(baseDir) {
 		}
 	}
 
+	async function updateSet(name, { files = [], rename } = {}) {
+		const setPath = getSetPath(name);
+
+		try {
+			await fs.access(setPath);
+		} catch {
+			throw new Error("Set not found");
+		}
+
+		// Validate and write replacement files
+		for (const file of files) {
+			if (!VALID_FILENAMES.has(file.name)) {
+				throw new Error(`Invalid filename: ${file.name}`);
+			}
+			if (file.data.length > MAX_FILE_SIZE) {
+				throw new Error(`File too large: ${file.name}`);
+			}
+			if (!hasValidMagicBytes(file.data, file.name)) {
+				throw new Error(`Invalid file content: ${file.name}`);
+			}
+
+			// Remove opposite format if swapping (e.g., idle.webm -> idle.mp4)
+			const state = file.name.split(".")[0];
+			const otherExt = file.name.endsWith(".webm") ? ".mp4" : ".webm";
+			const otherFile = path.join(setPath, `${state}${otherExt}`);
+			await fs.rm(otherFile, { force: true });
+
+			await fs.writeFile(path.join(setPath, file.name), file.data);
+		}
+
+		// Handle rename
+		if (rename) {
+			if (!isValidSetName(rename)) {
+				throw new Error("Invalid set name");
+			}
+			if (rename !== name) {
+				const newPath = getSetPath(rename);
+				try {
+					await fs.access(newPath);
+					throw new Error("Set already exists");
+				} catch (err) {
+					if (err.message === "Set already exists") throw err;
+				}
+				await fs.rename(setPath, newPath);
+
+				// Update active set config if this was the active set
+				const activeSet = await getActiveSet();
+				if (activeSet === name) {
+					await setConfig({ activeSet: rename });
+				}
+			}
+		}
+	}
+
 	async function deleteSet(name) {
 		const activeSet = await getActiveSet();
 		if (name === activeSet) {
@@ -183,6 +237,7 @@ export function createAvatarStorage(baseDir) {
 		listSets,
 		getSetPath,
 		createSet,
+		updateSet,
 		deleteSet,
 		setActiveSet,
 		ensureDefaults,
@@ -202,6 +257,7 @@ export const {
 	listSets,
 	getSetPath,
 	createSet,
+	updateSet,
 	deleteSet,
 	setActiveSet,
 	ensureDefaults,
