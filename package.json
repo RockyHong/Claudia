@@ -23,7 +23,8 @@
     "bundle:server": "node scripts/bundle-server.js",
     "build:sea": "node scripts/build-sea.js",
     "build:sea:x86": "node scripts/build-sea.js --arch x86",
-    "build:sea:x64": "node scripts/build-sea.js --arch x64"
+    "build:sea:x64": "node scripts/build-sea.js --arch x64",
+    "build:tauri": "npm run build:sea:x64 && npx tauri build"
   },
   "engines": {
     "node": ">=18.0.0"
