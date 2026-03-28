@@ -6,7 +6,7 @@ import express from "express";
 import { fileURLToPath } from "node:url";
 import { focusTerminal } from "./focus.js";
 import { trackProject, listProjects, removeProject } from "./project-storage.js";
-import { spawnSession, browseFolder } from "./spawner.js";
+import { spawnSession, browseFolder, cancelBrowse } from "./spawner.js";
 import { parseMultipart } from "./multipart.js";
 import {
   getActiveSetPath,
@@ -47,6 +47,11 @@ export function registerApiRoutes(app, tracker) {
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
+  });
+
+  app.post("/api/browse/cancel", (req, res) => {
+    cancelBrowse();
+    res.json({ ok: true });
   });
 
   app.post("/api/launch", async (req, res) => {

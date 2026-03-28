@@ -13,6 +13,7 @@ vi.mock("./project-storage.js", () => ({
 vi.mock("./spawner.js", () => ({
   spawnSession: vi.fn(),
   browseFolder: vi.fn(),
+  cancelBrowse: vi.fn(),
 }));
 vi.mock("./multipart.js", () => ({ parseMultipart: vi.fn() }));
 vi.mock("./avatar-storage.js", () => ({
@@ -31,7 +32,7 @@ import { registerApiRoutes } from "./routes-api.js";
 import fs from "node:fs/promises";
 import { focusTerminal } from "./focus.js";
 import { listProjects, removeProject, trackProject } from "./project-storage.js";
-import { spawnSession } from "./spawner.js";
+import { spawnSession, cancelBrowse } from "./spawner.js";
 import { listSets, getActiveSet, setActiveSet, deleteSet } from "./avatar-storage.js";
 
 function request(server, method, urlPath, body) {
@@ -207,6 +208,15 @@ describe("DELETE /api/avatars/sets/:name", () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ ok: true });
     expect(deleteSet).toHaveBeenCalledWith("minimal");
+  });
+});
+
+describe("POST /api/browse/cancel", () => {
+  it("calls cancelBrowse and returns ok", async () => {
+    const { status, body } = await request(server, "POST", "/api/browse/cancel");
+    expect(status).toBe(200);
+    expect(body).toEqual({ ok: true });
+    expect(cancelBrowse).toHaveBeenCalled();
   });
 });
 
