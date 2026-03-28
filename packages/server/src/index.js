@@ -13,6 +13,7 @@ import { transformHookPayload, VALID_HOOK_TYPES } from "./hook-transform.js";
 import { ensureDefaults } from "./avatar-storage.js";
 import { registerApiRoutes } from "./routes-api.js";
 import { registerSfxPreview } from "./sfx-preview.js";
+import { createUsageClient } from "./usage.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIST = path.resolve(__dirname, "../../web/dist");
@@ -22,10 +23,17 @@ const SHUTDOWN_TOKEN_PATH = path.join(os.homedir(), ".claudia", "shutdown-token"
 
 const sseClients = new Set();
 
+let usageClient;
+
 const tracker = createSessionTracker({
   getGitStatus,
   onStateChange: (update) => {
-    broadcast({ ...update, statusMessage: getStatusMessage(update.sessions) });
+    usageClient.refreshUsage().catch(() => {});
+    broadcast({
+      ...update,
+      statusMessage: getStatusMessage(update.sessions),
+      usage: usageClient.getUsage(),
+    });
   },
   onPendingAlert: (session) => {
     focusTerminal(session.displayName, "alert", session.windowHandle);
@@ -34,6 +42,8 @@ const tracker = createSessionTracker({
     focusTerminal(session.displayName, "navigate", session.windowHandle);
   },
 });
+
+usageClient = createUsageClient();
 
 function broadcast(update) {
   const data = JSON.stringify(update);
@@ -151,6 +161,7 @@ app.get("/events", (req, res) => {
     sessions,
     aggregateState: tracker.getAggregateState(),
     statusMessage: getStatusMessage(sessions),
+    usage: usageClient.getUsage(),
   });
   res.write(`data: ${initial}\n\n`);
 
@@ -167,7 +178,7 @@ app.get("/api/sessions", (req, res) => {
 });
 
 // Register API routes (projects, avatars, focus, launch)
-registerApiRoutes(app, tracker);
+registerApiRoutes(app, tracker, usageClient);
 
 // SFX preview page
 registerSfxPreview(app);

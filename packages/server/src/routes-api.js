@@ -22,7 +22,7 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export function registerApiRoutes(app, tracker) {
+export function registerApiRoutes(app, tracker, usageClient) {
   // --- Projects API ---
 
   app.get("/api/projects", async (req, res) => {
@@ -52,6 +52,12 @@ export function registerApiRoutes(app, tracker) {
   app.post("/api/browse/cancel", (req, res) => {
     cancelBrowse();
     res.json({ ok: true });
+  });
+
+  app.get("/api/usage", (req, res) => {
+    const usage = usageClient ? usageClient.getUsage() : null;
+    if (!usage) return res.status(204).end();
+    res.json(usage);
   });
 
   app.post("/api/open-folder", (req, res) => {

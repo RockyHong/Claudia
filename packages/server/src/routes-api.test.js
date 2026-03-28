@@ -80,7 +80,7 @@ beforeAll(() => {
   return new Promise((resolve) => {
     const app = express();
     app.use(express.json());
-    registerApiRoutes(app, mockTracker);
+    registerApiRoutes(app, mockTracker, null);
     server = http.createServer(app);
     server.listen(0, "127.0.0.1", resolve);
   });
@@ -266,5 +266,12 @@ describe("POST /focus/:sessionId", () => {
     expect(res.body).toEqual({ ok: true, focused: true });
     expect(mockTracker.getSession).toHaveBeenCalledWith("session-abc");
     expect(focusTerminal).toHaveBeenCalledWith("my-project", "navigate", 42);
+  });
+});
+
+describe("GET /api/usage", () => {
+  it("returns 204 when no usage data", async () => {
+    const res = await request(server, "GET", "/api/usage");
+    expect(res.status).toBe(204);
   });
 });
