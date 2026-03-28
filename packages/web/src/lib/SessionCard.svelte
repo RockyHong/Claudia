@@ -1,4 +1,6 @@
 <script>
+  import { onMount } from "svelte";
+
   let { session } = $props();
 
   const stateConfig = {
@@ -9,6 +11,18 @@
   };
 
   let elapsed = $state("");
+  let showLinkDropdown = $state(false);
+  let terminalList = $state([]);
+  let linkLoading = $state(false);
+  let linkError = $state("");
+
+  onMount(() => {
+    const handler = (e) => {
+      if (showLinkDropdown) showLinkDropdown = false;
+    };
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  });
 
   $effect(() => {
     const interval = setInterval(() => {
@@ -50,6 +64,47 @@
       // best-effort
     }
   }
+
+  async function openLinkDropdown(e) {
+    e.stopPropagation();
+    if (showLinkDropdown) {
+      showLinkDropdown = false;
+      return;
+    }
+    linkLoading = true;
+    linkError = "";
+    showLinkDropdown = true;
+    try {
+      const res = await fetch("/api/terminals");
+      const data = await res.json();
+      terminalList = data.terminals || [];
+    } catch {
+      terminalList = [];
+      linkError = "Failed to load terminals";
+    } finally {
+      linkLoading = false;
+    }
+  }
+
+  async function linkTerminal(hwnd) {
+    try {
+      await fetch(`/api/link/${session.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ windowHandle: hwnd }),
+      });
+    } catch {
+      // best-effort
+    }
+    showLinkDropdown = false;
+  }
+
+  function closeLinkDropdown(e) {
+    // Close if click is outside the dropdown
+    if (showLinkDropdown) {
+      showLinkDropdown = false;
+    }
+  }
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -66,8 +121,28 @@
       <span class="dot {config.dot}"></span>
       <span class="name">
         {session.terminalTitle || session.displayName}
-        {#if !session.spawned}<span class="orphan-badge" title="External session — focus is best-effort">ext</span>{/if}
+        {#if !session.spawned}
+          <span class="orphan-badge" title="Click to link a terminal" role="button" tabindex="0" onclick={openLinkDropdown} onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), openLinkDropdown(e))}>unlinked</span>
+        {/if}
       </span>
+      {#if showLinkDropdown}
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="link-dropdown" onclick={(e) => e.stopPropagation()}>
+          {#if linkLoading}
+            <div class="link-dropdown-item link-dropdown-empty">Loading...</div>
+          {:else if linkError}
+            <div class="link-dropdown-item link-dropdown-empty">{linkError}</div>
+          {:else if terminalList.length === 0}
+            <div class="link-dropdown-item link-dropdown-empty">No terminals found</div>
+          {:else}
+            {#each terminalList as terminal}
+              <button class="link-dropdown-item" onclick={() => linkTerminal(terminal.hwnd)}>
+                {terminal.title}
+              </button>
+            {/each}
+          {/if}
+        </div>
+      {/if}
     </div>
     <span class="card-state">
       {config.label}
@@ -130,6 +205,7 @@
     align-items: center;
     gap: 12px;
     min-width: 0;
+    position: relative;
   }
 
   .name {
@@ -203,6 +279,60 @@
     border-radius: 6px;
     margin-left: 6px;
     vertical-align: middle;
+    cursor: pointer;
+    transition: color var(--duration-normal, 150ms) var(--ease-in-out, ease),
+                background var(--duration-normal, 150ms) var(--ease-in-out, ease);
+  }
+
+  .orphan-badge:hover {
+    color: var(--text-muted);
+    background: var(--bg-hover, var(--bg-raised));
+  }
+
+  .link-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    min-width: 240px;
+    max-width: 360px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    overflow: hidden;
+  }
+
+  .link-dropdown-item {
+    all: unset;
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+  }
+
+  .link-dropdown-item:hover {
+    background: var(--bg-hover, var(--bg-raised));
+    color: var(--text-primary, var(--text));
+  }
+
+  .link-dropdown-empty {
+    color: var(--text-faint);
+    cursor: default;
+    font-family: var(--font-body, sans-serif);
+  }
+
+  .link-dropdown-empty:hover {
+    background: none;
+    color: var(--text-faint);
   }
 
   .open-folder-btn {
