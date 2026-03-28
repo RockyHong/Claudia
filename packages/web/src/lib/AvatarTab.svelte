@@ -50,10 +50,13 @@
       const res = await fetch(`/api/avatars/sets/${encodeURIComponent(name)}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error("Failed to delete");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to delete");
+      }
       sets = sets.filter((s) => s.name !== name);
-    } catch {
-      error = "Failed to delete set";
+    } catch (err) {
+      error = err.message;
     }
   }
 
