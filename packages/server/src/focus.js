@@ -247,6 +247,62 @@ export function findDeadWindows(handles) {
   });
 }
 
+/**
+ * Known terminal process names for window enumeration.
+ * Used to filter visible windows to terminal-like applications only.
+ */
+const TERMINAL_PROCESS_NAMES = [
+  "WindowsTerminal",
+  "cmd",
+  "powershell",
+  "pwsh",
+  "ConEmuC64",
+  "ConEmuC",
+  "mintty",
+  "Alacritty",
+  "kitty",
+  "Hyper",
+  "Tabby",
+  "WezTerm",
+];
+
+/**
+ * Enumerate visible terminal windows on the current platform.
+ * Returns [{ hwnd, title }], excluding any handles in the provided Set.
+ * Windows-only — returns [] on other platforms.
+ */
+export function listTerminalWindows(excludeHandles = new Set()) {
+  if (currentPlatform !== "win32") {
+    return Promise.resolve([]);
+  }
+
+  const nameFilter = TERMINAL_PROCESS_NAMES.map((n) => `'${n}'`).join(",");
+  const ps = [
+    `$names = @(${nameFilter})`,
+    "Get-Process | Where-Object { $names -contains $_.ProcessName -and $_.MainWindowHandle -ne 0 -and $_.MainWindowTitle -ne '' } | ForEach-Object { \"$($_.MainWindowHandle)|$($_.MainWindowTitle)\" }",
+  ].join("\n");
+
+  return new Promise((resolve) => {
+    execFile("powershell", ["-NoProfile", "-Command", ps], { timeout: 10000 }, (err, stdout) => {
+      if (err) return resolve([]);
+      const windows = stdout
+        .trim()
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .map((line) => {
+          const sep = line.indexOf("|");
+          if (sep === -1) return null;
+          const hwnd = parseInt(line.slice(0, sep), 10);
+          const title = line.slice(sep + 1);
+          if (!hwnd || hwnd <= 0) return null;
+          return { hwnd, title };
+        })
+        .filter((w) => w !== null && !excludeHandles.has(w.hwnd));
+      resolve(windows);
+    });
+  });
+}
+
 // Allowlist: only keep characters safe for window title matching
 function sanitize(str) {
   return str.replace(/[^a-zA-Z0-9\-_. ]/g, "");

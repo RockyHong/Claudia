@@ -45,7 +45,7 @@ function failExecFile() {
 async function importFocus(platformName) {
   mockPlatform.mockReturnValue(platformName);
   const mod = await import("./focus.js");
-  return { focusTerminal: mod.focusTerminal, findDeadWindows: mod.findDeadWindows };
+  return { focusTerminal: mod.focusTerminal, findDeadWindows: mod.findDeadWindows, listTerminalWindows: mod.listTerminalWindows };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -54,11 +54,12 @@ async function importFocus(platformName) {
 describe("win32 platform", () => {
   let focusTerminal;
   let findDeadWindows;
+  let listTerminalWindows;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
-    ({ focusTerminal, findDeadWindows } = await importFocus("win32"));
+    ({ focusTerminal, findDeadWindows, listTerminalWindows } = await importFocus("win32"));
   });
 
   it("calls execFile with 'powershell' on win32", async () => {
@@ -176,6 +177,46 @@ describe("win32 platform", () => {
     const result = await findDeadWindows([111, 222]);
     expect(result).toEqual(new Set());
   });
+
+  // ── listTerminalWindows ──────────────────────────────────────────────────
+
+  it("returns terminal windows from powershell stdout", async () => {
+    mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+      if (typeof opts === "function") { cb = opts; }
+      cb(null, "12345|Windows Terminal\n67890|cmd.exe - prompt\n", "");
+    });
+    const result = await listTerminalWindows(new Set());
+    expect(mockExecFile).toHaveBeenCalledOnce();
+    expect(mockExecFile.mock.calls[0][0]).toBe("powershell");
+    expect(result).toEqual([
+      { hwnd: 12345, title: "Windows Terminal" },
+      { hwnd: 67890, title: "cmd.exe - prompt" },
+    ]);
+  });
+
+  it("excludes handles in the exclude set", async () => {
+    mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+      if (typeof opts === "function") { cb = opts; }
+      cb(null, "12345|Windows Terminal\n67890|cmd.exe\n", "");
+    });
+    const result = await listTerminalWindows(new Set([12345]));
+    expect(result).toEqual([{ hwnd: 67890, title: "cmd.exe" }]);
+  });
+
+  it("returns empty array when powershell fails", async () => {
+    failExecFile();
+    const result = await listTerminalWindows(new Set());
+    expect(result).toEqual([]);
+  });
+
+  it("returns empty array when stdout is empty", async () => {
+    mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+      if (typeof opts === "function") { cb = opts; }
+      cb(null, "  \n", "");
+    });
+    const result = await listTerminalWindows(new Set());
+    expect(result).toEqual([]);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -281,11 +322,12 @@ describe("linux platform", () => {
 describe("unknown platform (fallback)", () => {
   let focusTerminal;
   let findDeadWindows;
+  let listTerminalWindows;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
-    ({ focusTerminal, findDeadWindows } = await importFocus("freebsd"));
+    ({ focusTerminal, findDeadWindows, listTerminalWindows } = await importFocus("freebsd"));
   });
 
   it("returns false without calling any shell command", async () => {
@@ -298,6 +340,12 @@ describe("unknown platform (fallback)", () => {
   it("findDeadWindows returns empty Set on non-win32 platform", async () => {
     const result = await findDeadWindows([111, 222]);
     expect(result).toEqual(new Set());
+    expect(mockExecFile).not.toHaveBeenCalled();
+  });
+
+  it("listTerminalWindows returns empty array on non-win32 platform", async () => {
+    const result = await listTerminalWindows(new Set());
+    expect(result).toEqual([]);
     expect(mockExecFile).not.toHaveBeenCalled();
   });
 });
