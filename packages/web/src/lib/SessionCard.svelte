@@ -37,6 +37,19 @@
       // best-effort
     }
   }
+
+  async function openFolder(e) {
+    e.stopPropagation();
+    try {
+      await fetch("/api/open-folder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cwd: session.cwd }),
+      });
+    } catch {
+      // best-effort
+    }
+  }
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -64,12 +77,20 @@
     </span>
   </div>
 
-  {#if session.git?.isGit}
+  {#if session.git?.isGit || session.cwd}
     <div class="card-row card-row-detail">
-      <span class="card-detail">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
-        {session.git.branch}{session.git.dirty ? " *" : ""}
-      </span>
+      {#if session.git?.isGit}
+        <span class="card-detail">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+          {session.git.branch}{session.git.dirty ? " *" : ""}
+        </span>
+      {/if}
+      {#if session.cwd}
+        <button class="open-folder-btn" onclick={openFolder} title="Open in file explorer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          Open folder
+        </button>
+      {/if}
     </div>
   {/if}
 </div>
@@ -182,6 +203,29 @@
     border-radius: 6px;
     margin-left: 6px;
     vertical-align: middle;
+  }
+
+  .open-folder-btn {
+    all: unset;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-body, sans-serif);
+    font-size: 0.75rem;
+    color: var(--text-faint, #5c554e);
+    cursor: pointer;
+    margin-left: auto;
+    transition: color var(--duration-normal, 150ms) var(--ease-in-out, ease);
+  }
+
+  .open-folder-btn:hover {
+    color: var(--text-muted, #948b82);
+  }
+
+  .open-folder-btn svg {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
   }
 
   @media (prefers-reduced-motion: reduce) {
