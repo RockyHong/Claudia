@@ -133,6 +133,7 @@ SSE stream at `GET /events` pushes state updates to the browser. See `overview.m
 ## Shell Notes
 
 - **Never use `cd`** — The cd-guard hook blocks `cd` commands. Use `git -C <path>` for git commands, and absolute paths for everything else. Never `cd D:/Git/Claudia && ...`.
+- **Always use dedicated tools** — `Glob` for file search, `Grep` for content search, `Read` for reading files. Never use `find`, `ls`, `grep`, `rg`, `cat`, `head`, or `tail` via Bash.
 
 ## Git Notes
 
