@@ -80,6 +80,12 @@
 
   let activeSet = $derived(sets.find((s) => s.active));
   let activeThumb = $derived(activeSet ? thumbnailUrl(activeSet) : null);
+  // Sort: default always last
+  let sortedSets = $derived([...sets].sort((a, b) => {
+    if (a.name === "default") return 1;
+    if (b.name === "default") return -1;
+    return 0;
+  }));
 </script>
 
 {#if error}
@@ -135,8 +141,9 @@
         <span class="set-name">Add New</span>
       </div>
 
-      {#each sets as set (set.name)}
+      {#each sortedSets as set (set.name)}
         {@const thumb = thumbnailUrl(set)}
+        {@const isDefault = set.name === "default"}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
           class="set-card"
@@ -165,18 +172,20 @@
             <span class="active-badge">Active</span>
           {/if}
 
-          <div class="card-actions">
-            <button
-              class="action-btn delete-action"
-              onclick={(e) => { e.stopPropagation(); confirmDelete = set.name; }}
-              aria-label="Delete {set.name}"
-            ><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M6 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1m2 0v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4h10Z"/></svg></button>
-            <button
-              class="action-btn edit-action"
-              onclick={(e) => { e.stopPropagation(); openEditor("edit", set); }}
-              aria-label="Edit {set.name}"
-            ><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11.5 2.5a1.4 1.4 0 0 1 2 2L5 13l-3 1 1-3Z"/></svg></button>
-          </div>
+          {#if !isDefault}
+            <div class="card-actions">
+              <button
+                class="action-btn delete-action"
+                onclick={(e) => { e.stopPropagation(); confirmDelete = set.name; }}
+                aria-label="Delete {set.name}"
+              ><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M6 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1m2 0v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4h10Z"/></svg></button>
+              <button
+                class="action-btn edit-action"
+                onclick={(e) => { e.stopPropagation(); openEditor("edit", set); }}
+                aria-label="Edit {set.name}"
+              ><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11.5 2.5a1.4 1.4 0 0 1 2 2L5 13l-3 1 1-3Z"/></svg></button>
+            </div>
+          {/if}
         </div>
       {/each}
     </div>
