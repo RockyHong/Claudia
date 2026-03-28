@@ -83,8 +83,6 @@
     onavatarchange?.();
   }
 
-  let activeSet = $derived(sets.find((s) => s.active));
-  let activeThumb = $derived(activeSet ? thumbnailUrl(activeSet) : null);
   // Sort: default always last
   let sortedSets = $derived([...sets].sort((a, b) => {
     if (a.name === "default") return 1;
@@ -103,27 +101,6 @@
     onconfirm={confirmDeleteSet}
     oncancel={() => confirmDelete = null}
   />
-{/if}
-
-{#if activeSet}
-  <section class="active-preview">
-    <h3>Active</h3>
-    <div class="active-card">
-      <div class="active-thumb">
-        {#if activeThumb}
-          <!-- svelte-ignore a11y_media_has_caption -->
-          <video
-            src={activeThumb}
-            preload="auto"
-            muted
-            playsinline
-            onloadeddata={(e) => { e.target.currentTime = 0.1; e.target.pause(); }}
-          ></video>
-        {/if}
-      </div>
-      <span class="active-name">{activeSet.name}</span>
-    </div>
-  </section>
 {/if}
 
 <section>
@@ -227,44 +204,6 @@
     padding: 8px 12px;
     border-radius: 6px;
     font-size: 13px;
-  }
-
-  /* --- Active preview --- */
-
-  .active-preview {
-    margin-bottom: 4px;
-  }
-
-  .active-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--bg);
-    border: 1px solid var(--brand);
-    border-radius: 8px;
-    padding: 10px;
-    box-shadow: 0 0 0 1px rgba(193, 95, 60, 0.15);
-  }
-
-  .active-thumb {
-    width: 56px;
-    height: 56px;
-    border-radius: 6px;
-    overflow: hidden;
-    background: var(--border);
-    flex-shrink: 0;
-  }
-
-  .active-thumb video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .active-name {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text);
   }
 
   /* --- Set grid --- */

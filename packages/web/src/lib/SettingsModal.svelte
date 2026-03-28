@@ -5,27 +5,27 @@
 
   let { onclose, onavatarchange, sfx, nightMode = true, onnightmodechange } = $props();
 
-  let activeTab = $state("config");
+  let activeTab = $state("avatar");
 </script>
 
 <Modal title="Settings" {onclose}>
   <div class="tabs">
     <button
       class="tab"
-      class:active={activeTab === "config"}
-      onclick={() => activeTab = "config"}
-    >Config</button>
-    <button
-      class="tab"
       class:active={activeTab === "avatar"}
       onclick={() => activeTab = "avatar"}
     >Avatar</button>
+    <button
+      class="tab"
+      class:active={activeTab === "config"}
+      onclick={() => activeTab = "config"}
+    >Config</button>
   </div>
 
-  {#if activeTab === "config"}
-    <ConfigTab {nightMode} {onnightmodechange} {sfx} />
-  {:else}
+  {#if activeTab === "avatar"}
     <AvatarTab {onavatarchange} />
+  {:else}
+    <ConfigTab {nightMode} {onnightmodechange} {sfx} />
   {/if}
 </Modal>
 
