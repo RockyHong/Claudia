@@ -3,7 +3,7 @@
 import { createInterface } from "node:readline";
 import { createServer as createNetServer } from "node:net";
 import { execFile, execSync } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import fs from "node:fs/promises";
 import path from "node:path";
 import { homedir, platform } from "node:os";
 import {
@@ -18,8 +18,9 @@ import {
 const command = process.argv[2];
 
 switch (command) {
+  case "uninstall":
   case "teardown":
-    await runTeardown();
+    await runUninstall();
     break;
   case "shutdown":
     await runShutdown();
@@ -29,9 +30,11 @@ switch (command) {
     break;
 }
 
-// --- teardown ---
+// --- uninstall (also handles legacy "teardown") ---
 
-async function runTeardown() {
+async function runUninstall() {
+  const claudiaDir = path.join(homedir(), ".claudia");
+
   let settings;
   try {
     settings = await readSettings();
@@ -40,30 +43,54 @@ async function runTeardown() {
     process.exit(1);
   }
 
-  if (!hasClaudiaHooks(settings)) {
-    console.log("No Claudia hooks found. Nothing to remove.");
+  const hasHooks = hasClaudiaHooks(settings);
+  let hasData = false;
+  try {
+    await fs.access(claudiaDir);
+    hasData = true;
+  } catch {}
+
+  if (!hasHooks && !hasData) {
+    console.log("Nothing to remove. Claudia is not installed.");
     return;
   }
 
-  console.log("Will remove Claudia hooks from:");
-  console.log(`  ${getSettingsPath()}`);
-  console.log(`  Removing: ${Object.keys(CLAUDIA_HOOKS).join(", ")} (Claudia entries only)`);
-  console.log("  Your other hooks will not be touched.");
+  console.log("This will remove:");
+  if (hasHooks) {
+    console.log(`  Hooks from ${getSettingsPath()}`);
+    console.log(`    ${Object.keys(CLAUDIA_HOOKS).join(", ")}`);
+  }
+  if (hasData) {
+    console.log(`  Data directory: ${claudiaDir}`);
+    console.log("    (avatars, projects, preferences, shutdown token)");
+  }
 
-  const ok = await confirm("\nRemove hooks?");
+  const ok = await confirm("\nProceed with uninstall?");
   if (!ok) {
     console.log("Aborted.");
     return;
   }
 
-  const cleaned = removeHooks(settings);
-  try {
-    await writeSettings(cleaned);
-    console.log("\nClaudia hooks removed.");
-  } catch (err) {
-    console.error(`Error writing settings: ${err.message}`);
-    process.exit(1);
+  if (hasHooks) {
+    const cleaned = removeHooks(settings);
+    try {
+      await writeSettings(cleaned);
+      console.log("Hooks removed.");
+    } catch (err) {
+      console.error(`Error removing hooks: ${err.message}`);
+    }
   }
+
+  if (hasData) {
+    try {
+      await fs.rm(claudiaDir, { recursive: true, force: true });
+      console.log("Data directory removed.");
+    } catch (err) {
+      console.error(`Error removing data: ${err.message}`);
+    }
+  }
+
+  console.log("\nClaudia has been uninstalled.");
 }
 
 // --- shutdown ---
@@ -122,7 +149,7 @@ function confirm(question) {
 async function killExistingInstance(port) {
   try {
     const tokenPath = path.join(homedir(), ".claudia", "shutdown-token");
-    const token = await readFile(tokenPath, "utf-8").catch(() => "");
+    const token = await fs.readFile(tokenPath, "utf-8").catch(() => "");
     await fetch(`http://127.0.0.1:${port}/api/shutdown`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
