@@ -29,21 +29,6 @@ describe("transformHookPayload", () => {
 		expect(result.tool).toBe("Edit");
 	});
 
-	it("maps Notification to pending with message", () => {
-		const result = transformHookPayload("Notification", BASE_INPUT);
-		expect(result.state).toBe("pending");
-		expect(result.message).toBe("Approve this action?");
-	});
-
-	it("maps Notification with missing notification field to empty message", () => {
-		const result = transformHookPayload("Notification", {
-			session_id: "sess-123",
-			cwd: "/tmp",
-		});
-		expect(result.state).toBe("pending");
-		expect(result.message).toBe("");
-	});
-
 	it("maps Stop to idle", () => {
 		const result = transformHookPayload("Stop", BASE_INPUT);
 		expect(result.state).toBe("idle");
@@ -65,7 +50,7 @@ describe("transformHookPayload", () => {
 	});
 
 	it("includes hookType in every transform result", () => {
-		for (const hookType of ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Notification", "Stop", "SessionEnd", "SubagentStop", "PreCompact"]) {
+		for (const hookType of ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Stop", "SessionEnd", "SubagentStop", "PreCompact"]) {
 			const result = transformHookPayload(hookType, BASE_INPUT);
 			expect(result.hookType).toBe(hookType);
 		}
@@ -89,9 +74,9 @@ describe("transformHookPayload", () => {
 });
 
 describe("VALID_HOOK_TYPES", () => {
-	it("contains all 10 hook types", () => {
-		expect(VALID_HOOK_TYPES.size).toBe(10);
-		for (const type of ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Notification", "Stop", "SessionEnd", "SubagentStop", "PreCompact"]) {
+	it("contains all 9 hook types", () => {
+		expect(VALID_HOOK_TYPES.size).toBe(9);
+		for (const type of ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Stop", "SessionEnd", "SubagentStop", "PreCompact"]) {
 			expect(VALID_HOOK_TYPES.has(type)).toBe(true);
 		}
 	});

@@ -11,7 +11,6 @@ const HOOK_TYPE_MAP = {
 	PreToolUse: (input) => ({ state: "busy", tool: truncate(input.tool_name) }),
 	PostToolUse: (input) => ({ state: "busy", tool: truncate(input.tool_name) }),
 	PermissionRequest: (input) => ({ state: "pending", tool: truncate(input.tool_name) }),
-	Notification: (input) => ({ state: "pending", message: input.notification || "" }),
 	Stop: (input) => ({ state: "idle" }),
 	SessionEnd: (input) => ({ state: "stopped" }),
 	SubagentStop: (input) => ({ state: "busy" }),

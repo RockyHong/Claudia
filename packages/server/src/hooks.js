@@ -26,7 +26,6 @@ const CLAUDIA_HOOKS = {
   PreToolUse: [hookEntry("PreToolUse")],
   PostToolUse: [hookEntry("PostToolUse")],
   PermissionRequest: [hookEntry("PermissionRequest")],
-  Notification: [hookEntry("Notification")],
   Stop: [hookEntry("Stop")],
   SessionEnd: [hookEntry("SessionEnd")],
   SubagentStop: [hookEntry("SubagentStop")],

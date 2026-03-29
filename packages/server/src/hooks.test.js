@@ -45,7 +45,6 @@ describe("mergeHooks", () => {
     const result = mergeHooks({});
     expect(result.hooks.PreToolUse).toHaveLength(1);
     expect(result.hooks.PostToolUse).toHaveLength(1);
-    expect(result.hooks.Notification).toHaveLength(1);
     expect(result.hooks.Stop).toHaveLength(1);
     expect(result.hooks.SubagentStop).toHaveLength(1);
     expect(result.hooks.PreCompact).toHaveLength(1);

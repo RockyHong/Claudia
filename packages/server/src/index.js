@@ -82,7 +82,7 @@ function broadcastSfx(sound) {
 }
 
 const app = express();
-app.use(express.json({ limit: "10kb" }));
+app.use(express.json({ limit: "1mb" }));
 
 const ALLOWED_ORIGINS = [
   `http://localhost:${PORT}`,
