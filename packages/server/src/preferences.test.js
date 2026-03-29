@@ -56,4 +56,19 @@ describe("preferences", () => {
     const p = await prefs.get();
     expect(p.immersive).toBe(true);
   });
+
+  it("does not include usageMonitoring in defaults", async () => {
+    const p = await prefs.get();
+    expect(p.usageMonitoring).toBeUndefined();
+  });
+
+  it("persists usageMonitoring when set to true", async () => {
+    const p = await prefs.set({ usageMonitoring: true });
+    expect(p.usageMonitoring).toBe(true);
+  });
+
+  it("persists usageMonitoring when set to false", async () => {
+    const p = await prefs.set({ usageMonitoring: false });
+    expect(p.usageMonitoring).toBe(false);
+  });
 });
