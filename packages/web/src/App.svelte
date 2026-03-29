@@ -20,6 +20,7 @@
   let sseConnected = $state(true);
   let hooksPassed = $state(false);
   let nightMode = $state(true);
+  let usageMonitoring = $state(false);
 
   const sfx = createSFXController();
 
@@ -32,6 +33,7 @@
       sfx.muted = prefs.sfx.muted;
       sfx.volume = prefs.sfx.volume;
       applyTheme(nightMode, false);
+      usageMonitoring = prefs.usageMonitoring === true;
     } catch {
       // Fallback defaults already set
     }
@@ -46,6 +48,15 @@
         body: JSON.stringify({ theme: dark ? "dark" : "light" }),
       }).catch(() => {});
     }
+  }
+
+  function setUsageMonitoring(enabled) {
+    usageMonitoring = enabled;
+    fetch("/api/preferences", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ usageMonitoring: enabled }),
+    }).catch(() => {});
   }
 
   loadPreferences();
@@ -146,7 +157,7 @@
   <AvatarPanel {aggregateState} background={bgMode} version={avatarVersion} onavatarclick={() => showAvatarModal = true} />
 
   <main>
-    <SessionList {sessions} {showSpawn} {usage} immersive={bgMode} ontogglespawn={() => showSpawn = !showSpawn} onclosespawn={() => showSpawn = false} />
+    <SessionList {sessions} {showSpawn} {usage} {usageMonitoring} immersive={bgMode} onusagemonitoringchange={setUsageMonitoring} ontogglespawn={() => showSpawn = !showSpawn} onclosespawn={() => showSpawn = false} />
   </main>
 
   {#if showSettings}

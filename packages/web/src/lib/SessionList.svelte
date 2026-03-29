@@ -2,10 +2,13 @@
   import SessionCard from "./SessionCard.svelte";
   import SpawnPopover from "./SpawnPopover.svelte";
   import UsageRings from "./UsageRings.svelte";
+  import ConsentModal from "./ConsentModal.svelte";
 
-  let { sessions = [], showSpawn = false, immersive = false, usage = null, ontogglespawn, onclosespawn } = $props();
+  let { sessions = [], showSpawn = false, immersive = false, usage = null, usageMonitoring = false, onusagemonitoringchange, ontogglespawn, onclosespawn } = $props();
 
   const statePriority = { pending: 0, idle: 1, busy: 2 };
+
+  let showConsent = $state(false);
 
   let sorted = $derived(
     [...sessions].sort((a, b) => {
@@ -20,7 +23,11 @@
 {#if sessions.length > 0}
   <div class="section-header">
     <span class="section-label">Active Sessions</span>
-    <UsageRings {usage} />
+    {#if usageMonitoring}
+      <UsageRings {usage} />
+    {:else}
+      <button class="track-usage-btn" onclick={() => showConsent = true}>Track usage</button>
+    {/if}
   </div>
 {/if}
 
@@ -38,6 +45,13 @@
     <SpawnPopover onclose={onclosespawn} />
   {/if}
 </div>
+
+{#if showConsent}
+  <ConsentModal onchoice={(v) => {
+    showConsent = false;
+    if (v) onusagemonitoringchange?.(true);
+  }} />
+{/if}
 
 <style>
   .section-header {
@@ -90,5 +104,23 @@
     border-color: var(--brand);
     color: var(--brand);
     background: rgba(193, 95, 60, 0.06);
+  }
+
+  .track-usage-btn {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    color: var(--text-faint);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all var(--duration-normal) var(--ease-in-out);
+  }
+
+  .track-usage-btn:hover {
+    color: var(--text-muted);
+    border-color: var(--border-active);
+    background: var(--bg-raised);
   }
 </style>
