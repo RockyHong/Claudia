@@ -190,12 +190,12 @@
   section {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: var(--space-3);
   }
 
   section h3 {
-    font-size: 0.6875rem;
-    font-weight: 500;
+    font-size: var(--text-xs);
+    font-weight: 600;
     font-family: var(--font-heading);
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -206,13 +206,13 @@
   .sfx-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-3);
     cursor: pointer;
   }
 
   section :global(.toggle-label),
   .sfx-label {
-    font-size: 0.8125rem;
+    font-size: var(--text-sm);
     color: var(--text-muted);
   }
 
@@ -223,7 +223,7 @@
   }
 
   .sfx-value {
-    font-size: 12px;
+    font-size: var(--text-xs);
     color: var(--text-muted);
     min-width: 32px;
     text-align: right;
@@ -238,7 +238,7 @@
   .hooks-status {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .status-dot {
@@ -253,25 +253,28 @@
   .status-dot.unknown { background: var(--gray); }
 
   .status-label {
-    font-size: 0.6875rem;
+    font-size: var(--text-xs);
     color: var(--text-faint);
   }
 
   .hook-actions {
     display: flex;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .hook-btn {
     font-family: var(--font-body);
-    font-size: 0.75rem;
-    font-weight: 400;
+    font-size: var(--text-xs);
+    font-weight: 500;
     background: transparent;
     color: var(--text-muted);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    padding: var(--space-1) var(--space-3);
+    min-height: 28px;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
     transition: all var(--duration-normal) var(--ease-in-out);
   }
 
@@ -292,11 +295,10 @@
   }
 
   .hook-msg {
-    font-size: 12px;
-    margin-top: 8px;
+    font-size: var(--text-xs);
+    margin-top: var(--space-2);
   }
 
   .hook-msg.success { color: var(--green); }
   .hook-msg.error { color: var(--red); }
-
 </style>
