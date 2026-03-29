@@ -172,12 +172,13 @@ function getWindowsPlayer() {
 	// When stdin closes (parent dies), ReadLine returns null and the loop exits.
 	const script = [
 		"$ErrorActionPreference = 'SilentlyContinue'",
+		"$player = New-Object Media.SoundPlayer",
 		"while ($true) {",
 		"  $line = [Console]::In.ReadLine()",
 		"  if ($null -eq $line) { break }",
 		"  $line = $line.Trim()",
 		"  if ($line -ne '') {",
-		"    try { (New-Object Media.SoundPlayer $line).Play() } catch {}",
+		"    try { $player.Stop(); $player.SoundLocation = $line; $player.Play() } catch {}",
 		"  }",
 		"}",
 	].join("; ");

@@ -105,11 +105,11 @@
         oninput={(e) => {
           sfxVolume = +e.target.value;
         }}
-        onchange={(e) => {
+        onchange={async (e) => {
           sfxVolume = +e.target.value;
           const muted = sfxVolume === 0;
           const volume = sfxVolume || 0.01;
-          fetch("/api/preferences", {
+          await fetch("/api/preferences", {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ sfx: { muted, volume } }),
