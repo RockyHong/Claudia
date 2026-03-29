@@ -26,14 +26,20 @@ In `index.js`:
 - When changed to `false`: discard the client, clear cached data, set `usageClient = null`.
 - `/api/usage` already returns 204 when `usageClient` is null — no frontend changes needed for the empty state.
 
-### Onboarding modal
+### No onboarding modal
 
-New component: `ConsentModal.svelte`.
+Usage monitoring does NOT have an onboarding screen. The hook gate is the only first-launch blocker. Usage monitoring is discovered in-place.
 
-- **Trigger:** Shown on first load when `usageMonitoring` is `undefined` in the preferences response.
-- **No escape:** No close button, no backdrop dismiss. Two buttons only: "Enable" / "No thanks".
-- **Content:** Explains that Claudia reads `~/.claude/.credentials.json` to fetch usage limits from Anthropic's API. Token is used in-memory only, never stored or sent elsewhere.
-- **Action:** Persists choice via `PATCH /api/preferences { usageMonitoring: true|false }`.
+### In-place discovery via SessionList
+
+In `SessionList.svelte`, the area where usage rings normally appear (next to "Active Sessions" header) shows a subtle button instead when `usageMonitoring` is not `true`:
+
+- Button text: "Track usage" (concise, human-readable)
+- Clicking it opens a consent modal (`ConsentModal.svelte`) explaining what Claudia will read and why
+- Modal has two buttons: "Enable" / "No thanks"
+- "Enable" → persists `usageMonitoring: true` via `PATCH /api/preferences`, replaces button with usage rings
+- "No thanks" → dismisses modal, button remains for next time
+- No backdrop dismiss, no close button — forced binary choice when opened
 
 ### Settings toggle
 
@@ -42,6 +48,14 @@ In `ConfigTab.svelte`, add a "Usage Monitoring" section:
 - Toggle reflects current `usageMonitoring` state.
 - Toggling ON opens `ConsentModal` so user sees the same consent info and explicitly re-confirms.
 - Toggling OFF is immediate, no confirmation needed.
+
+### ConsentModal component
+
+New component: `ConsentModal.svelte` — reusable by both SessionList button and Settings toggle.
+
+- **Content:** Explains that Claudia reads `~/.claude/.credentials.json` to fetch usage limits from Anthropic's API. Token is used in-memory only, never stored or sent elsewhere.
+- **Buttons:** "Enable" / "No thanks" — no other way to dismiss.
+- **Callback:** `onchoice(boolean)` — caller handles persistence and UI update.
 
 ---
 

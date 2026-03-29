@@ -4,7 +4,7 @@
 
 **Goal:** Add usage monitoring consent (opt-in with onboarding), replace `teardown` with `uninstall`, and add privacy documentation.
 
-**Architecture:** A single `usageMonitoring` flag in preferences gates the usage client at the server level. The frontend shows a forced-choice onboarding modal when the flag is absent. The CLI gains an `uninstall` command that removes hooks and deletes `~/.claudia/`. Documentation covers what Claudia accesses and how to reverse it.
+**Architecture:** A single `usageMonitoring` flag in preferences gates the usage client at the server level. The frontend shows a "Track usage" button in the session list header where usage rings would normally appear; clicking it opens a consent modal. The CLI gains an `uninstall` command that removes hooks and deletes `~/.claudia/`. Documentation covers what Claudia accesses and how to reverse it.
 
 **Tech Stack:** Node.js, Express, Svelte 5, Vitest
 
@@ -21,9 +21,11 @@
 | Modify | `packages/server/src/index.js` | Gate `createUsageClient()` on preference, react to changes |
 | Modify | `packages/server/src/routes-api.js` | Wire up dynamic `usageClient` reference |
 | Modify | `packages/server/src/index.test.js` | Test usage client gating |
-| Create | `packages/web/src/lib/ConsentModal.svelte` | Onboarding modal for usage monitoring consent |
-| Modify | `packages/web/src/App.svelte` | Show ConsentModal when `usageMonitoring` is undefined |
+| Create | `packages/web/src/lib/ConsentModal.svelte` | Consent modal for usage monitoring (reused by SessionList and ConfigTab) |
+| Modify | `packages/web/src/lib/SessionList.svelte` | Show "Track usage" button or usage rings based on consent |
+| Modify | `packages/web/src/App.svelte` | Pass `usageMonitoring` state to SessionList and SettingsModal |
 | Modify | `packages/web/src/lib/ConfigTab.svelte` | Add usage monitoring toggle |
+| Modify | `packages/web/src/lib/SettingsModal.svelte` | Pass through usage monitoring props |
 | Modify | `bin/cli.js` | Add `uninstall` command, alias `teardown` |
 | Create | `docs/privacy.md` | Detailed privacy doc with manual reversal steps |
 | Modify | `README.md` | Add access summary table, link to privacy.md |
@@ -34,10 +36,9 @@
 ### Task 1: Preferences — keep `usageMonitoring` absent by default
 
 **Files:**
-- Modify: `packages/server/src/preferences.js`
 - Modify: `packages/server/src/preferences.test.js`
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Write the tests**
 
 Add to `packages/server/src/preferences.test.js` inside the existing `describe("preferences", ...)` block:
 
@@ -62,7 +63,7 @@ it("persists usageMonitoring when set to false", async () => {
 
 Run: `npx vitest run packages/server/src/preferences.test.js`
 
-These should already pass because `usageMonitoring` is not in DEFAULTS and `set()` uses `Object.assign`. Confirm all three pass. If any fail, the next step will fix them.
+These should already pass because `usageMonitoring` is not in DEFAULTS and `set()` uses `Object.assign`. Confirm all three pass. If any fail, fix `preferences.js` accordingly.
 
 - [ ] **Step 3: Commit**
 
@@ -78,12 +79,12 @@ git commit -m "test: verify usageMonitoring absent from preference defaults"
 **Files:**
 - Modify: `packages/server/src/index.js`
 - Modify: `packages/server/src/routes-api.js`
+- Modify: `packages/server/src/index.test.js`
+- Modify: `packages/server/src/routes-api.test.js`
 
 - [ ] **Step 1: Update `index.js` to gate usage client on preferences**
 
-In `packages/server/src/index.js`, add the preferences import and change the usage client initialization:
-
-Add import at the top (after existing imports):
+In `packages/server/src/index.js`, add the preferences import at the top (after existing imports):
 ```javascript
 import { getPreferences } from "./preferences.js";
 ```
@@ -154,12 +155,9 @@ With:
   }
 ```
 
-- [ ] **Step 2: Add preference change handler for usageMonitoring**
+- [ ] **Step 2: Update `registerApiRoutes` to use services object**
 
-In `packages/server/src/routes-api.js`, update the `PATCH /api/preferences` handler to accept a callback. Instead, we'll handle this in `index.js` by wrapping the route registration.
-
-In `packages/server/src/index.js`, after the `registerApiRoutes(app, tracker, usageClient)` line, add a handler that watches for preference changes. Replace:
-
+In `packages/server/src/index.js`, replace:
 ```javascript
 registerApiRoutes(app, tracker, usageClient);
 ```
@@ -168,6 +166,14 @@ With:
 ```javascript
 registerApiRoutes(app, tracker, {
   getUsageClient: () => usageClient,
+  onUsageMonitoringChange: (enabled) => {
+    if (enabled) {
+      usageClient = createUsageClient();
+      usageClient.refreshUsage().catch(() => {});
+    } else {
+      usageClient = null;
+    }
+  },
 });
 ```
 
@@ -228,29 +234,7 @@ With:
   });
 ```
 
-Back in `packages/server/src/index.js`, update the services object to include the callback. Replace:
-```javascript
-registerApiRoutes(app, tracker, {
-  getUsageClient: () => usageClient,
-});
-```
-
-With:
-```javascript
-registerApiRoutes(app, tracker, {
-  getUsageClient: () => usageClient,
-  onUsageMonitoringChange: (enabled) => {
-    if (enabled) {
-      usageClient = createUsageClient();
-      usageClient.refreshUsage().catch(() => {});
-    } else {
-      usageClient = null;
-    }
-  },
-});
-```
-
-- [ ] **Step 4: Run tests**
+- [ ] **Step 4: Fix tests**
 
 Run: `npx vitest run packages/server/src/index.test.js packages/server/src/routes-api.test.js`
 
@@ -285,33 +269,20 @@ git commit -m "feat: gate usage client on usageMonitoring preference"
 
 - [ ] **Step 1: Create ConsentModal.svelte**
 
+This is a reusable modal opened by the "Track usage" button in SessionList and the toggle in ConfigTab. It does NOT persist the choice — the caller handles that via the `onchoice` callback.
+
 Create `packages/web/src/lib/ConsentModal.svelte`:
 
 ```svelte
 <script>
   let { onchoice } = $props();
-
-  let saving = $state(false);
-
-  async function choose(enabled) {
-    saving = true;
-    try {
-      await fetch("/api/preferences", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ usageMonitoring: enabled }),
-      });
-      onchoice(enabled);
-    } catch {
-      saving = false;
-    }
-  }
 </script>
 
-<div class="consent-gate">
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<div class="backdrop" onkeydown={() => {}} role="dialog" aria-modal="true" aria-label="Usage Monitoring">
   <div class="consent-card">
     <div class="icon">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 20V10" />
         <path d="M18 20V4" />
         <path d="M6 20v-4" />
@@ -327,10 +298,10 @@ Create `packages/web/src/lib/ConsentModal.svelte`:
       only — it is never stored or sent anywhere else.
     </p>
     <div class="actions">
-      <button class="btn primary" onclick={() => choose(true)} disabled={saving}>
+      <button class="btn primary" onclick={() => onchoice(true)}>
         Enable
       </button>
-      <button class="btn secondary" onclick={() => choose(false)} disabled={saving}>
+      <button class="btn secondary" onclick={() => onchoice(false)}>
         No thanks
       </button>
     </div>
@@ -339,20 +310,37 @@ Create `packages/web/src/lib/ConsentModal.svelte`:
 </div>
 
 <style>
-  .consent-gate {
+  .backdrop {
     position: fixed;
     inset: 0;
-    z-index: 200;
-    background: var(--bg);
+    z-index: 100;
+    background: rgba(10, 8, 7, 0.7);
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
+    animation: fadeIn 0.15s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
   .consent-card {
     text-align: center;
     max-width: 400px;
     padding: 48px 32px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+    animation: slideUp 0.2s ease;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   .icon {
@@ -405,7 +393,7 @@ Create `packages/web/src/lib/ConsentModal.svelte`:
     color: #fff;
   }
 
-  .btn.primary:hover:not(:disabled) {
+  .btn.primary:hover {
     background: var(--brand-hover);
   }
 
@@ -415,15 +403,10 @@ Create `packages/web/src/lib/ConsentModal.svelte`:
     border: 1px solid var(--border);
   }
 
-  .btn.secondary:hover:not(:disabled) {
+  .btn.secondary:hover {
     background: var(--bg-card);
     color: var(--text);
     border-color: var(--border-active);
-  }
-
-  .btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
   }
 
   .hint {
@@ -447,93 +430,147 @@ git commit -m "feat: add ConsentModal component for usage monitoring consent"
 
 ---
 
-### Task 4: Wire ConsentModal into App.svelte
+### Task 4: "Track usage" button in SessionList + App.svelte wiring
 
 **Files:**
+- Modify: `packages/web/src/lib/SessionList.svelte`
 - Modify: `packages/web/src/App.svelte`
 
-- [ ] **Step 1: Add ConsentModal import and state**
+- [ ] **Step 1: Add consent props and state to SessionList**
 
-In `packages/web/src/App.svelte`, add the import after the existing imports:
+In `packages/web/src/lib/SessionList.svelte`, add the import:
 
 ```javascript
-import ConsentModal from "./lib/ConsentModal.svelte";
+import ConsentModal from "./ConsentModal.svelte";
 ```
 
-Add state variable after the existing state declarations (after `let nightMode = $state(true);`):
+Update the props. Replace:
 
 ```javascript
-let usageMonitoringConsent = $state("unknown"); // "unknown" | true | false | "pending"
-```
-
-- [ ] **Step 2: Read usageMonitoring from preferences**
-
-In the `loadPreferences` function, add reading `usageMonitoring` after the existing preference reads. Replace:
-
-```javascript
-  async function loadPreferences() {
-    try {
-      const res = await fetch("/api/preferences");
-      const prefs = await res.json();
-      nightMode = prefs.theme !== "light";
-      bgMode = prefs.immersive;
-      sfx.muted = prefs.sfx.muted;
-      sfx.volume = prefs.sfx.volume;
-      applyTheme(nightMode, false);
-    } catch {
-      // Fallback defaults already set
-    }
-  }
+let { sessions = [], showSpawn = false, immersive = false, usage = null, ontogglespawn, onclosespawn } = $props();
 ```
 
 With:
 
 ```javascript
-  async function loadPreferences() {
-    try {
-      const res = await fetch("/api/preferences");
-      const prefs = await res.json();
-      nightMode = prefs.theme !== "light";
-      bgMode = prefs.immersive;
-      sfx.muted = prefs.sfx.muted;
-      sfx.volume = prefs.sfx.volume;
-      applyTheme(nightMode, false);
-      usageMonitoringConsent = prefs.usageMonitoring === undefined ? "pending" : prefs.usageMonitoring;
-    } catch {
-      // Fallback defaults already set
-    }
-  }
+let { sessions = [], showSpawn = false, immersive = false, usage = null, usageMonitoring = false, onusagemonitoringchange, ontogglespawn, onclosespawn } = $props();
 ```
 
-- [ ] **Step 3: Add ConsentModal to the template**
+Add state for showing the consent modal:
 
-In the template, add the ConsentModal after the HookGate block. After:
+```javascript
+let showConsent = $state(false);
+```
+
+- [ ] **Step 2: Replace UsageRings with conditional rendering**
+
+In the template, replace:
 
 ```svelte
-{#if !hooksPassed}
-  <HookGate oninstalled={() => hooksPassed = true} />
+  <div class="section-header">
+    <span class="section-label">Active Sessions</span>
+    <UsageRings {usage} />
+  </div>
+```
+
+With:
+
+```svelte
+  <div class="section-header">
+    <span class="section-label">Active Sessions</span>
+    {#if usageMonitoring}
+      <UsageRings {usage} />
+    {:else}
+      <button class="track-usage-btn" onclick={() => showConsent = true}>Track usage</button>
+    {/if}
+  </div>
+```
+
+- [ ] **Step 3: Add the ConsentModal render block**
+
+At the end of the component template (after the closing `</div>` of the list), add:
+
+```svelte
+{#if showConsent}
+  <ConsentModal onchoice={(v) => {
+    showConsent = false;
+    if (v) onusagemonitoringchange?.(true);
+  }} />
 {/if}
 ```
 
-Add:
+- [ ] **Step 4: Add styles for the track-usage button**
 
-```svelte
-{#if hooksPassed && usageMonitoringConsent === "pending"}
-  <ConsentModal onchoice={(v) => usageMonitoringConsent = v} />
-{/if}
+Add to the `<style>` block in `SessionList.svelte`:
+
+```css
+.track-usage-btn {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--text-faint);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-in-out);
+}
+
+.track-usage-btn:hover {
+  color: var(--text-muted);
+  border-color: var(--border-active);
+  background: var(--bg-raised);
+}
 ```
 
-This ensures the consent modal only shows after hooks are installed (so the user goes through onboarding in order: hooks first, then usage consent).
+- [ ] **Step 5: Wire usageMonitoring state in App.svelte**
 
-- [ ] **Step 4: Build to verify**
+In `packages/web/src/App.svelte`, add state after the existing state declarations (after `let nightMode = $state(true);`):
+
+```javascript
+let usageMonitoring = $state(false);
+```
+
+In the `loadPreferences` function, add after `applyTheme(nightMode, false);`:
+
+```javascript
+usageMonitoring = prefs.usageMonitoring === true;
+```
+
+Create a helper function after `loadPreferences`:
+
+```javascript
+function setUsageMonitoring(enabled) {
+  usageMonitoring = enabled;
+  fetch("/api/preferences", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ usageMonitoring: enabled }),
+  }).catch(() => {});
+}
+```
+
+Update the SessionList usage in the template. Replace:
+
+```svelte
+    <SessionList {sessions} {showSpawn} {usage} immersive={bgMode} ontogglespawn={() => showSpawn = !showSpawn} onclosespawn={() => showSpawn = false} />
+```
+
+With:
+
+```svelte
+    <SessionList {sessions} {showSpawn} {usage} {usageMonitoring} immersive={bgMode} onusagemonitoringchange={setUsageMonitoring} ontogglespawn={() => showSpawn = !showSpawn} onclosespawn={() => showSpawn = false} />
+```
+
+- [ ] **Step 6: Build to verify**
 
 Run: `npm run build --prefix packages/web`
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add packages/web/src/App.svelte
-git commit -m "feat: show usage monitoring consent modal on first launch"
+git add packages/web/src/lib/SessionList.svelte packages/web/src/App.svelte
+git commit -m "feat: show Track usage button in session list, open consent modal on click"
 ```
 
 ---
@@ -542,24 +579,33 @@ git commit -m "feat: show usage monitoring consent modal on first launch"
 
 **Files:**
 - Modify: `packages/web/src/lib/ConfigTab.svelte`
+- Modify: `packages/web/src/lib/SettingsModal.svelte`
+- Modify: `packages/web/src/App.svelte`
 
-- [ ] **Step 1: Add usage monitoring props and state**
+- [ ] **Step 1: Add usage monitoring props and state to ConfigTab**
 
-In `packages/web/src/lib/ConfigTab.svelte`, update the props to receive usage monitoring state:
+In `packages/web/src/lib/ConfigTab.svelte`, add the import:
 
-Replace:
+```javascript
+import ConsentModal from "./ConsentModal.svelte";
+```
+
+Update the props. Replace:
+
 ```javascript
 let { nightMode = true, onnightmodechange, sfx } = $props();
 ```
 
 With:
+
 ```javascript
 let { nightMode = true, onnightmodechange, sfx, usageMonitoring = false, onusagemonitoringchange } = $props();
 ```
 
-Add state for showing the consent info:
+Add state:
+
 ```javascript
-let showConsentInfo = $state(false);
+let showConsent = $state(false);
 ```
 
 - [ ] **Step 2: Add the Usage Monitoring section to the template**
@@ -574,7 +620,7 @@ Add a new section after the "Sound Effects" section and before the "Hooks" secti
     checked={usageMonitoring}
     onchange={(v) => {
       if (v) {
-        showConsentInfo = true;
+        showConsent = true;
       } else {
         onusagemonitoringchange?.(false);
       }
@@ -585,14 +631,11 @@ Add a new section after the "Sound Effects" section and before the "Hooks" secti
   </p>
 </section>
 
-{#if showConsentInfo}
-  <ConfirmDialog
-    message="Claudia will read your token from ~/.claude/.credentials.json and call the Anthropic API to check your usage limits. The token is used in memory only — never stored or sent elsewhere."
-    confirmLabel="Enable"
-    variant="neutral"
-    onconfirm={() => { showConsentInfo = false; onusagemonitoringchange?.(true); }}
-    oncancel={() => showConsentInfo = false}
-  />
+{#if showConsent}
+  <ConsentModal onchoice={(v) => {
+    showConsent = false;
+    if (v) onusagemonitoringchange?.(true);
+  }} />
 {/if}
 ```
 
@@ -617,44 +660,7 @@ Add to the `<style>` block:
 }
 ```
 
-- [ ] **Step 4: Pass props from App.svelte through SettingsModal**
-
-In `packages/web/src/lib/SettingsModal.svelte`, read the file first — it wraps ConfigTab in a Modal. Update it to pass through the new props.
-
-Read `packages/web/src/lib/SettingsModal.svelte` and add `usageMonitoring` and `onusagemonitoringchange` to both its props and the ConfigTab usage.
-
-In `packages/web/src/App.svelte`, update the SettingsModal usage. Replace:
-
-```svelte
-    <SettingsModal
-      onclose={() => showSettings = false}
-      {sfx}
-      {nightMode}
-      onnightmodechange={(v) => { nightMode = v; applyTheme(v); }}
-    />
-```
-
-With:
-
-```svelte
-    <SettingsModal
-      onclose={() => showSettings = false}
-      {sfx}
-      {nightMode}
-      onnightmodechange={(v) => { nightMode = v; applyTheme(v); }}
-      usageMonitoring={usageMonitoringConsent === true}
-      onusagemonitoringchange={(v) => {
-        usageMonitoringConsent = v;
-        fetch("/api/preferences", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ usageMonitoring: v }),
-        }).catch(() => {});
-      }}
-    />
-```
-
-- [ ] **Step 5: Update SettingsModal to pass through props**
+- [ ] **Step 4: Update SettingsModal to pass through props**
 
 In `packages/web/src/lib/SettingsModal.svelte`, replace:
 
@@ -680,6 +686,32 @@ With:
 <ConfigTab {nightMode} {onnightmodechange} {sfx} {usageMonitoring} {onusagemonitoringchange} />
 ```
 
+- [ ] **Step 5: Pass props from App.svelte to SettingsModal**
+
+In `packages/web/src/App.svelte`, update the SettingsModal usage. Replace:
+
+```svelte
+    <SettingsModal
+      onclose={() => showSettings = false}
+      {sfx}
+      {nightMode}
+      onnightmodechange={(v) => { nightMode = v; applyTheme(v); }}
+    />
+```
+
+With:
+
+```svelte
+    <SettingsModal
+      onclose={() => showSettings = false}
+      {sfx}
+      {nightMode}
+      onnightmodechange={(v) => { nightMode = v; applyTheme(v); }}
+      {usageMonitoring}
+      onusagemonitoringchange={setUsageMonitoring}
+    />
+```
+
 - [ ] **Step 6: Build to verify**
 
 Run: `npm run build --prefix packages/web`
@@ -688,7 +720,7 @@ Run: `npm run build --prefix packages/web`
 
 ```bash
 git add packages/web/src/lib/ConfigTab.svelte packages/web/src/lib/SettingsModal.svelte packages/web/src/App.svelte
-git commit -m "feat: add usage monitoring toggle in settings"
+git commit -m "feat: add usage monitoring toggle in settings with consent modal"
 ```
 
 ---
@@ -735,9 +767,11 @@ switch (command) {
 
 - [ ] **Step 2: Replace `runTeardown` with `runUninstall`**
 
-Replace the entire `runTeardown` function with:
+Replace the entire `runTeardown` function (and its `// --- teardown ---` comment) with:
 
 ```javascript
+// --- uninstall (also handles legacy "teardown") ---
+
 async function runUninstall() {
   const claudiaDir = path.join(homedir(), ".claudia");
 
@@ -800,9 +834,9 @@ async function runUninstall() {
 }
 ```
 
-- [ ] **Step 3: Add missing import**
+- [ ] **Step 3: Update fs import**
 
-`bin/cli.js` already imports `readFile` from `node:fs/promises`, but `runUninstall` needs `fs.access` and `fs.rm`. Update the import at the top. Replace:
+`bin/cli.js` currently imports `readFile` from `node:fs/promises`, but `runUninstall` needs `fs.access` and `fs.rm`. Replace:
 
 ```javascript
 import { readFile } from "node:fs/promises";
@@ -839,167 +873,44 @@ git commit -m "feat: add claudia uninstall command, alias teardown"
 
 - [ ] **Step 1: Create docs/privacy.md**
 
-Create `docs/privacy.md`:
+Create `docs/privacy.md` with the following content:
 
-```markdown
-# What Claudia Accesses
+A markdown document titled "What Claudia Accesses" covering:
 
-Claudia runs entirely on your local machine. This document explains what she reads, writes, and why.
+**Files & Data** — one subsection per file/path:
+- `~/.claude/settings.json` (Read/Write) — hook registration
+- `~/.claude/.credentials.json` (Read-only, opt-in) — OAuth token for usage API
+- Anthropic Usage API `api.anthropic.com/api/oauth/usage` (opt-in) — 5h/7d utilization, only network call, max once per 10min
+- `~/.claudia/avatars/` (Read/Write) — custom avatar video sets
+- `~/.claudia/projects.json` (Read/Write) — session display names
+- `~/.claudia/config.json` (Read/Write) — theme, sound, immersive, usage monitoring
+- `~/.claudia/shutdown-token` (Read/Write) — graceful instance replacement token
 
-## Files & Data
+**System Access** — one subsection each:
+- Terminal windows — enumerate via PowerShell/AppleScript/xdotool, read titles, focus/flash
+- Window renaming — Win32 `SetWindowText` for spawned sessions
+- Git status — `git rev-parse` and `git status` in session working dirs
+- Process spawning — `execFile` for launching new Claude Code sessions
 
-### `~/.claude/settings.json` — Read/Write
+**Uninstall** section:
+- `npx claudia uninstall` — removes hooks and `~/.claudia/`
+- Manual removal subsection: delete `~/.claudia/`, edit `~/.claude/settings.json` to remove entries containing `127.0.0.1:48901/hook`
 
-Claudia registers hooks in Claude Code's settings file so that sessions report their state. When you install hooks (on first launch or from Settings), Claudia adds entries to the `hooks` object. When you remove hooks or uninstall, she removes only her own entries — your other hooks are never touched.
+- [ ] **Step 2: Update README.md — add access summary**
 
-### `~/.claude/.credentials.json` — Read-only (opt-in)
+In `README.md`, add a "What Claudia Accesses" section after "How It Works" (after the paragraph ending "All localhost. Nothing leaves your machine."):
 
-If you enable usage monitoring, Claudia reads the OAuth access token from this file. The token is held in memory for the duration of the API call and is never written to disk, logged, or sent to any service other than the official Anthropic API.
+Two tables — one for files (columns: What, Path, Purpose) covering hook settings, OAuth token, avatars, projects, preferences, shutdown token. One for system access (columns: What, Purpose) covering terminal windows, git, process spawning.
 
-### Anthropic Usage API — `api.anthropic.com/api/oauth/usage` (opt-in)
+End with: "All access is local. The only network call is the opt-in Anthropic usage API. See [docs/privacy.md](docs/privacy.md) for full details."
 
-When usage monitoring is enabled, Claudia calls this endpoint with your token to fetch your 5-hour and 7-day utilization percentages. This is the only network call Claudia makes. It runs at most once every 10 minutes.
+- [ ] **Step 3: Update README.md — update Uninstall and Commands sections**
 
-### `~/.claudia/avatars/` — Read/Write
+In the "Uninstall" section, replace `npx claudia teardown` with `npx claudia uninstall`. Update the description to mention it removes hooks AND deletes `~/.claudia/`. Add a note about using Settings > Remove Hooks to remove hooks only. Link to `docs/privacy.md` for manual removal steps.
 
-Custom avatar video sets (`.webm`, `.mp4` files) for the dashboard.
+In the "Commands" section, replace `npx claudia teardown   # Remove Claudia hooks (keeps your other hooks)` with `npx claudia uninstall  # Remove hooks + delete ~/.claudia/ data`.
 
-### `~/.claudia/projects.json` — Read/Write
-
-Maps session working directories to display names so the dashboard can label sessions meaningfully.
-
-### `~/.claudia/config.json` — Read/Write
-
-Your preferences: theme, sound settings, immersive mode, usage monitoring toggle.
-
-### `~/.claudia/shutdown-token` — Read/Write
-
-A random token written on each startup. When a new Claudia instance starts and finds the port occupied, it reads this token and sends it to the existing instance to request a graceful shutdown. This prevents unauthorized processes from killing Claudia.
-
-## System Access
-
-### Terminal windows
-
-Claudia enumerates terminal windows to detect which ones are running Claude Code sessions. On Windows this uses PowerShell to call Win32 APIs; on macOS it uses AppleScript; on Linux it uses xdotool.
-
-She reads window titles to match sessions to terminals, and can focus (bring to front) and flash a colored overlay on a terminal window when you click a session in the dashboard.
-
-### Window renaming
-
-On Windows, Claudia can set terminal window titles using the Win32 `SetWindowText` API. This is used to label spawned sessions so they can be identified later.
-
-### Git status
-
-Claudia runs `git rev-parse --abbrev-ref HEAD` and `git status --porcelain` in each session's working directory to show branch name and working tree state on the dashboard.
-
-### Process spawning
-
-When you launch a new Claude Code session from the dashboard, Claudia spawns a terminal process (`execFile`) in the chosen directory.
-
-## Uninstall
-
-To remove all Claudia data and hooks:
-
-```bash
-npx claudia uninstall
-```
-
-This removes:
-- All Claudia hook entries from `~/.claude/settings.json` (your other hooks are untouched)
-- The `~/.claudia/` directory (avatars, projects, preferences, shutdown token)
-
-### Manual removal
-
-If you prefer to clean up manually, or if you no longer have Node.js installed:
-
-1. **Delete the data directory:**
-   - Windows: `rmdir /s /q "%USERPROFILE%\.claudia"`
-   - macOS/Linux: `rm -rf ~/.claudia`
-
-2. **Remove hooks from Claude Code settings:**
-   - Open `~/.claude/settings.json` in a text editor
-   - In the `hooks` object, find and delete any entries whose command contains `127.0.0.1:48901/hook`
-   - Save the file
-
-That's it. Claude Code will continue to work normally without the hooks.
-```
-
-- [ ] **Step 2: Update README.md**
-
-In `README.md`, add a new section after "How It Works" (after the SSE diagram paragraph ending with "All localhost. Nothing leaves your machine."). Add:
-
-```markdown
-## What Claudia Accesses
-
-**Files:**
-
-| What | Path | Purpose |
-|------|------|---------|
-| Hook settings | `~/.claude/settings.json` | Register/remove hooks in Claude Code |
-| OAuth token | `~/.claude/.credentials.json` | Fetch usage limits (opt-in) |
-| Avatars | `~/.claudia/avatars/` | Custom avatar video sets |
-| Projects | `~/.claudia/projects.json` | Session display names |
-| Preferences | `~/.claudia/config.json` | Theme, sound, usage monitoring |
-| Shutdown token | `~/.claudia/shutdown-token` | Graceful instance replacement |
-
-**System:**
-
-| What | Purpose |
-|------|---------|
-| Terminal windows | Enumerate, read titles, focus/flash for navigation |
-| Git | Read branch and working tree state per session |
-| Process spawning | Launch new Claude Code sessions from dashboard |
-
-All access is local. The only network call is the opt-in Anthropic usage API. See [docs/privacy.md](docs/privacy.md) for full details.
-```
-
-Update the "Uninstall" section. Replace:
-
-```markdown
-## Uninstall
-
-```bash
-npx claudia teardown
-```
-
-This removes only the hooks Claudia added. Your other hooks are untouched. Claude Code is completely unaffected.
-```
-
-With:
-
-```markdown
-## Uninstall
-
-```bash
-npx claudia uninstall
-```
-
-Removes all Claudia hooks from `~/.claude/settings.json` and deletes `~/.claudia/` (avatars, projects, preferences). Your other hooks are untouched. Claude Code is completely unaffected.
-
-To remove hooks only (keep your data), use Settings > Remove Hooks in the dashboard.
-
-See [docs/privacy.md](docs/privacy.md) for manual removal steps.
-```
-
-Also update the Commands section — replace `npx claudia teardown` with `npx claudia uninstall`:
-
-Replace:
-```markdown
-```bash
-npx claudia            # Start the server + open dashboard (installs hooks on first run)
-npx claudia teardown   # Remove Claudia hooks (keeps your other hooks)
-```
-```
-
-With:
-```markdown
-```bash
-npx claudia            # Start the server + open dashboard (installs hooks on first run)
-npx claudia uninstall  # Remove hooks + delete ~/.claudia/ data
-```
-```
-
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add docs/privacy.md README.md
@@ -1057,11 +968,13 @@ Must succeed.
 
 Start the dev server: `npm run dev`
 
-1. Open the dashboard — ConsentModal should appear (if `usageMonitoring` is not yet set in `~/.claudia/config.json`)
-2. Choose "Enable" or "No thanks" — modal dismisses, choice persists
-3. Open Settings — Usage Monitoring toggle reflects the choice
-4. Toggle it — confirm dialog appears when enabling, immediate when disabling
-5. Run `node bin/cli.js uninstall` and press `n` to verify the prompt
+1. Open the dashboard — "Track usage" button should appear next to "Active Sessions" (if `usageMonitoring` is not set in `~/.claudia/config.json`)
+2. Click "Track usage" — ConsentModal appears
+3. Choose "Enable" — modal dismisses, usage rings appear
+4. Open Settings — Usage Monitoring toggle is ON
+5. Toggle OFF — rings disappear, "Track usage" button returns
+6. Toggle ON in Settings — ConsentModal appears again for re-confirmation
+7. Run `node bin/cli.js uninstall` and press `n` to verify the prompt
 
 - [ ] **Step 5: Commit any lint fixes**
 
