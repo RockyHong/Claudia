@@ -66,9 +66,9 @@
   function updateDocumentTitle(state, sessions) {
     const pendingCount = sessions.filter((s) => s.state === "pending").length;
     if (pendingCount > 0) {
-      document.title = `(${pendingCount} pending) Claudia`;
+      document.title = `(${pendingCount} pending) Claudia*`;
     } else {
-      document.title = "Claudia";
+      document.title = "Claudia*";
     }
     updateFavicon(state);
   }
@@ -107,7 +107,7 @@
 
 <div class="app" class:bg-mode={bgMode}>
   <header>
-    <h1><span>Claudia</span></h1>
+    <h1><span>Claudia*</span></h1>
     <div class="header-actions">
       {#if bgMode}
         <button class="header-btn" onclick={() => showAvatarModal = true} aria-label="Change avatar">
