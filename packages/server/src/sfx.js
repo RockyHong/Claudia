@@ -1,8 +1,7 @@
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { writeFile, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir, platform } from "node:os";
-import { randomBytes } from "node:crypto";
 
 const SAMPLE_RATE = 44100;
 const DURATION = 0.6;
@@ -94,6 +93,7 @@ function synthIdle() {
 }
 
 const SYNTHS = { send: synthSend, pending: synthPending, idle: synthIdle };
+const SOUND_NAMES = Object.keys(SYNTHS);
 
 // --- WAV encoding ---
 
@@ -131,57 +131,95 @@ export function generateWav(name, volume) {
 	return buffer;
 }
 
+// --- WAV file cache ---
+// Pre-generates WAV files per sound at a given volume. Regenerates when volume changes.
+
+const cachedFiles = new Map(); // name → filePath
+let cachedVolume = null;
+
+async function ensureCachedFiles(volume) {
+	if (cachedVolume === volume) return;
+
+	// Clean old files
+	for (const filePath of cachedFiles.values()) {
+		unlink(filePath).catch(() => {});
+	}
+	cachedFiles.clear();
+
+	// Generate new files
+	const dir = tmpdir();
+	for (const name of SOUND_NAMES) {
+		const wav = generateWav(name, volume);
+		const filePath = join(dir, `claudia-sfx-${name}.wav`);
+		await writeFile(filePath, wav);
+		cachedFiles.set(name, filePath);
+	}
+	cachedVolume = volume;
+}
+
 // --- Platform playback ---
 
 const currentPlatform = platform();
 
-function playWavFile(filePath) {
-	return new Promise((resolve) => {
-		let cmd, args;
-		if (currentPlatform === "win32") {
-			const ps = `$p = New-Object Media.SoundPlayer '${filePath.replace(/'/g, "''")}'; $p.PlaySync()`;
-			cmd = "powershell";
-			args = ["-NoProfile", "-Command", ps];
-		} else if (currentPlatform === "darwin") {
-			cmd = "afplay";
-			args = [filePath];
-		} else {
-			cmd = "aplay";
-			args = ["-q", filePath];
-		}
-		execFile(cmd, args, { timeout: 10000 }, () => {
-			unlink(filePath).catch(() => {});
-			resolve();
-		});
+// Persistent PowerShell process for Windows — avoids ~300ms cold start per play.
+// Reads file paths from stdin, plays each one. Exits when stdin closes (parent dies).
+let psProcess = null;
+
+function getWindowsPlayer() {
+	if (psProcess && !psProcess.killed) return psProcess;
+
+	// The script reads file paths from stdin line-by-line and plays each one.
+	// When stdin closes (parent dies), ReadLine returns null and the loop exits.
+	const script = [
+		"$ErrorActionPreference = 'SilentlyContinue'",
+		"while ($true) {",
+		"  $line = [Console]::In.ReadLine()",
+		"  if ($null -eq $line) { break }",
+		"  $line = $line.Trim()",
+		"  if ($line -ne '') {",
+		"    try { (New-Object Media.SoundPlayer $line).Play() } catch {}",
+		"  }",
+		"}",
+	].join("; ");
+
+	psProcess = spawn("powershell", ["-NoProfile", "-NoLogo", "-Command", script], {
+		stdio: ["pipe", "ignore", "ignore"],
 	});
+	psProcess.on("exit", () => { psProcess = null; });
+	return psProcess;
+}
+
+function playWavCached(filePath) {
+	if (currentPlatform === "win32") {
+		const ps = getWindowsPlayer();
+		if (ps && ps.stdin.writable) {
+			ps.stdin.write(filePath + "\n");
+		}
+	} else if (currentPlatform === "darwin") {
+		execFile("afplay", [filePath], { timeout: 10000 }, () => {});
+	} else {
+		execFile("aplay", ["-q", filePath], { timeout: 10000 }, () => {});
+	}
 }
 
 // --- Public API ---
 
 export function createSFX(getPreferences) {
 	async function playSound(name) {
+		if (!SYNTHS[name]) return;
 		const prefs = await getPreferences();
 		if (prefs.sfx.muted) return;
-		const wav = generateWav(name, prefs.sfx.volume);
-		if (!wav) return;
-		const filePath = join(
-			tmpdir(),
-			`claudia-sfx-${randomBytes(4).toString("hex")}.wav`,
-		);
-		await writeFile(filePath, wav);
-		playWavFile(filePath); // fire-and-forget
+		await ensureCachedFiles(prefs.sfx.volume);
+		const filePath = cachedFiles.get(name);
+		if (filePath) playWavCached(filePath);
 	}
 
 	async function previewSound(name) {
+		if (!SYNTHS[name]) return;
 		const prefs = await getPreferences();
-		const wav = generateWav(name, prefs.sfx.volume);
-		if (!wav) return;
-		const filePath = join(
-			tmpdir(),
-			`claudia-sfx-${randomBytes(4).toString("hex")}.wav`,
-		);
-		await writeFile(filePath, wav);
-		playWavFile(filePath); // fire-and-forget
+		await ensureCachedFiles(prefs.sfx.volume);
+		const filePath = cachedFiles.get(name);
+		if (filePath) playWavCached(filePath);
 	}
 
 	return { playSound, previewSound };
