@@ -2,7 +2,7 @@
 
 import { createInterface } from "node:readline";
 import { createServer as createNetServer } from "node:net";
-import { exec, execFile, execSync } from "node:child_process";
+import { execFile, execSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { homedir, platform } from "node:os";
