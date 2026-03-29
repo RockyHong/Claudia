@@ -648,50 +648,8 @@
   }
 
   /* ============================================
-     10. WRONG vs RIGHT COMPARISONS
+     10. PATTERNS IN CONTEXT
      ============================================ */
-
-  .comparison {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-4);
-  }
-
-  @media (max-width: 600px) {
-    .comparison { grid-template-columns: 1fr; }
-  }
-
-  .comparison-panel {
-    border-radius: var(--radius-lg);
-    padding: var(--space-5);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-    position: relative;
-  }
-
-  .comparison-panel.wrong {
-    background: rgba(217, 85, 85, 0.06);
-    border: 1px solid rgba(217, 85, 85, 0.2);
-  }
-
-  .comparison-panel.right {
-    background: rgba(74, 186, 106, 0.06);
-    border: 1px solid rgba(74, 186, 106, 0.2);
-  }
-
-  .comparison-tag {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    position: absolute;
-    top: var(--space-2);
-    right: var(--space-3);
-  }
-  .wrong .comparison-tag { color: var(--red); }
-  .right .comparison-tag { color: var(--green); }
 
   /* ---- Theme toggle (fixed) ---- */
   .theme-toggle {
@@ -1191,102 +1149,61 @@
     </div>
   </div>
 
-  <!-- ======== 10. WRONG vs RIGHT ======== -->
+  <!-- ======== 10. PATTERNS IN CONTEXT ======== -->
   <div class="section">
-    <div class="section-title"><span>10</span> Common Mistakes</div>
+    <div class="section-title"><span>10</span> Patterns in Context</div>
 
     <div class="subsection">
-      <div class="section-label">Button consistency in modal actions</div>
-      <div class="comparison">
-        <div class="comparison-panel wrong">
-          <span class="comparison-tag">Drift</span>
-          <p style="font-size: var(--text-sm); color: var(--text);">Delete "sunset"?</p>
-          <div style="display: flex; justify-content: flex-end; gap: 8px;">
-            <button style="background: none; color: #948b82; border: 1px solid #302922; border-radius: 6px; padding: 7px 16px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: var(--font-body);">Cancel</button>
-            <button style="background: #ef4444; color: white; border: none; border-radius: 6px; padding: 7px 16px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: var(--font-body);">Delete</button>
-          </div>
-          <span style="font-size: 10px; color: var(--text-faint); font-family: var(--font-mono);">hardcoded #ef4444, raw px, no tokens</span>
+      <div class="section-label">Confirm dialog actions</div>
+      <div class="showcase">
+        <p style="font-size: var(--text-sm); color: var(--text);">Delete "sunset"?</p>
+        <div style="display: flex; justify-content: flex-end; gap: var(--space-2);">
+          <button class="btn btn-sm btn-ghost">Cancel</button>
+          <button class="btn btn-sm btn-danger">Delete</button>
         </div>
-        <div class="comparison-panel right">
-          <span class="comparison-tag">Correct</span>
-          <p style="font-size: var(--text-sm); color: var(--text);">Delete "sunset"?</p>
-          <div style="display: flex; justify-content: flex-end; gap: var(--space-2);">
-            <button class="btn btn-sm btn-ghost">Cancel</button>
-            <button class="btn btn-sm btn-danger">Delete</button>
-          </div>
-          <span style="font-size: 10px; color: var(--text-faint); font-family: var(--font-mono);">btn-sm + btn-danger, uses var(--red)</span>
-        </div>
+        <span style="font-size: 10px; color: var(--text-faint); font-family: var(--font-mono);">btn-sm &middot; btn-danger uses var(--red) &middot; right-aligned &middot; primary rightmost</span>
       </div>
     </div>
 
     <div class="subsection">
-      <div class="section-label">Gate screen button size</div>
-      <div class="comparison">
-        <div class="comparison-panel wrong">
-          <span class="comparison-tag">Drift</span>
-          <div style="text-align: center;">
-            <button style="font-family: var(--font-body); font-size: 0.9375rem; font-weight: 600; background: var(--brand); color: #fff; border: none; border-radius: 10px; padding: 12px 32px; cursor: pointer;">Install Hooks</button>
-            <p style="font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); margin-top: 8px;">hardcoded 12px 32px padding, no size class</p>
-          </div>
-        </div>
-        <div class="comparison-panel right">
-          <span class="comparison-tag">Correct</span>
-          <div style="text-align: center;">
-            <button class="btn btn-lg btn-primary">Install Hooks</button>
-            <p style="font-size: 10px; color: var(--text-faint); font-family: var(--font-mono); margin-top: 8px;">btn-lg btn-primary — consistent everywhere</p>
-          </div>
-        </div>
+      <div class="section-label">Gate screen CTA</div>
+      <div class="showcase" style="text-align: center;">
+        <button class="btn btn-lg btn-primary">Install Hooks</button>
+        <span style="font-size: 10px; color: var(--text-faint); font-family: var(--font-mono);">btn-lg btn-primary &middot; used only in gate/onboarding screens</span>
       </div>
     </div>
 
     <div class="subsection">
-      <div class="section-label">Section label consistency</div>
-      <div class="comparison">
-        <div class="comparison-panel wrong">
-          <span class="comparison-tag">Drift</span>
-          <div style="display: flex; flex-direction: column; gap: var(--space-3);">
-            <span style="font-size: 0.6875rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint); font-family: var(--font-heading);">ConfigTab style</span>
-            <span style="font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-family: var(--font-heading);">AvatarTab style</span>
-          </div>
-          <span style="font-size: 10px; color: var(--text-faint); font-family: var(--font-mono);">different weight, spacing, color, size</span>
+      <div class="section-label">Section labels</div>
+      <div class="showcase">
+        <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+          <span class="section-label">Preferences</span>
+          <span class="section-label">All Sets</span>
+          <span class="section-label">Claude Code Connection</span>
         </div>
-        <div class="comparison-panel right">
-          <span class="comparison-tag">Correct</span>
-          <div style="display: flex; flex-direction: column; gap: var(--space-3);">
-            <span class="section-label">Preferences</span>
-            <span class="section-label">All Sets</span>
-          </div>
-          <span style="font-size: 10px; color: var(--text-faint); font-family: var(--font-mono);">one pattern: xs, 600, 0.08em, --text-faint</span>
-        </div>
+        <span style="font-size: 10px; color: var(--text-faint); font-family: var(--font-mono);">one pattern: text-xs &middot; 600 &middot; uppercase &middot; 0.08em &middot; --text-faint</span>
       </div>
     </div>
 
     <div class="subsection">
       <div class="section-label">Action row alignment</div>
-      <div class="comparison">
-        <div class="comparison-panel wrong">
-          <span class="comparison-tag">Drift</span>
-          <div style="display: flex; justify-content: center; gap: 12px;">
-            <button class="btn btn-lg btn-primary">Enable</button>
-            <button class="btn btn-lg btn-ghost">No thanks</button>
-          </div>
-          <span style="font-size: 10px; color: var(--text-faint); font-family: var(--font-mono);">centered, lg in modal, gap: 12px</span>
+      <div class="showcase">
+        <div style="display: flex; justify-content: flex-end; gap: var(--space-2);">
+          <button class="btn btn-sm btn-ghost">No thanks</button>
+          <button class="btn btn-sm btn-primary">Enable</button>
         </div>
-        <div class="comparison-panel right">
-          <span class="comparison-tag">Correct</span>
-          <div style="display: flex; justify-content: flex-end; gap: var(--space-2);">
-            <button class="btn btn-sm btn-ghost">No thanks</button>
-            <button class="btn btn-sm btn-primary">Enable</button>
-          </div>
-          <span style="font-size: 10px; color: var(--text-faint); font-family: var(--font-mono);">right-aligned, sm, gap: space-2, primary rightmost</span>
+        <div style="display: flex; justify-content: flex-end; gap: var(--space-2);">
+          <button class="btn btn-sm btn-ghost">Cancel</button>
+          <button class="btn btn-sm btn-primary">Save</button>
         </div>
+        <span style="font-size: 10px; color: var(--text-faint); font-family: var(--font-mono);">always right-aligned &middot; gap: space-2 &middot; primary action rightmost</span>
       </div>
     </div>
   </div>
 
   <!-- ======== 11. RULES SUMMARY ======== -->
   <div class="section">
-    <div class="section-title"><span>11</span> Rules</div>
+    <div class="section-title"><span>11</span> Rules Summary</div>
     <div class="showcase" style="gap: var(--space-4);">
       <div style="display: flex; flex-direction: column; gap: var(--space-3);">
         <p style="font-size: var(--text-sm); color: var(--text);"><strong>Spacing</strong> <span style="color: var(--text-muted);">&mdash; Use <code style="font-family: var(--font-mono); font-size: var(--text-xs); background: var(--bg-raised); padding: 1px 4px; border-radius: 3px;">--space-{n}</code> tokens only. No raw pixel values in component styles.</span></p>

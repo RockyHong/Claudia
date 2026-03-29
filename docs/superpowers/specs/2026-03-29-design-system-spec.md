@@ -1,28 +1,15 @@
 # Design System Spec — Element Catalog, Modal System & Layout Principles
 
 **Date**: 2026-03-29
-**Anchor**: `docs/theme-demo.html` (the canonical design system reference)
+**Anchor**: `docs/design-system.html` (the canonical design system reference)
 
 ## Problem
 
 The theme demo defines tokens (colors, fonts, spacing, animation) and dashboard-level components (cards, status bar, buttons), but has zero coverage for modals, form elements, button sizes, section patterns, or layout principles. Every component author filled these gaps ad-hoc, producing visual inconsistency across modals and sub-modals.
 
-### Audit of Current Drift
-
-| Component | Issue |
-|-----------|-------|
-| `ConfirmDialog` | `6px` radius buttons, `12px` font, `7px 16px` padding, hardcoded `#ef4444`/`#dc2626` instead of `var(--red)`, neutral fallback uses `#6366f1` (indigo, not brand) |
-| `ConsentModal` | `10px` radius buttons, `0.9375rem` font, `12px 32px` padding — different from every other button |
-| `HookGate` | Same oversized button style as ConsentModal, inconsistent with modal actions |
-| `AvatarSetEditor` | Duplicates backdrop/modal/animation CSS instead of using `Modal.svelte`, mixes `6px` and `8px` radius |
-| `AvatarTab` | Section heading uses `12px`/`font-weight: 600` while ConfigTab uses `0.6875rem`/`font-weight: 500` |
-| `ConfigTab` | Hook buttons use `6px` radius, `0.75rem` font — different from header buttons (`8px`, `0.8125rem`) |
-| `SpawnPopover` | Browse button uses `8px` radius and `13px` font — yet another button variant |
-| All modals | Mix `px` and `rem` units freely, use raw values instead of `--space-*` tokens |
-
 ## Solution
 
-Extend `theme-demo.html` with three new layers — bottom-up from elements to layout rules. The theme demo becomes the full design system. No separate doc.
+Created `docs/design-system.html` as a standalone visual reference — element catalog, modal system, and layout principles. All components should follow its patterns.
 
 ---
 
