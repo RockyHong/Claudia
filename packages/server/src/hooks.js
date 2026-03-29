@@ -13,10 +13,16 @@ function hookCommand(hookType) {
   return `curl -sfS -X POST -H "Content-Type: application/json" -d @- http://127.0.0.1:48901/hook/${hookType} 2>/dev/null || true`;
 }
 
-function hookEntry(hookType, matcher = ".*") {
+// Non-blocking variant: reads stdin eagerly, then POSTs in background.
+// Used for hooks where Claude Code shouldn't wait (Stop, SessionEnd).
+function hookCommandAsync(hookType) {
+  return `input=$(cat); (curl -sfS -X POST -H "Content-Type: application/json" -d "$input" http://127.0.0.1:48901/hook/${hookType} 2>/dev/null &) ; true`;
+}
+
+function hookEntry(hookType, matcher = ".*", background = false) {
   return {
     matcher,
-    hooks: [{ type: "command", command: hookCommand(hookType) }],
+    hooks: [{ type: "command", command: background ? hookCommandAsync(hookType) : hookCommand(hookType) }],
   };
 }
 
@@ -26,8 +32,8 @@ const CLAUDIA_HOOKS = {
   PreToolUse: [hookEntry("PreToolUse")],
   PostToolUse: [hookEntry("PostToolUse")],
   PermissionRequest: [hookEntry("PermissionRequest")],
-  Stop: [hookEntry("Stop")],
-  SessionEnd: [hookEntry("SessionEnd")],
+  Stop: [hookEntry("Stop", ".*", true)],
+  SessionEnd: [hookEntry("SessionEnd", ".*", true)],
   SubagentStop: [hookEntry("SubagentStop")],
   PreCompact: [hookEntry("PreCompact")],
 };

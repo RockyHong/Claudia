@@ -51,11 +51,14 @@
   loadPreferences();
 
   const sseClient = createSSEClient("/events", (update) => {
-    sessions = update.sessions;
-    aggregateState = update.aggregateState;
-    statusMessage = update.statusMessage || "";
-    usage = update.usage || null;
-    updateDocumentTitle(update.aggregateState, update.sessions);
+    // SFX-only messages (e.g. "send" on UserPromptSubmit) have no sessions
+    if (update.sessions) {
+      sessions = update.sessions;
+      aggregateState = update.aggregateState;
+      statusMessage = update.statusMessage || "";
+      usage = update.usage || null;
+      updateDocumentTitle(update.aggregateState, update.sessions);
+    }
 
     // Play sounds pushed from server
     if (update.sfx) {
