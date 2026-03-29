@@ -27,7 +27,7 @@ import { getPreferences, setPreferences } from "./preferences.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export function registerApiRoutes(app, tracker, usageClient) {
+export function registerApiRoutes(app, tracker, usageClient, sfx) {
   // --- Projects API ---
 
   app.get("/api/projects", async (req, res) => {
@@ -293,9 +293,18 @@ export function registerApiRoutes(app, tracker, usageClient) {
     }
   });
 
-  // Serve sound effects from assets/sfx/
-  const SFX_DIR = path.resolve(__dirname, "../assets/sfx");
-  app.use("/sfx", express.static(SFX_DIR));
+  // --- SFX preview ---
+
+  const VALID_SFX_NAMES = new Set(["send", "pending", "idle"]);
+
+  app.post("/api/sfx/preview/:name", async (req, res) => {
+    const { name } = req.params;
+    if (!VALID_SFX_NAMES.has(name)) {
+      return res.status(400).json({ error: "Unknown sound" });
+    }
+    await sfx.previewSound(name);
+    res.json({ ok: true });
+  });
 
   // --- Terminal linking API ---
 

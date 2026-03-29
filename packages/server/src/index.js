@@ -12,8 +12,9 @@ import { trackProject } from "./project-storage.js";
 import { transformHookPayload, VALID_HOOK_TYPES } from "./hook-transform.js";
 import { ensureDefaults } from "./avatar-storage.js";
 import { registerApiRoutes } from "./routes-api.js";
-import { registerSfxPreview } from "./sfx-preview.js";
 import { createUsageClient } from "./usage.js";
+import { createSFX } from "./sfx.js";
+import { getPreferences } from "./preferences.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIST = process.env.CLAUDIA_WEB_DIST || path.resolve(__dirname, "../../web/dist");
@@ -34,6 +35,27 @@ const tracker = createSessionTracker({
       statusMessage: getStatusMessage(update.sessions),
       usage: usageClient.getUsage(),
     });
+
+    // Play sounds on state transitions (skip first broadcast)
+    if (firstBroadcast) {
+      firstBroadcast = false;
+      for (const s of update.sessions) {
+        previousStates.set(s.id, s.state);
+      }
+      return;
+    }
+    for (const s of update.sessions) {
+      const prev = previousStates.get(s.id);
+      previousStates.set(s.id, s.state);
+      if (prev === s.state) continue;
+      if (s.state === "pending") sfx.playSound("pending");
+      else if (s.state === "idle" && prev) sfx.playSound("idle");
+    }
+    // Clean up removed sessions
+    const currentIds = new Set(update.sessions.map((s) => s.id));
+    for (const id of previousStates.keys()) {
+      if (!currentIds.has(id)) previousStates.delete(id);
+    }
   },
   onPendingAlert: (session) => {
     focusTerminal(session.displayName, "alert", session.windowHandle);
@@ -44,6 +66,10 @@ const tracker = createSessionTracker({
 });
 
 usageClient = createUsageClient();
+
+const sfx = createSFX(getPreferences);
+const previousStates = new Map();
+let firstBroadcast = true;
 
 function broadcast(update) {
   const data = JSON.stringify(update);
@@ -140,6 +166,9 @@ app.post("/hook/:type", (req, res) => {
 
   tracker.handleEvent(event);
   if (event.cwd) trackProject(event.cwd);
+  if (type === "UserPromptSubmit") {
+    sfx.playSound("send");
+  }
   res.json({ ok: true });
 });
 
@@ -178,10 +207,7 @@ app.get("/api/sessions", (req, res) => {
 });
 
 // Register API routes (projects, avatars, focus, launch)
-registerApiRoutes(app, tracker, usageClient);
-
-// SFX preview page
-registerSfxPreview(app);
+registerApiRoutes(app, tracker, usageClient, sfx);
 
 // Serve built web UI
 app.use(express.static(WEB_DIST));

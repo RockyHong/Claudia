@@ -93,13 +93,18 @@ const mockTracker = {
   getLinkedHandles: vi.fn(),
 };
 
+const mockSfx = {
+  playSound: vi.fn(),
+  previewSound: vi.fn(),
+};
+
 let server;
 
 beforeAll(() => {
   return new Promise((resolve) => {
     const app = express();
     app.use(express.json());
-    registerApiRoutes(app, mockTracker, null);
+    registerApiRoutes(app, mockTracker, null, mockSfx);
     server = http.createServer(app);
     server.listen(0, "127.0.0.1", resolve);
   });
@@ -514,5 +519,20 @@ describe("POST /api/link/:sessionId", () => {
     expect(res.body.terminalTitle).toMatch(/^claudia · proj-[0-9a-z]{2,}$/);
     expect(renameTerminal).toHaveBeenCalledWith(456, res.body.terminalTitle);
     expect(mockTracker.linkSessionById).toHaveBeenCalledWith("s1", res.body.terminalTitle, 456);
+  });
+});
+
+describe("POST /api/sfx/preview/:name", () => {
+  it("plays valid sound", async () => {
+    mockSfx.previewSound.mockResolvedValue(undefined);
+    const res = await request(server, "POST", "/api/sfx/preview/pending");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true });
+    expect(mockSfx.previewSound).toHaveBeenCalledWith("pending");
+  });
+
+  it("rejects unknown sound name", async () => {
+    const res = await request(server, "POST", "/api/sfx/preview/unknown");
+    expect(res.status).toBe(400);
   });
 });
