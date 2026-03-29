@@ -560,11 +560,23 @@
     gap: var(--space-2);
   }
 
+  /* Gate screen demo — breaks out of showcase to simulate full-width */
+  .demo-gate {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 420px;
+  }
+
   /* Gate screen */
   .gate-card {
     text-align: center;
-    max-width: 400px;
-    padding: var(--space-10) var(--space-8);
+    max-width: 480px;
+    width: 100%;
+    padding: var(--space-10) var(--space-10);
   }
   .gate-icon {
     color: var(--brand);
@@ -1030,7 +1042,7 @@
 
     <div class="subsection">
       <div class="section-label">Gate screen (onboarding / consent)</div>
-      <div class="showcase showcase-dark" style="display: flex; align-items: center; justify-content: center; min-height: 360px;">
+      <div class="demo-gate">
         <div class="gate-card">
           <div class="gate-icon">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
