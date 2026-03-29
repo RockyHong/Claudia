@@ -1,5 +1,5 @@
 <script>
-  let { aggregateState = "idle", background = false, version = 0, onavatarclick } = $props();
+  let { aggregateState = "idle", background = false, version = 0, onavatarclick, onimmersive } = $props();
 
   const STATES = ["idle", "busy", "pending"];
 
@@ -112,7 +112,7 @@
   <div
     class="avatar-panel"
     class:bg-mode={background}
-    class:hoverable={!background && onavatarclick}
+    class:hoverable={!background && onimmersive}
     style:aspect-ratio={background ? undefined : aspectRatio}
   >
     <!-- svelte-ignore a11y_media_has_caption -->
@@ -140,13 +140,13 @@
       playsinline
     ></video>
 
-    {#if !background && onavatarclick}
+    {#if !background && onimmersive}
       <button
-        class="avatar-btn"
-        onclick={() => onavatarclick()}
-        aria-label="Change avatar"
+        class="expand-btn"
+        onclick={() => onimmersive()}
+        aria-label="Immersive mode"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 8h.01M3 16l5-5a2.5 2.5 0 0 1 3.5 0l5 5"/><path d="M14 14l1-1a2.5 2.5 0 0 1 3.5 0L21 16"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
       </button>
     {/if}
   </div>
@@ -196,7 +196,7 @@
     opacity: 1;
   }
 
-  .avatar-btn {
+  .expand-btn {
     position: absolute;
     top: 8px;
     right: 8px;
@@ -206,25 +206,21 @@
     border-radius: 8px;
     padding: 6px;
     cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.2s;
+    opacity: 1;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  .avatar-btn svg {
+  .expand-btn svg {
     width: 20px;
     height: 20px;
     color: #fff;
     filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.4));
   }
 
-  .avatar-btn:hover {
+  .expand-btn:hover {
     background: rgba(0, 0, 0, 0.7);
   }
 
-  .hoverable:hover .avatar-btn {
-    opacity: 1;
-  }
 </style>
