@@ -20,7 +20,7 @@ Specs go to `docs/superpowers/specs/`, plans go to `docs/superpowers/plans/`.
 
 ```
 claudia/
-  bin/cli.js                     CLI entry point (npx claudia, claudia init)
+  bin/cli.js                     CLI entry point (npx claudia, claudia teardown)
   packages/
     server/src/                  Express event server, session tracking, hooks
     web/src/                     Svelte 5 browser dashboard

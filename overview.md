@@ -20,8 +20,8 @@ Solo developer or power user running 2+ Claude Code sessions simultaneously. Alr
 
 ## User Flow
 
-1. `npx claudia init` — installs hooks into `~/.claude/settings.json` (one-time)
-2. `npx claudia` — starts server on `localhost:48901`, opens browser dashboard
+1. `npx claudia` — starts server on `localhost:48901`, opens browser dashboard
+2. Dashboard prompts hook installation on first run (one-time)
 3. User works in their terminals as usual — hooks fire automatically
 4. Dashboard shows all sessions: state, elapsed time, current tool, project name
 5. Session enters pending → avatar changes, sound plays, personality message appears
@@ -79,7 +79,7 @@ Stale pruning: no event for 10 min → session removed.
 
 ## Hook Protocol
 
-Hooks installed in `~/.claude/settings.json` via `claudia init`. Claude Code passes context as **stdin JSON** (not env vars). The `"hooks"` key wraps all hook arrays. See `packages/server/src/hooks.js` for exact config shape.
+Hooks installed in `~/.claude/settings.json` via the dashboard (first-run prompt or Settings → Reinstall). Claude Code passes context as **stdin JSON** (not env vars). The `"hooks"` key wraps all hook arrays. See `packages/server/src/hooks.js` for exact config shape.
 
 8 hook types: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PermissionRequest`, `Notification`, `Stop`, `SessionEnd`.
 
@@ -110,7 +110,7 @@ Three entry points, same server code. Build details in `docs/building.md`.
 | `bin/standalone.js` | Tauri native window | Node SEA 64-bit + Tauri |
 | `bin/wallpaper.js` | Wallpaper Engine | Node SEA 32-bit + WE iframe |
 
-CLI: `npx claudia init` / `npx claudia` / `npx claudia teardown`
+CLI: `npx claudia` / `npx claudia teardown`
 
 ---
 

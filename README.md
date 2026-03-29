@@ -22,13 +22,12 @@ Claudia watches all your sessions in one browser tab. She tells you when and whe
 ## Quick Start
 
 ```bash
-npx claudia init    # configure Claude Code hooks (one-time)
 npx claudia         # start the dashboard
 ```
 
-> **Note:** Already-running Claude Code sessions won't pick up the hooks. Restart them after running `claudia init`.
+On first run, the dashboard will prompt you to install hooks. That's it — run your Claude sessions and Claudia will show you what's happening.
 
-That's it. Open the dashboard, run your Claude sessions, and Claudia will show you what's happening.
+> **Note:** Already-running Claude Code sessions won't pick up the hooks. Restart them after installing.
 
 ## Features
 
@@ -69,8 +68,7 @@ All localhost. Nothing leaves your machine.
 ## Commands
 
 ```bash
-npx claudia init       # Add hooks to ~/.claude/settings.json
-npx claudia            # Start the server + open dashboard
+npx claudia            # Start the server + open dashboard (installs hooks on first run)
 npx claudia teardown   # Remove Claudia hooks (keeps your other hooks)
 ```
 
