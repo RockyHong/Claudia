@@ -41,40 +41,45 @@
   });
 </script>
 
-{#if usage}
-  <div class="usage-rings" class:stale>
-    <div class="ring-item">
-      <div class="ring-wrap">
-        <svg viewBox="0 0 24 24">
-          <circle class="ring-bg" cx="12" cy="12" r="9"/>
+<div class="usage-rings" class:stale class:skeleton={!usage}>
+  <div class="ring-item">
+    <div class="ring-wrap">
+      <svg viewBox="0 0 24 24">
+        <circle class="ring-bg" cx="12" cy="12" r="9"/>
+        {#if usage}
           <circle class="ring-fill" cx="12" cy="12" r="9"
             stroke-dasharray={CIRCUMFERENCE}
             stroke-dashoffset={dashOffset(usage.fiveHour?.utilization)}
           />
-        </svg>
-      </div>
-      <span class="ring-label">5h</span>
-      {#if countdownText5h}
-        <span class="ring-reset">{countdownText5h}</span>
-      {/if}
+        {/if}
+      </svg>
     </div>
-    <div class="ring-item">
-      <div class="ring-wrap">
-        <svg viewBox="0 0 24 24">
-          <circle class="ring-bg" cx="12" cy="12" r="9"/>
+    <span class="ring-label">5h</span>
+    {#if countdownText5h}
+      <span class="ring-reset">{countdownText5h}</span>
+    {/if}
+  </div>
+  <div class="ring-item">
+    <div class="ring-wrap">
+      <svg viewBox="0 0 24 24">
+        <circle class="ring-bg" cx="12" cy="12" r="9"/>
+        {#if usage}
           <circle class="ring-fill" cx="12" cy="12" r="9"
             stroke-dasharray={CIRCUMFERENCE}
             stroke-dashoffset={dashOffset(usage.sevenDay?.utilization)}
           />
-        </svg>
-      </div>
-      <span class="ring-label">7d</span>
-      {#if countdownText7d}
-        <span class="ring-reset">{countdownText7d}</span>
-      {/if}
+        {/if}
+      </svg>
     </div>
+    <span class="ring-label">7d</span>
+    {#if countdownText7d}
+      <span class="ring-reset">{countdownText7d}</span>
+    {/if}
   </div>
-{/if}
+  {#if !usage}
+    <span class="ring-hint">waiting…</span>
+  {/if}
+</div>
 
 <style>
   .usage-rings {
@@ -84,8 +89,15 @@
     transition: opacity 0.3s ease;
   }
 
-  .usage-rings.stale {
+  .usage-rings.stale,
+  .usage-rings.skeleton {
     opacity: 0.5;
+  }
+
+  .ring-hint {
+    font-size: 0.5625rem;
+    color: var(--text-faint);
+    opacity: 0.7;
   }
 
   .ring-item {
