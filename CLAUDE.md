@@ -49,6 +49,10 @@ See `techstack.md` for full reasoning behind each choice.
 
 These are non-negotiable. Every line of code should reflect them.
 
+### Visual Design System
+
+`docs/design-system.html` is the canonical visual reference for all UI components. It defines the element catalog (buttons, inputs, toggles), modal system (shell, confirm, gate), and layout principles (spacing rhythm, border-radius scale, visual hierarchy). Every UI component must follow its patterns — when in doubt, open the demo.
+
 ### First Principles Thinking
 
 Ask "why" before "how." Don't add a library because it's popular — add it because the platform doesn't provide what we need. SSE over WebSocket is a first-principles decision: the data flow is unidirectional, so use the unidirectional primitive.
