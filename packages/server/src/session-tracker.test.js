@@ -178,6 +178,50 @@ describe("session-tracker", () => {
       expect(tracker.getSessions()[0].compacted).toBe(true);
     });
 
+    it("tracks activeSubagents — increments on PreToolUse with Agent tool", () => {
+      tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj", tool: "Agent", hookType: "PreToolUse" });
+      expect(tracker.getSessions()[0].activeSubagents).toBe(1);
+
+      tracker.handleEvent({ session: "s1", state: "busy", tool: "Agent", hookType: "PreToolUse" });
+      expect(tracker.getSessions()[0].activeSubagents).toBe(2);
+    });
+
+    it("decrements activeSubagents on SubagentStop", () => {
+      tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj", tool: "Agent", hookType: "PreToolUse" });
+      tracker.handleEvent({ session: "s1", state: "busy", hookType: "SubagentStop" });
+      expect(tracker.getSessions()[0].activeSubagents).toBe(0);
+    });
+
+    it("does not decrement activeSubagents below zero", () => {
+      tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
+      tracker.handleEvent({ session: "s1", state: "busy", hookType: "SubagentStop" });
+      expect(tracker.getSessions()[0].activeSubagents).toBe(0);
+    });
+
+    it("stays busy on idle event when activeSubagents > 0", () => {
+      tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj", tool: "Agent", hookType: "PreToolUse" });
+      tracker.handleEvent({ session: "s1", state: "idle" });
+
+      expect(tracker.getSessions()[0].state).toBe(State.BUSY);
+      expect(tracker.getSessions()[0].activeSubagents).toBe(1);
+    });
+
+    it("transitions to idle when last subagent completes then Stop fires", () => {
+      tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj", tool: "Agent", hookType: "PreToolUse" });
+      tracker.handleEvent({ session: "s1", state: "busy", hookType: "SubagentStop" });
+      tracker.handleEvent({ session: "s1", state: "idle" });
+
+      expect(tracker.getSessions()[0].state).toBe(State.IDLE);
+      expect(tracker.getSessions()[0].activeSubagents).toBe(0);
+    });
+
+    it("resets activeSubagents to 0 when session goes idle", () => {
+      tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj", tool: "Agent", hookType: "PreToolUse" });
+      tracker.handleEvent({ session: "s1", state: "busy", hookType: "SubagentStop" });
+      tracker.handleEvent({ session: "s1", state: "idle" });
+      expect(tracker.getSessions()[0].activeSubagents).toBe(0);
+    });
+
     it("pending from idle is now accepted (bug fix)", () => {
       tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
       tracker.handleEvent({ session: "s1", state: "pending", message: "Permission needed" });

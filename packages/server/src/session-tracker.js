@@ -34,6 +34,7 @@ function createSession(id, cwd) {
     windowHandle: null,
     git: null,
     subagentActivity: 0,
+    activeSubagents: 0,
     compacted: false,
   };
 }
@@ -128,6 +129,14 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
 
     const prevState = session.state;
 
+    // Track active subagents
+    if (hookType === "PreToolUse" && (tool === "Agent" || event.tool === "Agent")) {
+      session.activeSubagents = (session.activeSubagents || 0) + 1;
+    }
+    if (hookType === "SubagentStop") {
+      session.activeSubagents = Math.max(0, (session.activeSubagents || 0) - 1);
+    }
+
     switch (state) {
       case "busy":
         session.state = State.BUSY;
@@ -136,10 +145,15 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
         break;
 
       case "idle":
+        // Don't transition to idle if subagents are still running
+        if (session.activeSubagents > 0) {
+          break;
+        }
         session.state = State.IDLE;
         session.lastTool = null;
         session.pendingMessage = null;
         session.subagentActivity = 0;
+        session.activeSubagents = 0;
         if (prevState !== State.IDLE && session.terminalTitle && onIdleAlert) {
           onIdleAlert(session);
         }
@@ -189,6 +203,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
       windowHandle: s.windowHandle,
       git: s.git,
       subagentActivity: s.subagentActivity,
+      activeSubagents: s.activeSubagents,
       compacted: s.compacted,
     }));
   }
@@ -281,6 +296,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
       windowHandle: s.windowHandle,
       git: s.git,
       subagentActivity: s.subagentActivity,
+      activeSubagents: s.activeSubagents,
       compacted: s.compacted,
     };
   }
