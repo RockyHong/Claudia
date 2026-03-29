@@ -37,7 +37,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    animation: fadeIn 0.15s ease;
+    animation: fadeIn var(--duration-normal) ease;
   }
 
   @keyframes fadeIn {
@@ -48,14 +48,14 @@
   .dialog {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     font-family: var(--font-body);
-    padding: 20px;
+    padding: var(--space-5);
     width: 90%;
     max-width: 320px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--space-4);
     animation: slideUp 0.2s ease;
     box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
   }
@@ -66,7 +66,7 @@
   }
 
   .message {
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--text);
     margin: 0;
   }
@@ -74,50 +74,59 @@
   .actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .cancel-btn {
-    background: none;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    background: transparent;
     color: var(--text-muted);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 7px 16px;
-    font-size: 12px;
-    font-weight: 500;
+    border-radius: var(--radius-sm);
+    padding: var(--space-1) var(--space-3);
+    min-height: 28px;
     cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
+    display: inline-flex;
+    align-items: center;
+    transition: all var(--duration-normal) var(--ease-in-out);
   }
 
   .cancel-btn:hover {
+    background: var(--bg-raised);
     color: var(--text);
     border-color: var(--border-active);
   }
 
   .confirm-btn {
-    color: white;
-    border: none;
-    border-radius: 6px;
-    padding: 7px 16px;
-    font-size: 12px;
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
     font-weight: 500;
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: var(--space-1) var(--space-3);
+    min-height: 28px;
     cursor: pointer;
-    transition: background 0.15s;
+    display: inline-flex;
+    align-items: center;
+    transition: all var(--duration-normal) var(--ease-in-out);
   }
 
   .confirm-btn.danger {
-    background: #ef4444;
+    background: var(--red);
   }
 
   .confirm-btn.danger:hover {
-    background: #dc2626;
+    background: #c43c3c;
   }
 
   .confirm-btn.neutral {
-    background: var(--brand, #6366f1);
+    background: var(--brand);
   }
 
   .confirm-btn.neutral:hover {
-    background: var(--brand-hover, #4f46e5);
+    background: var(--brand-hover);
   }
 </style>
