@@ -61,7 +61,7 @@
 
   .section-label {
     font-family: var(--font-heading);
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -71,7 +71,7 @@
   .list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
   }
 
   .add-card {
@@ -80,11 +80,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: var(--space-2);
     padding: 14px 16px;
     background: transparent;
     border: 1px dashed var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     color: var(--text-faint);
     font-family: var(--font-body);
     font-size: 0.875rem;
@@ -106,11 +106,11 @@
 
   .track-usage-btn {
     font-family: var(--font-mono);
-    font-size: 0.625rem;
+    font-size: var(--text-xs);
     color: var(--text-faint);
     background: none;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     padding: 4px 10px;
     cursor: pointer;
     transition: all var(--duration-normal) var(--ease-in-out);
