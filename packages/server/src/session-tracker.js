@@ -33,6 +33,8 @@ function createSession(id, cwd) {
     terminalTitle: null,
     windowHandle: null,
     git: null,
+    subagentActivity: 0,
+    compacted: false,
   };
 }
 
@@ -82,7 +84,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
   }
 
   function handleEvent(event) {
-    const { session: sessionId, state, tool, cwd, message, ts } = event;
+    const { session: sessionId, state, tool, cwd, message, ts, hookType } = event;
 
     if (!sessionId || !state) return;
 
@@ -137,14 +139,13 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
         session.state = State.IDLE;
         session.lastTool = null;
         session.pendingMessage = null;
+        session.subagentActivity = 0;
         if (prevState !== State.IDLE && session.terminalTitle && onIdleAlert) {
           onIdleAlert(session);
         }
         break;
 
       case "pending": {
-        // Ignore late Notifications that arrive after Stop already resolved the session
-        if (prevState === State.IDLE) break;
         session.state = State.PENDING;
         session.pendingMessage = message || null;
         if (prevState !== State.PENDING && session.terminalTitle && onPendingAlert) {
@@ -156,6 +157,9 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
       default:
         return;
     }
+
+    if (hookType === "SubagentStop") session.subagentActivity++;
+    if (hookType === "PreCompact") session.compacted = true;
 
     if (session.state !== prevState) {
       session.stateChangedAt = Date.now();
@@ -184,6 +188,8 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
       terminalTitle: s.terminalTitle,
       windowHandle: s.windowHandle,
       git: s.git,
+      subagentActivity: s.subagentActivity,
+      compacted: s.compacted,
     }));
   }
 
@@ -274,6 +280,8 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
       terminalTitle: s.terminalTitle,
       windowHandle: s.windowHandle,
       git: s.git,
+      subagentActivity: s.subagentActivity,
+      compacted: s.compacted,
     };
   }
 

@@ -142,6 +142,55 @@ describe("session-tracker", () => {
       tracker.handleEvent({ session: "unknown", state: "stopped" });
       expect(tracker.getSessions()).toHaveLength(0);
     });
+
+    it("subagentActivity increments on SubagentStop hookType", () => {
+      tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
+      tracker.handleEvent({ session: "s1", state: "busy", hookType: "SubagentStop" });
+
+      expect(tracker.getSessions()[0].subagentActivity).toBe(1);
+
+      tracker.handleEvent({ session: "s1", state: "busy", hookType: "SubagentStop" });
+      expect(tracker.getSessions()[0].subagentActivity).toBe(2);
+    });
+
+    it("subagentActivity resets to 0 on idle", () => {
+      tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
+      tracker.handleEvent({ session: "s1", state: "busy", hookType: "SubagentStop" });
+      tracker.handleEvent({ session: "s1", state: "busy", hookType: "SubagentStop" });
+      expect(tracker.getSessions()[0].subagentActivity).toBe(2);
+
+      tracker.handleEvent({ session: "s1", state: "idle" });
+      expect(tracker.getSessions()[0].subagentActivity).toBe(0);
+    });
+
+    it("compacted flag sets to true on PreCompact hookType", () => {
+      tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
+      tracker.handleEvent({ session: "s1", state: "busy", hookType: "PreCompact" });
+
+      expect(tracker.getSessions()[0].compacted).toBe(true);
+    });
+
+    it("compacted flag does NOT reset on idle (lifetime flag)", () => {
+      tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
+      tracker.handleEvent({ session: "s1", state: "busy", hookType: "PreCompact" });
+      tracker.handleEvent({ session: "s1", state: "idle" });
+
+      expect(tracker.getSessions()[0].compacted).toBe(true);
+    });
+
+    it("pending from idle is now accepted (bug fix)", () => {
+      tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
+      tracker.handleEvent({ session: "s1", state: "pending", message: "Permission needed" });
+
+      const session = tracker.getSessions()[0];
+      expect(session.state).toBe(State.PENDING);
+      expect(session.pendingMessage).toBe("Permission needed");
+    });
+
+    it("ghost session guard still works", () => {
+      tracker.handleEvent({ session: "unknown-id", state: "pending", message: "hi" });
+      expect(tracker.getSessions()).toHaveLength(0);
+    });
   });
 
   describe("display name extraction", () => {
