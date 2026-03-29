@@ -126,15 +126,15 @@
 <style>
   .empty {
     text-align: center;
-    font-size: 13px;
+    font-size: var(--text-sm);
     color: var(--text-muted);
-    padding: 8px 0;
+    padding: var(--space-2) 0;
   }
 
   .project-list {
     display: flex;
     flex-direction: column;
-    margin: -4px -8px;
+    margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-2));
     max-height: 340px;
     overflow-y: auto;
   }
@@ -142,8 +142,8 @@
   .project-row {
     display: flex;
     align-items: center;
-    border-radius: 8px;
-    transition: background 0.1s;
+    border-radius: var(--radius-md);
+    transition: background var(--duration-fast);
   }
 
   .project-row:hover {
@@ -156,7 +156,7 @@
     gap: 2px;
     flex: 1;
     min-width: 0;
-    padding: 10px 12px;
+    padding: var(--space-3);
     border: none;
     background: none;
     text-align: left;
@@ -174,11 +174,11 @@
     border: none;
     background: none;
     color: var(--text-muted);
-    font-size: 16px;
-    padding: 4px 10px;
+    font-size: var(--text-base);
+    padding: var(--space-1) var(--space-3);
     cursor: pointer;
     opacity: 0;
-    transition: opacity 0.1s, color 0.1s;
+    transition: opacity var(--duration-fast), color var(--duration-fast);
   }
 
   .project-row:hover .remove-btn {
@@ -190,13 +190,13 @@
   }
 
   .project-name {
-    font-size: 13px;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--text);
   }
 
   .project-path {
-    font-size: 11px;
+    font-size: var(--text-xs);
     font-family: var(--font-mono);
     color: var(--text-muted);
     white-space: nowrap;
@@ -209,16 +209,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 10px 14px;
+    gap: var(--space-2);
+    padding: var(--space-3);
     border: 1px dashed var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: none;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: var(--text-sm);
     color: var(--text-muted);
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all var(--duration-normal);
   }
 
   .browse-btn:hover {
