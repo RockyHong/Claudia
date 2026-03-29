@@ -183,35 +183,33 @@
 
 <style>
   section h3 {
-    font-size: 12px;
+    font-size: var(--text-xs);
     font-weight: 600;
     font-family: var(--font-heading);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
-    margin-bottom: 12px;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    margin-bottom: var(--space-3);
   }
 
   .muted {
     color: var(--text-muted);
-    font-size: 13px;
+    font-size: var(--text-sm);
   }
 
   .error-bar {
-    background: rgba(239, 68, 68, 0.12);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #f87171;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 13px;
+    background: rgba(217, 85, 85, 0.12);
+    border: 1px solid rgba(217, 85, 85, 0.3);
+    color: var(--red);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
   }
-
-  /* --- Set grid --- */
 
   .set-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 8px;
+    gap: var(--space-2);
     max-height: 320px;
     overflow-y: auto;
   }
@@ -220,14 +218,14 @@
     position: relative;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 6px;
+    border-radius: var(--radius-md);
+    padding: var(--space-2);
     cursor: pointer;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    transition: border-color 0.15s, background 0.15s;
+    gap: var(--space-1);
+    transition: border-color var(--duration-normal), background var(--duration-normal);
     text-align: center;
   }
 
@@ -244,7 +242,7 @@
   .set-thumb {
     width: 100%;
     aspect-ratio: 1;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     overflow: hidden;
     background: var(--border);
   }
@@ -262,7 +260,7 @@
   }
 
   .set-name {
-    font-size: 11px;
+    font-size: var(--text-xs);
     font-weight: 500;
     color: var(--text);
     overflow: hidden;
@@ -278,8 +276,6 @@
     text-transform: uppercase;
     letter-spacing: 0.03em;
   }
-
-  /* --- Add card --- */
 
   .add-card {
     border-style: dashed;
@@ -303,17 +299,15 @@
     color: var(--brand);
   }
 
-  /* --- Hover action buttons --- */
-
   .card-actions {
     position: absolute;
-    top: 4px;
-    right: 4px;
+    top: var(--space-1);
+    right: var(--space-1);
     display: flex;
     flex-direction: column;
     gap: 2px;
     opacity: 0;
-    transition: opacity 0.15s;
+    transition: opacity var(--duration-normal);
   }
 
   .set-card:hover .card-actions {
@@ -326,12 +320,12 @@
     color: var(--text-muted);
     width: 22px;
     height: 22px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: color 0.15s, background 0.15s;
+    transition: color var(--duration-normal), background var(--duration-normal);
   }
 
   .action-btn svg {
@@ -340,8 +334,8 @@
   }
 
   .delete-action:hover {
-    color: #f87171;
-    background: rgba(239, 68, 68, 0.25);
+    color: var(--red);
+    background: rgba(217, 85, 85, 0.25);
   }
 
   .edit-action:hover {
