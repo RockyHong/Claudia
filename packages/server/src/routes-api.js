@@ -22,7 +22,7 @@ import {
   getSetPath,
   VALID_FILENAMES,
 } from "./avatar-storage.js";
-import { readSettings, hasClaudiaHooks, mergeHooks, writeSettings } from "./hooks.js";
+import { readSettings, hasClaudiaHooks, mergeHooks, removeHooks, writeSettings } from "./hooks.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -81,6 +81,17 @@ export function registerApiRoutes(app, tracker, usageClient) {
       const settings = await readSettings();
       const merged = mergeHooks(settings);
       await writeSettings(merged);
+      res.json({ success: true });
+    } catch (err) {
+      res.json({ success: false, error: err.message });
+    }
+  });
+
+  app.post("/api/hooks/remove", async (req, res) => {
+    try {
+      const settings = await readSettings();
+      const cleaned = removeHooks(settings);
+      await writeSettings(cleaned);
       res.json({ success: true });
     } catch (err) {
       res.json({ success: false, error: err.message });

@@ -1,5 +1,5 @@
 <script>
-  let { message, confirmLabel = "Delete", onconfirm, oncancel } = $props();
+  let { message, confirmLabel = "Delete", variant = "danger", onconfirm, oncancel } = $props();
 
   function handleBackdrop(e) {
     if (e.target === e.currentTarget) oncancel();
@@ -22,7 +22,7 @@
     <p class="message">{message}</p>
     <div class="actions">
       <button class="cancel-btn" onclick={oncancel}>Cancel</button>
-      <button class="confirm-btn" onclick={onconfirm}>{confirmLabel}</button>
+      <button class="confirm-btn {variant}" onclick={onconfirm}>{confirmLabel}</button>
     </div>
   </div>
 </div>
@@ -95,7 +95,6 @@
   }
 
   .confirm-btn {
-    background: #ef4444;
     color: white;
     border: none;
     border-radius: 6px;
@@ -106,7 +105,19 @@
     transition: background 0.15s;
   }
 
-  .confirm-btn:hover {
+  .confirm-btn.danger {
+    background: #ef4444;
+  }
+
+  .confirm-btn.danger:hover {
     background: #dc2626;
+  }
+
+  .confirm-btn.neutral {
+    background: var(--brand, #6366f1);
+  }
+
+  .confirm-btn.neutral:hover {
+    background: var(--brand-hover, #4f46e5);
   }
 </style>

@@ -1,5 +1,6 @@
 <script>
   import ToggleSlider from "./ToggleSlider.svelte";
+  import ConfirmDialog from "./ConfirmDialog.svelte";
 
   let { nightMode = true, onnightmodechange, sfx } = $props();
 
@@ -12,8 +13,9 @@
   });
 
   let hooksInstalled = $state(null);
-  let reinstalling = $state(false);
-  let reinstallResult = $state("");
+  let hooksBusy = $state(false);
+  let hookResult = $state("");
+  let confirmAction = $state(null);
 
   async function checkHookStatus() {
     try {
@@ -25,22 +27,51 @@
     }
   }
 
-  async function reinstallHooks() {
-    reinstalling = true;
-    reinstallResult = "";
+  function requestInstall() {
+    confirmAction = "install";
+  }
+
+  function requestRemove() {
+    confirmAction = "remove";
+  }
+
+  async function installHooks() {
+    confirmAction = null;
+    hooksBusy = true;
+    hookResult = "";
     try {
       const res = await fetch("/api/hooks/install", { method: "POST" });
       const data = await res.json();
       if (data.success) {
         hooksInstalled = true;
-        reinstallResult = "success";
+        hookResult = "installed";
       } else {
-        reinstallResult = data.error || "Failed";
+        hookResult = data.error || "Failed";
       }
     } catch {
-      reinstallResult = "Could not reach server";
+      hookResult = "Could not reach server";
     } finally {
-      reinstalling = false;
+      hooksBusy = false;
+    }
+  }
+
+  async function removeHooks() {
+    confirmAction = null;
+    hooksBusy = true;
+    hookResult = "";
+    try {
+      const res = await fetch("/api/hooks/remove", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        hooksInstalled = false;
+        hookResult = "removed";
+      } else {
+        hookResult = data.error || "Failed";
+      }
+    } catch {
+      hookResult = "Could not reach server";
+    } finally {
+      hooksBusy = false;
     }
   }
 
@@ -91,15 +122,41 @@
       <span class="status-label">Hooks not installed</span>
     {/if}
   </div>
-  <button class="reinstall-btn" onclick={reinstallHooks} disabled={reinstalling}>
-    {reinstalling ? "Installing…" : "Reinstall Hooks"}
-  </button>
-  {#if reinstallResult === "success"}
-    <p class="reinstall-msg success">Hooks updated. Restart Claude Code sessions to pick up changes.</p>
-  {:else if reinstallResult}
-    <p class="reinstall-msg error">{reinstallResult}</p>
+  <div class="hook-actions">
+    <button class="hook-btn" onclick={requestInstall} disabled={hooksBusy}>
+      {hooksBusy ? "Working…" : "Reinstall Hooks"}
+    </button>
+    {#if hooksInstalled}
+      <button class="hook-btn danger" onclick={requestRemove} disabled={hooksBusy}>
+        Remove Hooks
+      </button>
+    {/if}
+  </div>
+  {#if hookResult === "installed"}
+    <p class="hook-msg success">Hooks installed. Restart Claude Code sessions to pick up changes.</p>
+  {:else if hookResult === "removed"}
+    <p class="hook-msg success">Hooks removed. Claude Code sessions will no longer report to Claudia.</p>
+  {:else if hookResult}
+    <p class="hook-msg error">{hookResult}</p>
   {/if}
 </section>
+
+{#if confirmAction === "install"}
+  <ConfirmDialog
+    message="This will install Claudia hooks into ~/.claude/settings.json. Existing hooks are preserved."
+    confirmLabel="Install"
+    variant="neutral"
+    onconfirm={installHooks}
+    oncancel={() => confirmAction = null}
+  />
+{:else if confirmAction === "remove"}
+  <ConfirmDialog
+    message="Remove all Claudia hooks from ~/.claude/settings.json? Your other hooks will not be touched."
+    confirmLabel="Remove"
+    onconfirm={removeHooks}
+    oncancel={() => confirmAction = null}
+  />
+{/if}
 
 <style>
   section h3 {
@@ -160,7 +217,12 @@
     color: var(--text-muted);
   }
 
-  .reinstall-btn {
+  .hook-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .hook-btn {
     font-family: var(--font-body);
     font-size: 12px;
     font-weight: 500;
@@ -173,22 +235,27 @@
     transition: all var(--duration-normal) var(--ease-in-out);
   }
 
-  .reinstall-btn:hover:not(:disabled) {
+  .hook-btn:hover:not(:disabled) {
     background: var(--bg-raised);
     color: var(--text);
     border-color: var(--border-active);
   }
 
-  .reinstall-btn:disabled {
+  .hook-btn.danger:hover:not(:disabled) {
+    color: var(--red);
+    border-color: var(--red);
+  }
+
+  .hook-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
 
-  .reinstall-msg {
+  .hook-msg {
     font-size: 12px;
     margin-top: 8px;
   }
 
-  .reinstall-msg.success { color: var(--green); }
-  .reinstall-msg.error { color: var(--red); }
+  .hook-msg.success { color: var(--green); }
+  .hook-msg.error { color: var(--red); }
 </style>
