@@ -1,8 +1,11 @@
 <script>
   import ToggleSlider from "./ToggleSlider.svelte";
   import ConfirmDialog from "./ConfirmDialog.svelte";
+  import ConsentModal from "./ConsentModal.svelte";
 
-  let { nightMode = true, onnightmodechange, sfx } = $props();
+  let { nightMode = true, onnightmodechange, sfx, usageMonitoring = false, onusagemonitoringchange } = $props();
+
+  let showConsent = $state(false);
 
   let sfxVolume = $state(0.5);
 
@@ -114,6 +117,31 @@
     </label>
   </div>
 </section>
+
+<section>
+  <h3>Usage Monitoring</h3>
+  <ToggleSlider
+    label="Show usage limits on dashboard"
+    checked={usageMonitoring}
+    onchange={(v) => {
+      if (v) {
+        showConsent = true;
+      } else {
+        onusagemonitoringchange?.(false);
+      }
+    }}
+  />
+  <p class="usage-hint">
+    Reads your token from <code>~/.claude/.credentials.json</code> to fetch usage limits from the Anthropic API.
+  </p>
+</section>
+
+{#if showConsent}
+  <ConsentModal onchoice={(v) => {
+    showConsent = false;
+    if (v) onusagemonitoringchange?.(true);
+  }} />
+{/if}
 
 <section>
   <h3>Hooks</h3>
@@ -265,4 +293,19 @@
 
   .hook-msg.success { color: var(--green); }
   .hook-msg.error { color: var(--red); }
+
+  .usage-hint {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  .usage-hint code {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    background: var(--bg-raised);
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
 </style>

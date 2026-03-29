@@ -166,6 +166,8 @@
       {sfx}
       {nightMode}
       onnightmodechange={(v) => { nightMode = v; applyTheme(v); }}
+      {usageMonitoring}
+      onusagemonitoringchange={setUsageMonitoring}
     />
   {/if}
 
