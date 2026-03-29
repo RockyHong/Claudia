@@ -197,8 +197,8 @@
   .card {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px 16px;
+    border-radius: var(--radius-lg);
+    padding: var(--space-3) var(--space-4);
     transition: all var(--duration-normal, 150ms) var(--ease-in-out, ease);
     user-select: none;
   }
@@ -220,7 +220,7 @@
   }
 
   .card-row-detail {
-    margin-top: 4px;
+    margin-top: var(--space-1);
   }
 
   .card-left {
@@ -234,14 +234,14 @@
   .name {
     font-family: var(--font-heading, sans-serif);
     font-weight: 600;
-    font-size: 0.9375rem;
+    font-size: var(--text-base);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   .card-state {
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
     font-weight: 400;
     color: var(--text-faint, #5c554e);
     flex-shrink: 0;
@@ -250,7 +250,7 @@
 
   .card-detail {
     font-family: var(--font-mono, monospace);
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
     color: var(--text-faint, #5c554e);
     display: inline-flex;
     align-items: center;
@@ -299,7 +299,7 @@
     color: var(--text-faint);
     background: var(--bg-raised);
     padding: 2px 6px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     margin-left: 6px;
     vertical-align: middle;
     cursor: pointer;
@@ -321,7 +321,7 @@
     max-width: 360px;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 100;
     overflow: hidden;
@@ -331,9 +331,9 @@
     all: unset;
     display: block;
     width: 100%;
-    padding: 8px 12px;
+    padding: var(--space-2) var(--space-3);
     font-family: var(--font-mono, monospace);
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
     color: var(--text-muted);
     cursor: pointer;
     white-space: nowrap;
@@ -372,7 +372,7 @@
     color: var(--text-faint, #5c554e);
     cursor: pointer;
     padding: 2px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     transition: color var(--duration-normal, 150ms) var(--ease-in-out, ease);
   }
 
@@ -387,13 +387,13 @@
   }
 
   .subagent-count {
-    font-size: 0.6875rem;
+    font-size: var(--text-xs);
     color: var(--text-faint, #5c554e);
     margin-left: 4px;
   }
 
   .compacted-badge {
-    font-size: 0.6875rem;
+    font-size: var(--text-xs);
     color: var(--text-faint, #5c554e);
     opacity: 0.7;
   }
