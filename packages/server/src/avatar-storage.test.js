@@ -50,23 +50,9 @@ describe("isValidSetName", () => {
 	});
 });
 
-describe("config", () => {
-	it("returns empty object when no config exists", async () => {
-		expect(await storage.getConfig()).toEqual({});
-	});
-
-	it("writes and reads config", async () => {
-		await storage.setConfig({ activeSet: "pixel-art" });
-		const config = await storage.getConfig();
-		expect(config.activeSet).toBe("pixel-art");
-	});
-
-	it("merges patches into existing config", async () => {
-		await storage.setConfig({ activeSet: "default" });
-		await storage.setConfig({ theme: "dark" });
-		const config = await storage.getConfig();
-		expect(config.activeSet).toBe("default");
-		expect(config.theme).toBe("dark");
+describe("config defaults", () => {
+	it("getActiveSet returns 'default' when no config exists", async () => {
+		expect(await storage.getActiveSet()).toBe("default");
 	});
 });
 
@@ -76,7 +62,8 @@ describe("getActiveSet", () => {
 	});
 
 	it("returns configured active set", async () => {
-		await storage.setConfig({ activeSet: "pixel-art" });
+		await storage.createSet("pixel-art", [fakeFile("idle.webm"), fakeFile("busy.webm"), fakeFile("pending.webm")]);
+		await storage.setActiveSet("pixel-art");
 		expect(await storage.getActiveSet()).toBe("pixel-art");
 	});
 });

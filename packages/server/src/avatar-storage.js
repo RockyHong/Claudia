@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
+import { createPreferences } from "./preferences.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -32,30 +33,14 @@ export function isValidSetName(name) {
 
 export function createAvatarStorage(baseDir) {
 	const avatarsDir = path.join(baseDir, "avatars");
-	const configPath = path.join(baseDir, "config.json");
+	const prefs = createPreferences(baseDir);
 
 	async function ensureDirs() {
 		await fs.mkdir(avatarsDir, { recursive: true });
 	}
 
-	async function getConfig() {
-		try {
-			const raw = await fs.readFile(configPath, "utf-8");
-			return JSON.parse(raw);
-		} catch {
-			return {};
-		}
-	}
-
-	async function setConfig(patch) {
-		const config = await getConfig();
-		Object.assign(config, patch);
-		await fs.writeFile(configPath, JSON.stringify(config, null, 2) + "\n");
-		return config;
-	}
-
 	async function getActiveSet() {
-		const config = await getConfig();
+		const config = await prefs.get();
 		return config.activeSet || "default";
 	}
 
@@ -174,7 +159,7 @@ export function createAvatarStorage(baseDir) {
 				// Update active set config if this was the active set
 				const activeSet = await getActiveSet();
 				if (activeSet === name) {
-					await setConfig({ activeSet: rename });
+					await prefs.set({ activeSet: rename });
 				}
 			}
 		}
@@ -191,7 +176,7 @@ export function createAvatarStorage(baseDir) {
 		// If we deleted the active set, fall back to default
 		const activeSet = await getActiveSet();
 		if (activeSet === name) {
-			await setConfig({ activeSet: "default" });
+			await prefs.set({ activeSet: "default" });
 		}
 	}
 
@@ -204,7 +189,7 @@ export function createAvatarStorage(baseDir) {
 			throw new Error("Set not found");
 		}
 
-		await setConfig({ activeSet: name });
+		await prefs.set({ activeSet: name });
 	}
 
 	async function ensureDefaults() {
@@ -231,12 +216,10 @@ export function createAvatarStorage(baseDir) {
 			// Bundled avatars may not exist (e.g., in test environment)
 		}
 
-		await setConfig({ activeSet: "default" });
+		await prefs.set({ activeSet: "default" });
 	}
 
 	return {
-		getConfig,
-		setConfig,
 		getActiveSet,
 		getActiveSetPath,
 		listSets,
@@ -255,8 +238,6 @@ const DEFAULT_DIR = path.join(os.homedir(), ".claudia");
 const defaultStorage = createAvatarStorage(DEFAULT_DIR);
 
 export const {
-	getConfig,
-	setConfig,
 	getActiveSet,
 	getActiveSetPath,
 	listSets,
