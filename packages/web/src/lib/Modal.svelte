@@ -36,7 +36,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    animation: fadeIn 0.15s ease;
+    animation: fadeIn var(--duration-normal) ease;
   }
 
   @keyframes fadeIn {
@@ -47,7 +47,7 @@
   .modal {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: var(--radius-xl);
     font-family: var(--font-body);
     width: 90%;
     max-width: 480px;
@@ -67,12 +67,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: var(--space-4) var(--space-5);
     border-bottom: 1px solid var(--border);
   }
 
   .modal-header h2 {
-    font-size: 16px;
+    font-size: var(--text-base);
     font-weight: 600;
     font-family: var(--font-heading);
   }
@@ -83,9 +83,9 @@
     color: var(--text-muted);
     font-size: 22px;
     cursor: pointer;
-    padding: 0 4px;
+    padding: 0 var(--space-1);
     line-height: 1;
-    transition: color 0.15s;
+    transition: color var(--duration-normal);
   }
 
   .close-btn:hover {
@@ -93,10 +93,10 @@
   }
 
   .modal-body {
-    padding: 20px;
+    padding: var(--space-5);
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: var(--space-6);
   }
 </style>
