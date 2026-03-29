@@ -19,7 +19,7 @@
 <!-- svelte-ignore a11y_interactive_supports_focus -->
 <div class="backdrop" onclick={handleBackdrop} onkeydown={() => {}} role="dialog" aria-modal="true" aria-label="Confirm">
   <div class="dialog">
-    <p class="message">{message}</p>
+    <p class="message">{@html message}</p>
     <div class="actions">
       <button class="cancel-btn" onclick={oncancel}>Cancel</button>
       <button class="confirm-btn {variant}" onclick={onconfirm}>{confirmLabel}</button>
@@ -69,6 +69,15 @@
     font-size: var(--text-sm);
     color: var(--text);
     margin: 0;
+  }
+
+  .message :global(code) {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    background: var(--bg-raised);
+    padding: 1px var(--space-1);
+    border-radius: var(--radius-xs);
+    color: var(--text-muted);
   }
 
   .actions {
