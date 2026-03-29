@@ -10,19 +10,14 @@ import {
   readSettings,
   writeSettings,
   hasClaudiaHooks,
-  mergeHooks,
   removeHooks,
   getSettingsPath,
-  CLAUDIA_MARKER,
+  CLAUDIA_HOOKS,
 } from "../packages/server/src/hooks.js";
 
 const command = process.argv[2];
-const forceYes = process.argv.includes("--yes") || process.argv.includes("-y");
 
 switch (command) {
-  case "init":
-    await runInit();
-    break;
   case "teardown":
     await runTeardown();
     break;
@@ -32,66 +27,6 @@ switch (command) {
   default:
     await runStart();
     break;
-}
-
-// --- init ---
-
-async function runInit() {
-  let settings;
-  try {
-    settings = await readSettings();
-  } catch (err) {
-    console.error(`Error: ${err.message}`);
-    process.exit(1);
-  }
-
-  if (hasClaudiaHooks(settings)) {
-    console.log("Claudia hooks are already installed.");
-    console.log(`  ${getSettingsPath()}`);
-    console.log("\nRe-running will update them to the latest version.");
-    if (!forceYes) {
-      const ok = await confirm("Update hooks?");
-      if (!ok) return;
-    }
-  }
-
-  const merged = mergeHooks(settings);
-
-  console.log("\nChanges to apply:");
-  console.log(`  File: ${getSettingsPath()}`);
-  console.log("  Adding hooks: SessionStart, PreToolUse, PostToolUse, Notification, Stop, SessionEnd");
-  if (settings.hooks) {
-    const userHooks = Object.entries(settings.hooks)
-      .flatMap(([event, hooks]) =>
-        Array.isArray(hooks) ? hooks.filter((h) => !h.command?.includes(CLAUDIA_MARKER)) : [],
-      );
-    if (userHooks.length > 0) {
-      console.log(`  Preserving ${userHooks.length} existing user hook(s)`);
-    }
-  }
-
-  if (!forceYes) {
-    const ok = await confirm("\nApply changes?");
-    if (!ok) {
-      console.log("Aborted.");
-      return;
-    }
-  }
-
-  try {
-    await writeSettings(merged);
-    console.log("\nHooks installed successfully.");
-    if (!hasCurl()) {
-      console.log("\nWarning: curl not found on this system.");
-      console.log("  Hooks use curl for fast event delivery (~20ms vs ~300ms with node).");
-      console.log("  Install curl or upgrade to Windows 10 1803+ for best performance.");
-    }
-    console.log("Restart any running Claude Code sessions to pick up the hooks.");
-    console.log("Then run `claudia` or `npx claudia` to start the receptionist.");
-  } catch (err) {
-    console.error(`Error writing settings: ${err.message}`);
-    process.exit(1);
-  }
 }
 
 // --- teardown ---
@@ -112,7 +47,7 @@ async function runTeardown() {
 
   console.log("Will remove Claudia hooks from:");
   console.log(`  ${getSettingsPath()}`);
-  console.log("  Removing: PreToolUse, PostToolUse, Notification (Claudia entries only)");
+  console.log(`  Removing: ${Object.keys(CLAUDIA_HOOKS).join(", ")} (Claudia entries only)`);
   console.log("  Your other hooks will not be touched.");
 
   const ok = await confirm("\nRemove hooks?");
@@ -218,15 +153,6 @@ function checkPort(port) {
     });
     server.listen(port);
   });
-}
-
-function hasCurl() {
-  try {
-    execSync("curl --version", { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function openBrowser(url) {
