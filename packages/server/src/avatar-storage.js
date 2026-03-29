@@ -53,7 +53,7 @@ export function createAvatarStorage(baseDir) {
 	}
 
 	async function listSets() {
-		await ensureDirs();
+		await ensureDefaults();
 		const [entries, activeSet] = await Promise.all([
 			fs.readdir(avatarsDir, { withFileTypes: true }),
 			getActiveSet(),
@@ -198,11 +198,14 @@ export function createAvatarStorage(baseDir) {
 	async function ensureDefaults() {
 		await ensureDirs();
 
-		const entries = await fs.readdir(avatarsDir, { withFileTypes: true });
-		const hasSets = entries.some((e) => e.isDirectory());
-		if (hasSets) return;
-
 		const defaultPath = path.join(avatarsDir, "default");
+		try {
+			await fs.access(defaultPath);
+			return; // default set exists, nothing to do
+		} catch {
+			// default set missing — recreate it
+		}
+
 		await fs.mkdir(defaultPath, { recursive: true });
 
 		try {
@@ -218,8 +221,6 @@ export function createAvatarStorage(baseDir) {
 		} catch {
 			// Bundled avatars may not exist (e.g., in test environment)
 		}
-
-		await prefs.set({ activeSet: "default" });
 	}
 
 	async function importSet(name, zipBuffer) {

@@ -35,7 +35,14 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ set: name }),
       });
-      if (!res.ok) throw new Error("Failed to switch");
+      if (!res.ok) {
+        if (res.status === 404) {
+          error = `"${name}" can't be found — refreshing list`;
+          await fetchSets();
+          return;
+        }
+        throw new Error("Failed to switch");
+      }
       sets = sets.map((s) => ({ ...s, active: s.name === name }));
       onavatarchange?.();
     } catch {
@@ -51,6 +58,11 @@
         method: "DELETE",
       });
       if (!res.ok) {
+        if (res.status === 404) {
+          error = `"${name}" can't be found — refreshing list`;
+          await fetchSets();
+          return;
+        }
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Failed to delete");
       }

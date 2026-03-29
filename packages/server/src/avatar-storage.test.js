@@ -78,9 +78,10 @@ describe("getActiveSet", () => {
 });
 
 describe("listSets", () => {
-	it("returns empty array when no sets exist", async () => {
+	it("always includes the default set", async () => {
 		const sets = await storage.listSets();
-		expect(sets).toEqual([]);
+		expect(sets).toHaveLength(1);
+		expect(sets[0].name).toBe("default");
 	});
 
 	it("lists sets with files and active flag", async () => {
@@ -89,7 +90,7 @@ describe("listSets", () => {
 		await storage.setActiveSet("one");
 
 		const sets = await storage.listSets();
-		expect(sets).toHaveLength(2);
+		expect(sets).toHaveLength(3); // default + one + two
 
 		const one = sets.find((s) => s.name === "one");
 		expect(one.active).toBe(true);
