@@ -280,6 +280,37 @@ const TERMINAL_PROCESS_NAMES = [
   "WezTerm",
 ];
 
+// C# helper for EnumWindows-based window enumeration.
+// Compiled once per PowerShell invocation via Add-Type.
+const WIN_ENUM_CS = [
+  "using System; using System.Collections.Generic; using System.Runtime.InteropServices; using System.Text;",
+  "public class WinEnum {",
+  "  public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);",
+  '  [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);',
+  '  [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);',
+  '  [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);',
+  '  [DllImport("user32.dll")] public static extern int GetWindowTextLength(IntPtr hWnd);',
+  '  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);',
+  "  public static List<string> GetVisibleWindows() {",
+  "    var result = new List<string>();",
+  "    EnumWindows((hWnd, lParam) => {",
+  "      if (IsWindowVisible(hWnd)) {",
+  "        int len = GetWindowTextLength(hWnd);",
+  "        if (len > 0) {",
+  "          var sb = new StringBuilder(len + 1);",
+  "          GetWindowText(hWnd, sb, sb.Capacity);",
+  "          uint procId;",
+  "          GetWindowThreadProcessId(hWnd, out procId);",
+  '          result.Add(hWnd.ToInt64() + "|" + procId + "|" + sb.ToString());',
+  "        }",
+  "      }",
+  "      return true;",
+  "    }, IntPtr.Zero);",
+  "    return result;",
+  "  }",
+  "}",
+].join("\n");
+
 /**
  * Enumerate visible terminal windows on the current platform.
  * Returns [{ hwnd, title }], excluding any handles in the provided Set.
@@ -293,7 +324,18 @@ export function listTerminalWindows(excludeHandles = new Set()) {
   const nameFilter = TERMINAL_PROCESS_NAMES.map((n) => `'${n}'`).join(",");
   const ps = [
     `$names = @(${nameFilter})`,
-    "Get-Process | Where-Object { $names -contains $_.ProcessName -and $_.MainWindowHandle -ne 0 -and $_.MainWindowTitle -ne '' } | ForEach-Object { \"$($_.MainWindowHandle)|$($_.MainWindowTitle)\" }",
+    'Add-Type -Language CSharp @"\n' + WIN_ENUM_CS + '\n"@',
+    "$procs = @{}",
+    "Get-Process | ForEach-Object { $procs[$_.Id] = $_.ProcessName }",
+    "[WinEnum]::GetVisibleWindows() | ForEach-Object {",
+    "  $parts = $_ -split '\\|', 3",
+    "  $hwnd = $parts[0]",
+    "  $pid = [int]$parts[1]",
+    "  $title = $parts[2]",
+    "  if ($procs.ContainsKey($pid) -and $names -contains $procs[$pid]) {",
+    '    "$hwnd|$title"',
+    "  }",
+    "}",
   ].join("\n");
 
   return new Promise((resolve) => {

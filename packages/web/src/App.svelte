@@ -464,4 +464,14 @@
     color: rgba(255, 255, 255, 0.25);
   }
 
+  .app.bg-mode :global(.card .orphan-badge) {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  .app.bg-mode :global(.card .orphan-badge:hover) {
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.5);
+  }
+
 </style>
