@@ -14,6 +14,8 @@ const HOOK_TYPE_MAP = {
 	Notification: (input) => ({ state: "pending", message: input.notification || "" }),
 	Stop: (input) => ({ state: "idle" }),
 	SessionEnd: (input) => ({ state: "stopped" }),
+	SubagentStop: (input) => ({ state: "busy" }),
+	PreCompact: (input) => ({ state: "busy" }),
 };
 
 export function transformHookPayload(hookType, stdinPayload) {
@@ -26,6 +28,7 @@ export function transformHookPayload(hookType, stdinPayload) {
 
 	return {
 		session: stdinPayload.session_id,
+		hookType,
 		...fields,
 		cwd: stdinPayload.cwd,
 		ts: Math.floor(Date.now() / 1e3),

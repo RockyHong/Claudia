@@ -47,11 +47,23 @@ describe("mergeHooks", () => {
     expect(result.hooks.PostToolUse).toHaveLength(1);
     expect(result.hooks.Notification).toHaveLength(1);
     expect(result.hooks.Stop).toHaveLength(1);
+    expect(result.hooks.SubagentStop).toHaveLength(1);
+    expect(result.hooks.PreCompact).toHaveLength(1);
     const hook = result.hooks.PreToolUse[0];
     expect(hook.matcher).toBe(".*");
     expect(hook.hooks).toHaveLength(1);
     expect(hook.hooks[0].type).toBe("command");
     expect(hook.hooks[0].command).toContain(CLAUDIA_MARKER);
+  });
+
+  it("includes SubagentStop and PreCompact hooks", () => {
+    const result = mergeHooks({});
+    const subagentHook = result.hooks.SubagentStop[0];
+    expect(subagentHook.matcher).toBe(".*");
+    expect(subagentHook.hooks[0].command).toContain("/hook/SubagentStop");
+    const precompactHook = result.hooks.PreCompact[0];
+    expect(precompactHook.matcher).toBe(".*");
+    expect(precompactHook.hooks[0].command).toContain("/hook/PreCompact");
   });
 
   it("generates curl-based hook commands", () => {

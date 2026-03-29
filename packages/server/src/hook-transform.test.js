@@ -54,6 +54,23 @@ describe("transformHookPayload", () => {
 		expect(result.state).toBe("stopped");
 	});
 
+	it("maps SubagentStop to busy", () => {
+		const result = transformHookPayload("SubagentStop", BASE_INPUT);
+		expect(result.state).toBe("busy");
+	});
+
+	it("maps PreCompact to busy", () => {
+		const result = transformHookPayload("PreCompact", BASE_INPUT);
+		expect(result.state).toBe("busy");
+	});
+
+	it("includes hookType in every transform result", () => {
+		for (const hookType of ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Notification", "Stop", "SessionEnd", "SubagentStop", "PreCompact"]) {
+			const result = transformHookPayload(hookType, BASE_INPUT);
+			expect(result.hookType).toBe(hookType);
+		}
+	});
+
 	it("returns null for unknown hook type", () => {
 		expect(transformHookPayload("Unknown", BASE_INPUT)).toBeNull();
 	});
@@ -72,9 +89,9 @@ describe("transformHookPayload", () => {
 });
 
 describe("VALID_HOOK_TYPES", () => {
-	it("contains all 8 hook types", () => {
-		expect(VALID_HOOK_TYPES.size).toBe(8);
-		for (const type of ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Notification", "Stop", "SessionEnd"]) {
+	it("contains all 10 hook types", () => {
+		expect(VALID_HOOK_TYPES.size).toBe(10);
+		for (const type of ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Notification", "Stop", "SessionEnd", "SubagentStop", "PreCompact"]) {
 			expect(VALID_HOOK_TYPES.has(type)).toBe(true);
 		}
 	});

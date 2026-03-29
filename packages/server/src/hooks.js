@@ -29,6 +29,8 @@ const CLAUDIA_HOOKS = {
   Notification: [hookEntry("Notification")],
   Stop: [hookEntry("Stop")],
   SessionEnd: [hookEntry("SessionEnd")],
+  SubagentStop: [hookEntry("SubagentStop")],
+  PreCompact: [hookEntry("PreCompact")],
 };
 
 function commandIsClaudia(cmd) {
