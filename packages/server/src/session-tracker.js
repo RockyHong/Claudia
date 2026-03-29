@@ -179,12 +179,13 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
       session.stateChangedAt = Date.now();
     }
 
+    // Always notify immediately so SFX/flash stay in sync with state changes
+    notify();
+
     // Refresh git status on new sessions, cwd changes, and idle (work complete)
     const shouldRefreshGit = getGitStatus && (isNew || cwdChanged || state === "idle");
     if (shouldRefreshGit) {
       refreshGit(session).then(notify).catch(() => {});
-    } else {
-      notify();
     }
   }
 
