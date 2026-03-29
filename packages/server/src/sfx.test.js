@@ -1,59 +1,78 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { generateWav, createSFX } from "./sfx.js";
-
-describe("generateWav", () => {
-	it("returns a Buffer starting with RIFF header", () => {
-		const buf = generateWav("pending", 0.5);
-		expect(Buffer.isBuffer(buf)).toBe(true);
-		expect(buf.toString("ascii", 0, 4)).toBe("RIFF");
-		expect(buf.toString("ascii", 8, 12)).toBe("WAVE");
-	});
-
-	it("generates different buffers for each sound", () => {
-		const pending = generateWav("pending", 0.5);
-		const send = generateWav("send", 0.5);
-		const idle = generateWav("idle", 0.5);
-		expect(pending.equals(send)).toBe(false);
-		expect(pending.equals(idle)).toBe(false);
-	});
-
-	it("generates silent buffer at volume 0", () => {
-		const buf = generateWav("pending", 0);
-		const pcm = buf.subarray(44);
-		// Check that all 16-bit samples are 0
-		for (let i = 0; i < pcm.length; i += 2) {
-			expect(pcm.readInt16LE(i)).toBe(0);
-		}
-	});
-
-	it("returns null for unknown sound name", () => {
-		expect(generateWav("unknown", 0.5)).toBeNull();
-	});
-});
+import { describe, it, expect } from "vitest";
+import { createSFX } from "./sfx.js";
 
 describe("createSFX", () => {
-	let sfx;
-	let mockPrefs;
+  it("returns no sounds on first broadcast", () => {
+    const sfx = createSFX();
+    const sounds = sfx.getSoundsForUpdate([
+      { id: "s1", state: "busy" },
+    ]);
+    expect(sounds).toEqual([]);
+  });
 
-	beforeEach(() => {
-		mockPrefs = { sfx: { muted: false, volume: 0.5 } };
-		sfx = createSFX(() => Promise.resolve(mockPrefs));
-	});
+  it("returns pending sound on state transition to pending", () => {
+    const sfx = createSFX();
+    sfx.getSoundsForUpdate([{ id: "s1", state: "busy" }]);
 
-	it("playSound is a no-op when muted", async () => {
-		mockPrefs.sfx.muted = true;
-		await sfx.playSound("pending");
-		// No error thrown
-	});
+    const sounds = sfx.getSoundsForUpdate([{ id: "s1", state: "pending" }]);
+    expect(sounds).toEqual(["pending"]);
+  });
 
-	it("previewSound plays even when muted", async () => {
-		mockPrefs.sfx.muted = true;
-		await sfx.previewSound("pending");
-		// No error thrown (playback may fail in test env, that's OK)
-	});
+  it("returns idle sound on state transition to idle", () => {
+    const sfx = createSFX();
+    sfx.getSoundsForUpdate([{ id: "s1", state: "busy" }]);
 
-	it("playSound ignores unknown sound names", async () => {
-		await sfx.playSound("unknown");
-		// No error thrown
-	});
+    const sounds = sfx.getSoundsForUpdate([{ id: "s1", state: "idle" }]);
+    expect(sounds).toEqual(["idle"]);
+  });
+
+  it("does not return sound when state unchanged", () => {
+    const sfx = createSFX();
+    sfx.getSoundsForUpdate([{ id: "s1", state: "busy" }]);
+
+    const sounds = sfx.getSoundsForUpdate([{ id: "s1", state: "busy" }]);
+    expect(sounds).toEqual([]);
+  });
+
+  it("tracks multiple sessions independently", () => {
+    const sfx = createSFX();
+    sfx.getSoundsForUpdate([
+      { id: "s1", state: "busy" },
+      { id: "s2", state: "busy" },
+    ]);
+
+    const sounds = sfx.getSoundsForUpdate([
+      { id: "s1", state: "pending" },
+      { id: "s2", state: "busy" },
+    ]);
+    expect(sounds).toEqual(["pending"]);
+  });
+
+  it("cleans up removed sessions", () => {
+    const sfx = createSFX();
+    sfx.getSoundsForUpdate([
+      { id: "s1", state: "busy" },
+      { id: "s2", state: "busy" },
+    ]);
+
+    // s1 removed
+    sfx.getSoundsForUpdate([{ id: "s2", state: "idle" }]);
+
+    // s1 reappears as new — should not trigger idle (no prev)
+    const sounds = sfx.getSoundsForUpdate([
+      { id: "s1", state: "idle" },
+      { id: "s2", state: "idle" },
+    ]);
+    // s1 has no prev so idle doesn't fire, s2 unchanged
+    expect(sounds).toEqual([]);
+  });
+
+  it("does not play idle for brand new sessions", () => {
+    const sfx = createSFX();
+    sfx.getSoundsForUpdate([]); // first broadcast (empty)
+
+    const sounds = sfx.getSoundsForUpdate([{ id: "s1", state: "idle" }]);
+    // No prev state for s1, so idle should not fire
+    expect(sounds).toEqual([]);
+  });
 });

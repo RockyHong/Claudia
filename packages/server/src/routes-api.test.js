@@ -93,18 +93,13 @@ const mockTracker = {
   getLinkedHandles: vi.fn(),
 };
 
-const mockSfx = {
-  playSound: vi.fn(),
-  previewSound: vi.fn(),
-};
-
 let server;
 
 beforeAll(() => {
   return new Promise((resolve) => {
     const app = express();
     app.use(express.json());
-    registerApiRoutes(app, mockTracker, null, mockSfx);
+    registerApiRoutes(app, mockTracker, null);
     server = http.createServer(app);
     server.listen(0, "127.0.0.1", resolve);
   });
@@ -522,17 +517,3 @@ describe("POST /api/link/:sessionId", () => {
   });
 });
 
-describe("POST /api/sfx/preview/:name", () => {
-  it("plays valid sound", async () => {
-    mockSfx.previewSound.mockResolvedValue(undefined);
-    const res = await request(server, "POST", "/api/sfx/preview/pending");
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ ok: true });
-    expect(mockSfx.previewSound).toHaveBeenCalledWith("pending");
-  });
-
-  it("rejects unknown sound name", async () => {
-    const res = await request(server, "POST", "/api/sfx/preview/unknown");
-    expect(res.status).toBe(400);
-  });
-});

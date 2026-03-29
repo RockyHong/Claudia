@@ -1,5 +1,6 @@
 <script>
   import { createSSEClient } from "./lib/sse.js";
+  import { createSFXController } from "./lib/sfx.js";
   import SessionList from "./lib/SessionList.svelte";
   import StatusBar from "./lib/StatusBar.svelte";
   import AvatarPanel from "./lib/AvatarPanel.svelte";
@@ -20,12 +21,16 @@
   let hooksPassed = $state(false);
   let nightMode = $state(true);
 
+  const sfx = createSFXController();
+
   async function loadPreferences() {
     try {
       const res = await fetch("/api/preferences");
       const prefs = await res.json();
       nightMode = prefs.theme !== "light";
       bgMode = prefs.immersive;
+      sfx.muted = prefs.sfx.muted;
+      sfx.volume = prefs.sfx.volume;
       applyTheme(nightMode, false);
     } catch {
       // Fallback defaults already set
@@ -51,6 +56,13 @@
     statusMessage = update.statusMessage || "";
     usage = update.usage || null;
     updateDocumentTitle(update.aggregateState, update.sessions);
+
+    // Play sounds pushed from server
+    if (update.sfx) {
+      for (const sound of update.sfx) {
+        sfx.play(sound);
+      }
+    }
   }, (connected) => {
     sseConnected = connected;
   });
@@ -137,6 +149,7 @@
   {#if showSettings}
     <SettingsModal
       onclose={() => showSettings = false}
+      {sfx}
       {nightMode}
       onnightmodechange={(v) => { nightMode = v; applyTheme(v); }}
     />
