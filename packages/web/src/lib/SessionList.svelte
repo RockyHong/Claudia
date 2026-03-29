@@ -20,6 +20,7 @@
   );
 </script>
 
+<div class="sessions-panel" class:immersive>
 <div class="section-header">
   <span class="section-label">Active Sessions</span>
   {#if usageMonitoring}
@@ -44,6 +45,8 @@
   {/if}
 </div>
 
+</div>
+
 {#if showConsent}
   <ConsentModal onchoice={(v) => {
     showConsent = false;
@@ -52,6 +55,15 @@
 {/if}
 
 <style>
+  .sessions-panel.immersive {
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: var(--radius-xl);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: var(--space-4);
+  }
+
   .section-header {
     display: flex;
     align-items: center;
@@ -95,6 +107,29 @@
 
   .immersive .add-card {
     order: -1;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .immersive .add-card:hover {
+    border-color: var(--brand);
+    color: var(--brand);
+    background: rgba(193, 95, 60, 0.1);
+  }
+
+  .sessions-panel.immersive .section-label {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .sessions-panel.immersive .track-usage-btn {
+    color: rgba(255, 255, 255, 0.5);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .sessions-panel.immersive .track-usage-btn:hover {
+    color: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
   }
 
   .add-card:hover {

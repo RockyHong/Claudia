@@ -128,33 +128,36 @@
     <h1><span>Claudia*</span></h1>
     <div class="header-actions">
       {#if bgMode}
-        <button class="header-btn" onclick={() => showAvatarModal = true} aria-label="Change avatar">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 8h.01M3 16l5-5a2.5 2.5 0 0 1 3.5 0l5 5"/><path d="M14 14l1-1a2.5 2.5 0 0 1 3.5 0L21 16"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+        <button class="header-btn" aria-label="Exit immersive" onclick={() => {
+          bgMode = false;
+          fetch("/api/preferences", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ immersive: false }),
+          }).catch(() => {});
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 4l6 6"/><path d="M10 14l-6 6"/></svg>
         </button>
       {/if}
+      <button class="header-btn" onclick={() => showAvatarModal = true}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 8h.01M3 16l5-5a2.5 2.5 0 0 1 3.5 0l5 5"/><path d="M14 14l1-1a2.5 2.5 0 0 1 3.5 0L21 16"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+        {#if !bgMode}Avatar{/if}
+      </button>
       <button class="header-btn" onclick={() => showSettings = true}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         {#if !bgMode}Settings{/if}
       </button>
-      <button class="header-btn" class:active={bgMode} onclick={() => {
-        bgMode = !bgMode;
-        fetch("/api/preferences", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ immersive: bgMode }),
-        }).catch(() => {});
-      }}>
-        {#if bgMode}
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 4l6 6"/><path d="M10 14l-6 6"/></svg>
-        {:else}
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-          Immersive
-        {/if}
-      </button>
     </div>
   </header>
 
-  <AvatarPanel {aggregateState} background={bgMode} version={avatarVersion} onavatarclick={() => showAvatarModal = true} />
+  <AvatarPanel {aggregateState} background={bgMode} version={avatarVersion} onavatarclick={() => showAvatarModal = true} onimmersive={() => {
+    bgMode = true;
+    fetch("/api/preferences", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ immersive: true }),
+    }).catch(() => {});
+  }} />
 
   <main>
     <SessionList {sessions} {showSpawn} {usage} {usageMonitoring} immersive={bgMode} onusagemonitoringchange={setUsageMonitoring} ontogglespawn={() => showSpawn = !showSpawn} onclosespawn={() => showSpawn = false} />
@@ -354,35 +357,30 @@
     border-color: var(--border-active);
   }
 
-  .header-btn.active {
-    background: var(--brand);
-    color: #fff;
-    border-color: var(--brand);
-  }
 
-  .header-btn.active:hover {
-    background: var(--brand-hover);
-    border-color: var(--brand-hover);
+  .app.bg-mode .header-actions {
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: var(--space-1);
   }
 
   .app.bg-mode .header-btn {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-color: rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.85);
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-color: transparent;
+    color: rgba(255, 255, 255, 0.7);
   }
 
   .app.bg-mode .header-btn:hover {
-    background: rgba(255, 255, 255, 0.18);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: transparent;
+    color: rgba(255, 255, 255, 0.9);
   }
 
-  .app.bg-mode .header-btn.active {
-    background: rgba(193, 95, 60, 0.3);
-    border-color: rgba(193, 95, 60, 0.4);
-    color: #fff;
-  }
 
   /* Background / immersive mode */
   .app.bg-mode {
@@ -419,9 +417,9 @@
   }
 
   .app.bg-mode :global(.card) {
-    background: rgba(0, 0, 0, 0.45);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     border-color: rgba(255, 255, 255, 0.08);
   }
 
