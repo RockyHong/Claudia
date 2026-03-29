@@ -32,8 +32,13 @@ vi.mock("./routes-api.js", () => ({
   registerApiRoutes: vi.fn(),
 }));
 
-vi.mock("./sfx-preview.js", () => ({
-  registerSfxPreview: vi.fn(),
+vi.mock("./sfx.js", () => ({
+  createSFX: vi.fn(() => ({ playSound: vi.fn(), previewSound: vi.fn() })),
+}));
+
+vi.mock("./preferences.js", () => ({
+  getPreferences: vi.fn().mockResolvedValue({ sfx: { muted: false, volume: 0.5 } }),
+  setPreferences: vi.fn(),
 }));
 
 let app, tracker, server, baseUrl;
