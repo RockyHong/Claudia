@@ -14,6 +14,7 @@ import { ensureDefaults } from "./avatar-storage.js";
 import { registerApiRoutes } from "./routes-api.js";
 import { createUsageClient } from "./usage.js";
 import { createSFX } from "./sfx.js";
+import { getPreferences } from "./preferences.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIST = process.env.CLAUDIA_WEB_DIST || path.resolve(__dirname, "../../web/dist");
@@ -23,17 +24,17 @@ const SHUTDOWN_TOKEN_PATH = path.join(os.homedir(), ".claudia", "shutdown-token"
 
 const sseClients = new Set();
 
-let usageClient;
+let usageClient = null;
 
 const tracker = createSessionTracker({
   getGitStatus,
   onStateChange: (update) => {
-    usageClient.refreshUsage().catch(() => {});
+    if (usageClient) usageClient.refreshUsage().catch(() => {});
     const sounds = sfx.getSoundsForUpdate(update.sessions);
     broadcast({
       ...update,
       statusMessage: getStatusMessage(update.sessions),
-      usage: usageClient.getUsage(),
+      usage: usageClient ? usageClient.getUsage() : null,
       sfx: sounds.length > 0 ? sounds : undefined,
     });
   },
@@ -44,8 +45,6 @@ const tracker = createSessionTracker({
     focusTerminal(session.displayName, "navigate", session.windowHandle);
   },
 });
-
-usageClient = createUsageClient();
 
 const sfx = createSFX();
 
@@ -184,7 +183,7 @@ app.get("/events", (req, res) => {
     sessions,
     aggregateState: tracker.getAggregateState(),
     statusMessage: getStatusMessage(sessions),
-    usage: usageClient.getUsage(),
+    usage: usageClient ? usageClient.getUsage() : null,
   });
   res.write(`data: ${initial}\n\n`);
 
@@ -201,7 +200,17 @@ app.get("/api/sessions", (req, res) => {
 });
 
 // Register API routes (projects, avatars, focus, launch)
-registerApiRoutes(app, tracker, usageClient);
+registerApiRoutes(app, tracker, {
+  getUsageClient: () => usageClient,
+  onUsageMonitoringChange: (enabled) => {
+    if (enabled) {
+      usageClient = createUsageClient();
+      usageClient.refreshUsage().catch(() => {});
+    } else {
+      usageClient = null;
+    }
+  },
+});
 
 // Serve built web UI
 app.use(express.static(WEB_DIST));
@@ -248,7 +257,11 @@ export async function startServer(port = PORT, options = {}) {
 
   await ensureDefaults();
   tracker.start();
-  usageClient.refreshUsage().catch(() => {});
+  const prefs = await getPreferences();
+  if (prefs.usageMonitoring === true) {
+    usageClient = createUsageClient();
+    usageClient.refreshUsage().catch(() => {});
+  }
   const windowCheckInterval = setInterval(pruneDeadSpawnedSessions, WINDOW_CHECK_INTERVAL_MS);
 
   const shutdownToken = randomUUID();

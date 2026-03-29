@@ -27,7 +27,7 @@ import { getPreferences, setPreferences } from "./preferences.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export function registerApiRoutes(app, tracker, usageClient) {
+export function registerApiRoutes(app, tracker, services) {
   // --- Projects API ---
 
   app.get("/api/projects", async (req, res) => {
@@ -60,7 +60,8 @@ export function registerApiRoutes(app, tracker, usageClient) {
   });
 
   app.get("/api/usage", (req, res) => {
-    const usage = usageClient ? usageClient.getUsage() : null;
+    const client = services.getUsageClient();
+    const usage = client ? client.getUsage() : null;
     if (!usage) return res.status(204).end();
     res.json(usage);
   });
@@ -111,6 +112,9 @@ export function registerApiRoutes(app, tracker, usageClient) {
       return res.status(400).json({ error: "Invalid body" });
     }
     const prefs = await setPreferences(req.body);
+    if ("usageMonitoring" in req.body && services.onUsageMonitoringChange) {
+      services.onUsageMonitoringChange(prefs.usageMonitoring);
+    }
     res.json(prefs);
   });
 

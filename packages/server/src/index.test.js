@@ -36,6 +36,10 @@ vi.mock("./sfx.js", () => ({
   createSFX: vi.fn(() => ({ getSoundsForUpdate: vi.fn(() => []) })),
 }));
 
+vi.mock("./preferences.js", () => ({
+  getPreferences: vi.fn().mockResolvedValue({}),
+}));
+
 let app, tracker, server, baseUrl;
 
 beforeAll(async () => {

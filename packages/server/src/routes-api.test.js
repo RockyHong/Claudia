@@ -99,7 +99,7 @@ beforeAll(() => {
   return new Promise((resolve) => {
     const app = express();
     app.use(express.json());
-    registerApiRoutes(app, mockTracker, null);
+    registerApiRoutes(app, mockTracker, { getUsageClient: () => null });
     server = http.createServer(app);
     server.listen(0, "127.0.0.1", resolve);
   });
