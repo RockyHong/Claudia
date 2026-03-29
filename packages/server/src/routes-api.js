@@ -23,6 +23,7 @@ import {
   VALID_FILENAMES,
 } from "./avatar-storage.js";
 import { readSettings, hasClaudiaHooks, mergeHooks, removeHooks, writeSettings } from "./hooks.js";
+import { getPreferences, setPreferences } from "./preferences.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -96,6 +97,21 @@ export function registerApiRoutes(app, tracker, usageClient) {
     } catch (err) {
       res.json({ success: false, error: err.message });
     }
+  });
+
+  // --- Preferences API ---
+
+  app.get("/api/preferences", async (req, res) => {
+    const prefs = await getPreferences();
+    res.json(prefs);
+  });
+
+  app.patch("/api/preferences", async (req, res) => {
+    if (!req.body || typeof req.body !== "object") {
+      return res.status(400).json({ error: "Invalid body" });
+    }
+    const prefs = await setPreferences(req.body);
+    res.json(prefs);
   });
 
   app.post("/api/open-folder", (req, res) => {

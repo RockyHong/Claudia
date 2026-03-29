@@ -39,6 +39,10 @@ vi.mock("./hooks.js", () => ({
   mergeHooks: vi.fn(),
   writeSettings: vi.fn(),
 }));
+vi.mock("./preferences.js", () => ({
+  getPreferences: vi.fn(),
+  setPreferences: vi.fn(),
+}));
 
 import { registerApiRoutes } from "./routes-api.js";
 import fs from "node:fs/promises";
@@ -47,6 +51,7 @@ import { listProjects, removeProject, trackProject } from "./project-storage.js"
 import { spawnSession, cancelBrowse, openFolder } from "./spawner.js";
 import { listSets, getActiveSet, setActiveSet, deleteSet, updateSet } from "./avatar-storage.js";
 import { readSettings, hasClaudiaHooks, mergeHooks, writeSettings } from "./hooks.js";
+import { getPreferences, setPreferences } from "./preferences.js";
 
 function request(server, method, urlPath, body) {
   return new Promise((resolve, reject) => {
@@ -426,6 +431,32 @@ describe("POST /api/hooks/install", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: false, error: "Malformed JSON" });
+  });
+});
+
+describe("GET /api/preferences", () => {
+  it("returns preferences", async () => {
+    getPreferences.mockResolvedValue({ theme: "dark", sfx: { muted: false, volume: 0.5 } });
+    const res = await request(server, "GET", "/api/preferences");
+    expect(res.status).toBe(200);
+    expect(res.body.theme).toBe("dark");
+  });
+});
+
+describe("PATCH /api/preferences", () => {
+  it("merges partial update", async () => {
+    setPreferences.mockResolvedValue({ theme: "light", sfx: { muted: false, volume: 0.5 } });
+    const res = await request(server, "PATCH", "/api/preferences", { theme: "light" });
+    expect(res.status).toBe(200);
+    expect(res.body.theme).toBe("light");
+    expect(setPreferences).toHaveBeenCalledWith({ theme: "light" });
+  });
+
+  it("deep-merges sfx", async () => {
+    setPreferences.mockResolvedValue({ theme: "dark", sfx: { muted: false, volume: 0.8 } });
+    const res = await request(server, "PATCH", "/api/preferences", { sfx: { volume: 0.8 } });
+    expect(res.status).toBe(200);
+    expect(res.body.sfx.volume).toBe(0.8);
   });
 });
 
