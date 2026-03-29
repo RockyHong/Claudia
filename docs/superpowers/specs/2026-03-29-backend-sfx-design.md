@@ -7,9 +7,11 @@
 
 Sound effects are played in the browser via Web Audio API. Browser autoplay policy blocks AudioContext until a user gesture occurs, causing sounds to silently fail unless the user interacts with the settings slider first. Since Claudia runs on localhost (or as a Tauri wrapper), browser restrictions are unnecessary overhead.
 
+Additionally, the session state machine incorrectly shows "idle" when a parent session has dispatched a subagent and is waiting for it to return. This affects both UI state and sound triggers.
+
 ## Solution
 
-Move sound playback to the backend using OS-native audio commands. Consolidate all user preferences (theme, immersive mode, SFX, active avatar set) into a single server-side `~/.claudia/config.json` file, replacing scattered localStorage usage.
+Move sound playback to the backend using OS-native audio commands. Consolidate all user preferences (theme, immersive mode, SFX, active avatar set) into a single server-side `~/.claudia/config.json` file, replacing scattered localStorage usage. Fix the state machine to track active subagents so "idle" is accurate.
 
 ## 1. Unified Preferences
 
@@ -49,16 +51,28 @@ Move sound playback to the backend using OS-native audio commands. Consolidate a
 
 ## 2. Server-Side Sound Engine
 
+### Three Sounds
+
+| Sound | Meaning | Trigger |
+|-------|---------|---------|
+| **send** | User sent a message | `UserPromptSubmit` hook event (hook-event-based) |
+| **pending** | Claude needs attention | State becomes `pending` (state-based) |
+| **idle** | Claude finished its turn | State becomes `idle` (state-based) |
+
+Hybrid trigger model: pending and idle are state-based (accurate thanks to subagent tracking in section 4), send is hook-event-based (`UserPromptSubmit` only, to avoid firing on every PreToolUse/PostToolUse).
+
+Each sound fires per-session independently. If session A goes pending while session B is busy, the pending sound fires. If two sessions transition simultaneously, both sounds play.
+
 ### New Module: `packages/server/src/sfx.js`
 
-Generates synth audio as PCM samples in Node.js and plays via OS commands. Same three sounds as the current frontend implementation, same frequencies and envelopes.
+Generates synth audio as PCM samples in Node.js and plays via OS commands.
 
 #### Synth Generation
 
 Port the Web Audio oscillator math to pure sample computation:
 
+- **Send whoosh:** White noise through lowpass filter sweep (4000 Hz -> 500 Hz), quick fade-in, long fade-out (formerly "busy")
 - **Pending chime:** Two sine oscillators (659.25 Hz + 880 Hz), staggered 150ms, with exponential decay
-- **Busy whoosh:** White noise through lowpass filter sweep (4000 Hz -> 500 Hz), quick fade-in, long fade-out
 - **Idle tone:** Two sine oscillators (880 Hz + 659.25 Hz), reversed from pending, same envelope
 
 Output: 44.1 kHz, 16-bit mono WAV buffer.
@@ -84,27 +98,35 @@ WAV is written to a temp file per play (OS temp dir). Files are cleaned up after
 ### Preview Endpoint
 
 - `POST /api/sfx/preview/:name` — calls `previewSound(name)`, returns `{ok: true}`
-- `name` must be one of: `pending`, `busy`, `idle`
+- `name` must be one of: `send`, `pending`, `idle`
 
 ### Integration in `index.js`
 
-The `onStateChange` callback already fires on every state transition. Add sound triggers there:
+Sound triggers are wired in `index.js` using a hybrid approach:
 
-```
-onStateChange: (update) => {
-  // existing: broadcast SSE, refresh usage
-  // new: play sound for state transitions
-  for each session in update.sessions:
-    if session.state changed from previous:
-      sfx.playSound(session.state)
-}
-```
+**State-based (pending, idle):** A `previousStates` Map tracks the last-known state per session ID. On each `onStateChange`, compare current vs previous and play sound only on actual transitions per session.
 
-A `previousStates` Map in `index.js` tracks the last-known state per session ID (same pattern as frontend's `handleSessionTransitions`). On each `onStateChange`, compare current vs previous and play sound only on actual transitions.
+**Hook-event-based (send):** The `UserPromptSubmit` hook handler in the `/hook/:type` route (or via a new callback) triggers `sfx.playSound("send")` directly.
 
-Skip playing on first SSE broadcast after server start (avoid sounds for initial state hydration).
+Skip playing on first broadcast after server start (avoid sounds for initial state hydration).
 
-## 3. Cleanup
+## 3. Subagent-Aware State Machine
+
+### Problem
+
+When a parent session dispatches a subagent, a `Stop` hook fires for the parent. The state machine transitions to idle, but the user is still waiting for the subagent to finish. This produces a false idle state (wrong UI display) and would trigger a false idle sound.
+
+### Fix
+
+Track active subagent count per session in `session-tracker.js`:
+
+- `PreToolUse` with tool name `Agent` → increment `activeSubagents` on that session
+- `SubagentStop` hook → decrement `activeSubagents` on that session
+- On `Stop` hook: only transition to `idle` if `activeSubagents === 0`. If `activeSubagents > 0`, stay `busy`.
+
+This fixes both the visual state in the UI and the SFX trigger. The idle sound only plays when the session is genuinely idle — all subagents done, turn complete.
+
+## 4. Cleanup
 
 ### Remove Entirely
 
@@ -121,14 +143,16 @@ Skip playing on first SSE broadcast after server start (avoid sounds for initial
 | File | Changes |
 |------|---------|
 | `App.svelte` | Remove `createSFXController()`, `handleSessionTransitions()`, localStorage reads. Fetch prefs from API on mount. |
-| `ConfigTab.svelte` | Volume slider calls `PATCH /api/preferences` + `POST /api/sfx/preview/pending`. Remove `sfx` prop. |
+| `ConfigTab.svelte` | Volume slider calls `PATCH /api/preferences` + `POST /api/sfx/preview/send`. Remove `sfx` prop. |
 | `SettingsModal.svelte` | Remove `sfx` prop passthrough. |
 | `avatar-storage.js` | Use `preferences.js` for `activeSet` instead of direct config.json access. |
 | `routes-api.js` | Remove `/sfx` static route, add preferences + preview endpoints. |
-| `index.js` | Remove `registerSfxPreview` import/call, add SFX integration to onStateChange. |
+| `index.js` | Remove `registerSfxPreview` import/call, add SFX integration with hybrid trigger model. |
+| `session-tracker.js` | Add `activeSubagents` counter, gate idle transition on it. |
 
 ## Non-Goals
 
 - Custom sound files (MP3 upload) — removed, synth-only
 - System-wide volume control — volume is baked into PCM samples
 - Per-session sound preferences — one global volume for all sessions
+- Debouncing simultaneous sounds — edge case, not worth the complexity
