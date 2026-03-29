@@ -107,7 +107,6 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sfx: { muted, volume } }),
         }).catch(() => {});
-        if (!muted) sfx.preview("pending");
       }}
       onclick={() => {
         if (!sfx.muted) sfx.preview("pending");
