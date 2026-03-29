@@ -57,6 +57,29 @@ Claude Code [hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) fire o
 
 All localhost. Nothing leaves your machine.
 
+## What Claudia Accesses
+
+**Files:**
+
+| What | Path | Purpose |
+|------|------|---------|
+| Hook settings | `~/.claude/settings.json` | Register/remove hooks in Claude Code |
+| OAuth token | `~/.claude/.credentials.json` | Fetch usage limits (opt-in) |
+| Avatars | `~/.claudia/avatars/` | Custom avatar video sets |
+| Projects | `~/.claudia/projects.json` | Session display names |
+| Preferences | `~/.claudia/config.json` | Theme, sound, usage monitoring |
+| Shutdown token | `~/.claudia/shutdown-token` | Graceful instance replacement |
+
+**System:**
+
+| What | Purpose |
+|------|---------|
+| Terminal windows | Enumerate, read titles, focus/flash for navigation |
+| Git | Read branch and working tree state per session |
+| Process spawning | Launch new Claude Code sessions from dashboard |
+
+All access is local. The only network call is the opt-in Anthropic usage API. See [docs/privacy.md](docs/privacy.md) for full details.
+
 ## States
 
 | State | Meaning | Visual |
@@ -69,7 +92,7 @@ All localhost. Nothing leaves your machine.
 
 ```bash
 npx claudia            # Start the server + open dashboard (installs hooks on first run)
-npx claudia teardown   # Remove Claudia hooks (keeps your other hooks)
+npx claudia uninstall  # Remove hooks + delete ~/.claudia/ data
 ```
 
 ## Requirements
@@ -119,10 +142,14 @@ If the files exist, Claudia plays them. If not, she falls back to the built-in t
 ## Uninstall
 
 ```bash
-npx claudia teardown
+npx claudia uninstall
 ```
 
-This removes only the hooks Claudia added. Your other hooks are untouched. Claude Code is completely unaffected.
+This removes all hooks Claudia added and deletes `~/.claudia/` (avatars, projects, preferences). Your other hooks and Claude Code settings are untouched.
+
+To remove hooks only without deleting data, use **Settings > Remove Hooks** in the dashboard.
+
+For manual removal steps, see [docs/privacy.md](docs/privacy.md).
 
 ## Contributing
 
