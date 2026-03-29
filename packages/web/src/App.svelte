@@ -257,6 +257,7 @@
   }
 
   h1 span {
+    font-family: 'Roboto Slab', serif;
     color: var(--brand);
   }
 
