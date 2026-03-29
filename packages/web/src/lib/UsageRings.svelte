@@ -85,7 +85,7 @@
   .usage-rings {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: var(--space-3);
     transition: opacity 0.3s ease;
   }
 
@@ -103,7 +103,7 @@
   .ring-item {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: var(--space-1);
     font-family: var(--font-mono);
     font-size: 0.625rem;
     color: var(--text-faint);
