@@ -359,12 +359,8 @@
 
 
   .app.bg-mode .header-actions {
-    background: rgba(0, 0, 0, 0.35);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-radius: var(--radius-lg);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    padding: var(--space-1);
+    padding: 0;
+    gap: 4px;
   }
 
   .app.bg-mode .header-btn {
@@ -389,6 +385,18 @@
     background: transparent;
   }
 
+  .app.bg-mode::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 160px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.55) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
   .app.bg-mode header {
     position: relative;
     z-index: 2;
@@ -399,7 +407,6 @@
 
   .app.bg-mode h1 {
     color: #fff;
-    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
   }
 
   .app.bg-mode h1 span {
