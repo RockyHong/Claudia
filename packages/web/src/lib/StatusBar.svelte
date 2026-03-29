@@ -19,7 +19,7 @@
     left: 0;
     right: 0;
     z-index: 50;
-    font-size: 0.8125rem;
+    font-size: var(--text-sm);
     color: var(--text-muted);
     background: var(--bg-card);
     border-top: 1px solid var(--border);
@@ -45,7 +45,7 @@
     gap: 8px;
     max-width: 640px;
     margin: 0 auto;
-    padding: 10px 16px;
+    padding: var(--space-3) var(--space-4);
   }
 
   .dot {
@@ -75,7 +75,7 @@
   .message { flex: 1; }
 
   .count {
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
     opacity: 0.7;
   }
 </style>
