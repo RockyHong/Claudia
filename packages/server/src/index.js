@@ -205,9 +205,12 @@ registerApiRoutes(app, tracker, {
   onUsageMonitoringChange: (enabled) => {
     if (enabled) {
       usageClient = createUsageClient();
-      usageClient.refreshUsage().catch(() => {});
+      usageClient.refreshUsage().then((usage) => {
+        if (usage) broadcast({ usage });
+      }).catch(() => {});
     } else {
       usageClient = null;
+      broadcast({ usage: null });
     }
   },
 });

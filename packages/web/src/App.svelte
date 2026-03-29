@@ -168,6 +168,13 @@
       onnightmodechange={(v) => { nightMode = v; applyTheme(v); }}
       {usageMonitoring}
       onusagemonitoringchange={setUsageMonitoring}
+      onhooksremoved={() => {
+        sessions = [];
+        aggregateState = "idle";
+        statusMessage = "";
+        hooksPassed = false;
+        showSettings = false;
+      }}
     />
   {/if}
 

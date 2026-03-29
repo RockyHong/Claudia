@@ -20,16 +20,14 @@
   );
 </script>
 
-{#if sessions.length > 0}
-  <div class="section-header">
-    <span class="section-label">Active Sessions</span>
-    {#if usageMonitoring}
-      <UsageRings {usage} />
-    {:else}
-      <button class="track-usage-btn" onclick={() => showConsent = true}>Track usage</button>
-    {/if}
-  </div>
-{/if}
+<div class="section-header">
+  <span class="section-label">Active Sessions</span>
+  {#if usageMonitoring}
+    <UsageRings {usage} />
+  {:else}
+    <button class="track-usage-btn" onclick={() => showConsent = true}>Track usage</button>
+  {/if}
+</div>
 
 <div class="list" class:immersive>
   <button class="add-card" onclick={ontogglespawn}>

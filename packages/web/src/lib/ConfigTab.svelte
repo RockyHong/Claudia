@@ -3,7 +3,7 @@
   import ConfirmDialog from "./ConfirmDialog.svelte";
   import ConsentModal from "./ConsentModal.svelte";
 
-  let { nightMode = true, onnightmodechange, sfx, usageMonitoring = false, onusagemonitoringchange } = $props();
+  let { nightMode = true, onnightmodechange, sfx, usageMonitoring = false, onusagemonitoringchange, onhooksremoved } = $props();
 
   let showConsent = $state(false);
 
@@ -68,6 +68,7 @@
       if (data.success) {
         hooksInstalled = false;
         hookResult = "removed";
+        onhooksremoved?.();
       } else {
         hookResult = data.error || "Failed";
       }
