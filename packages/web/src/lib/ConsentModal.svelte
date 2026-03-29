@@ -43,7 +43,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    animation: fadeIn 0.15s ease;
+    animation: fadeIn var(--duration-normal) ease;
   }
 
   @keyframes fadeIn {
@@ -53,11 +53,12 @@
 
   .consent-card {
     text-align: center;
-    max-width: 400px;
-    padding: 48px 32px;
+    max-width: 480px;
+    width: 90%;
+    padding: var(--space-10) var(--space-8);
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: var(--radius-xl);
     box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
     animation: slideUp 0.2s ease;
   }
@@ -69,47 +70,50 @@
 
   .icon {
     color: var(--brand);
-    margin-bottom: 24px;
+    margin-bottom: var(--space-6);
   }
 
   h2 {
     font-family: var(--font-heading);
-    font-size: 1.5rem;
+    font-size: var(--text-xl);
     font-weight: 700;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-3);
   }
 
   p {
     color: var(--text-muted);
-    font-size: 0.875rem;
+    font-size: var(--text-sm);
     line-height: 1.6;
-    margin-bottom: 16px;
+    margin-bottom: var(--space-4);
   }
 
   code {
     font-family: var(--font-mono);
-    font-size: 0.8125rem;
+    font-size: var(--text-xs);
     background: var(--bg-raised);
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
   }
 
   .actions {
     display: flex;
-    gap: 12px;
+    gap: var(--space-3);
     justify-content: center;
-    margin: 24px 0 16px;
+    margin: var(--space-6) 0 var(--space-4);
   }
 
   .btn {
     font-family: var(--font-body);
-    font-size: 0.9375rem;
-    font-weight: 600;
+    font-size: var(--text-base);
+    font-weight: 500;
     border: none;
     border-radius: 10px;
-    padding: 12px 32px;
+    padding: var(--space-3) var(--space-6);
+    min-height: 44px;
     cursor: pointer;
-    transition: background var(--duration-normal) var(--ease-in-out);
+    display: inline-flex;
+    align-items: center;
+    transition: all var(--duration-normal) var(--ease-in-out);
   }
 
   .btn.primary {
@@ -135,7 +139,7 @@
 
   .hint {
     color: var(--text-faint);
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
     margin-bottom: 0;
   }
 </style>
