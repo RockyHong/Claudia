@@ -2,12 +2,15 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
+import AdmZip from "adm-zip";
 import { createPreferences } from "./preferences.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export const VALID_FILENAMES = new Set(["idle.webm", "idle.mp4", "busy.webm", "busy.mp4", "pending.webm", "pending.mp4"]);
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_ZIP_SIZE = 20 * 1024 * 1024;
+const REQUIRED_STATES = ["idle", "busy", "pending"];
 
 // Magic bytes for video format validation
 const MAGIC_BYTES = {
@@ -219,6 +222,93 @@ export function createAvatarStorage(baseDir) {
 		await prefs.set({ activeSet: "default" });
 	}
 
+	async function importSet(name, zipBuffer) {
+		if (!isValidSetName(name)) {
+			throw new Error("Filename isn't a valid avatar set name");
+		}
+		if (zipBuffer.length > MAX_ZIP_SIZE) {
+			throw new Error("File is too large");
+		}
+
+		let zip;
+		try {
+			zip = new AdmZip(zipBuffer);
+		} catch {
+			throw new Error("This file doesn't look like a valid .claudia avatar pack");
+		}
+
+		const entries = zip.getEntries();
+
+		// Filter to only valid filenames (no directories, no invalid names)
+		const validEntries = entries.filter(
+			(e) => !e.isDirectory && VALID_FILENAMES.has(e.entryName)
+		);
+
+		// Check exactly 3 valid files, one per state
+		const states = new Set(validEntries.map((e) => e.entryName.split(".")[0]));
+		if (validEntries.length !== 3 || states.size !== 3 ||
+				!REQUIRED_STATES.every((s) => states.has(s))) {
+			throw new Error(
+				"Avatar pack must contain exactly 3 files: idle, busy, and pending"
+			);
+		}
+
+		// Validate each file
+		const files = [];
+		for (const entry of validEntries) {
+			const data = entry.getData();
+			if (data.length > MAX_FILE_SIZE) {
+				throw new Error("One or more files exceed the 5MB limit");
+			}
+			if (!hasValidMagicBytes(data, entry.entryName)) {
+				throw new Error("One or more files aren't valid video files");
+			}
+			files.push({ name: entry.entryName, data });
+		}
+
+		// Resolve name conflicts
+		let finalName = name;
+		let suffix = 1;
+		while (true) {
+			try {
+				await fs.access(getSetPath(finalName));
+				suffix++;
+				finalName = `${name} ${suffix}`;
+			} catch {
+				break;
+			}
+		}
+
+		// Create the set directory and write files
+		const setPath = getSetPath(finalName);
+		await fs.mkdir(setPath, { recursive: true });
+		for (const file of files) {
+			await fs.writeFile(path.join(setPath, file.name), file.data);
+		}
+
+		return { name: finalName };
+	}
+
+	async function exportSet(name) {
+		const setPath = getSetPath(name);
+		try {
+			await fs.access(setPath);
+		} catch {
+			throw new Error("Set not found");
+		}
+
+		const files = await fs.readdir(setPath);
+		const validFiles = files.filter((f) => VALID_FILENAMES.has(f));
+
+		const zip = new AdmZip();
+		for (const file of validFiles) {
+			const data = await fs.readFile(path.join(setPath, file));
+			zip.addFile(file, data);
+		}
+
+		return zip.toBuffer();
+	}
+
 	return {
 		getActiveSet,
 		getActiveSetPath,
@@ -230,6 +320,9 @@ export function createAvatarStorage(baseDir) {
 		setActiveSet,
 		ensureDefaults,
 		ensureDirs,
+		exportSet,
+		importSet,
+		getAvatarsDir: () => avatarsDir,
 	};
 }
 
@@ -248,4 +341,7 @@ export const {
 	setActiveSet,
 	ensureDefaults,
 	ensureDirs,
+	exportSet,
+	importSet,
+	getAvatarsDir,
 } = defaultStorage;

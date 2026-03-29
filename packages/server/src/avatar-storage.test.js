@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
+import AdmZip from "adm-zip";
 import { createAvatarStorage, isValidSetName } from "./avatar-storage.js";
 
 let tmpDir;
@@ -28,6 +29,14 @@ function fakeFile(name, size = 100) {
 	const magic = name.endsWith(".webm") ? WEBM_MAGIC : MP4_MAGIC;
 	magic.copy(data);
 	return { name, data };
+}
+
+function makeZipBuffer(files) {
+	const zip = new AdmZip();
+	for (const { name, data } of files) {
+		zip.addFile(name, data);
+	}
+	return zip.toBuffer();
 }
 
 describe("isValidSetName", () => {
@@ -358,5 +367,201 @@ describe("ensureDefaults", () => {
 		await storage.setActiveSet("existing");
 		await storage.ensureDefaults();
 		expect(await storage.getActiveSet()).toBe("existing");
+	});
+});
+
+describe("exportSet", () => {
+	it("returns a zip buffer containing the set's video files", async () => {
+		await storage.createSet("export-me", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
+
+		const zipBuffer = await storage.exportSet("export-me");
+		expect(zipBuffer).toBeInstanceOf(Buffer);
+
+		const zip = new AdmZip(zipBuffer);
+		const entries = zip.getEntries().map((e) => e.entryName);
+		expect(entries).toHaveLength(3);
+		expect(entries).toContain("idle.webm");
+		expect(entries).toContain("busy.webm");
+		expect(entries).toContain("pending.webm");
+	});
+
+	it("exports mixed format sets correctly", async () => {
+		await storage.createSet("mixed-export", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.mp4"),
+			fakeFile("pending.webm"),
+		]);
+
+		const zipBuffer = await storage.exportSet("mixed-export");
+		const zip = new AdmZip(zipBuffer);
+		const entries = zip.getEntries().map((e) => e.entryName);
+		expect(entries).toContain("idle.webm");
+		expect(entries).toContain("busy.mp4");
+		expect(entries).toContain("pending.webm");
+	});
+
+	it("throws for non-existent set", async () => {
+		await expect(storage.exportSet("ghost")).rejects.toThrow("Set not found");
+	});
+});
+
+describe("importSet", () => {
+	it("imports a valid .claudia zip and creates the set", async () => {
+		const zipBuf = makeZipBuffer([
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
+
+		const result = await storage.importSet("my-avatar", zipBuf);
+		expect(result.name).toBe("my-avatar");
+
+		const sets = await storage.listSets();
+		expect(sets.find((s) => s.name === "my-avatar")).toBeTruthy();
+	});
+
+	it("auto-suffixes on name conflict", async () => {
+		await storage.createSet("conflict", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
+
+		const zipBuf = makeZipBuffer([
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
+
+		const result = await storage.importSet("conflict", zipBuf);
+		expect(result.name).toBe("conflict 2");
+
+		const sets = await storage.listSets();
+		expect(sets.find((s) => s.name === "conflict 2")).toBeTruthy();
+	});
+
+	it("auto-suffixes incrementally", async () => {
+		await storage.createSet("dupe", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
+		await storage.createSet("dupe 2", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
+
+		const zipBuf = makeZipBuffer([
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
+
+		const result = await storage.importSet("dupe", zipBuf);
+		expect(result.name).toBe("dupe 3");
+	});
+
+	it("rejects zip with wrong file count", async () => {
+		const zipBuf = makeZipBuffer([
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+		]);
+
+		await expect(storage.importSet("bad", zipBuf)).rejects.toThrow(
+			"Avatar pack must contain exactly 3 files: idle, busy, and pending"
+		);
+	});
+
+	it("rejects zip with duplicate state", async () => {
+		const zipBuf = makeZipBuffer([
+			fakeFile("idle.webm"),
+			fakeFile("idle.mp4"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
+
+		await expect(storage.importSet("dup-state", zipBuf)).rejects.toThrow(
+			"Avatar pack must contain exactly 3 files: idle, busy, and pending"
+		);
+	});
+
+	it("rejects zip with invalid filenames", async () => {
+		const zip = new AdmZip();
+		zip.addFile("idle.webm", fakeFile("idle.webm").data);
+		zip.addFile("busy.webm", fakeFile("busy.webm").data);
+		zip.addFile("malware.exe", Buffer.alloc(100));
+
+		await expect(storage.importSet("bad-files", zip.toBuffer())).rejects.toThrow(
+			"Avatar pack must contain exactly 3 files: idle, busy, and pending"
+		);
+	});
+
+	it("rejects file exceeding 5MB", async () => {
+		const bigFile = fakeFile("pending.webm", 6 * 1024 * 1024);
+		const zipBuf = makeZipBuffer([
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			bigFile,
+		]);
+
+		await expect(storage.importSet("too-big", zipBuf)).rejects.toThrow(
+			"One or more files exceed the 5MB limit"
+		);
+	});
+
+	it("rejects file with bad magic bytes", async () => {
+		const zip = new AdmZip();
+		zip.addFile("idle.webm", fakeFile("idle.webm").data);
+		zip.addFile("busy.webm", fakeFile("busy.webm").data);
+		zip.addFile("pending.webm", Buffer.alloc(100, 0x00));
+
+		await expect(storage.importSet("bad-magic", zip.toBuffer())).rejects.toThrow(
+			"One or more files aren't valid video files"
+		);
+	});
+
+	it("imports mixed format sets", async () => {
+		const zipBuf = makeZipBuffer([
+			fakeFile("idle.webm"),
+			fakeFile("busy.mp4"),
+			fakeFile("pending.webm"),
+		]);
+
+		const result = await storage.importSet("mixed", zipBuf);
+		expect(result.name).toBe("mixed");
+
+		const sets = await storage.listSets();
+		const set = sets.find((s) => s.name === "mixed");
+		expect(set.files).toContain("idle.webm");
+		expect(set.files).toContain("busy.mp4");
+		expect(set.files).toContain("pending.webm");
+	});
+
+	it("strips directory paths from zip entries", async () => {
+		const zip = new AdmZip();
+		zip.addFile("subfolder/idle.webm", fakeFile("idle.webm").data);
+		zip.addFile("subfolder/busy.webm", fakeFile("busy.webm").data);
+		zip.addFile("subfolder/pending.webm", fakeFile("pending.webm").data);
+
+		await expect(storage.importSet("paths", zip.toBuffer())).rejects.toThrow(
+			"Avatar pack must contain exactly 3 files: idle, busy, and pending"
+		);
+	});
+
+	it("rejects invalid set name derived from filename", async () => {
+		const zipBuf = makeZipBuffer([
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
+
+		await expect(storage.importSet("../escape", zipBuf)).rejects.toThrow(
+			"Filename isn't a valid avatar set name"
+		);
 	});
 });

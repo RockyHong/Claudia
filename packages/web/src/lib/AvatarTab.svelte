@@ -67,6 +67,59 @@
     return `/api/avatars/sets/${encodeURIComponent(set.name)}/file/${idleFile}`;
   }
 
+  let importing = $state(false);
+
+  async function handleImport() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".claudia";
+
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+
+      importing = true;
+      error = "";
+
+      try {
+        const setName = file.name.replace(/\.claudia$/i, "");
+        const res = await fetch(`/api/avatars/import?name=${encodeURIComponent(setName)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/zip" },
+          body: file,
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Import failed");
+        await switchSet(data.name);
+        await fetchSets();
+        closeEditor();
+      } catch (err) {
+        error = err.message;
+      }
+      importing = false;
+    };
+
+    input.click();
+  }
+
+  async function openAvatarsFolder() {
+    try {
+      await fetch("/api/avatars/open-folder", { method: "POST" });
+    } catch {
+      error = "Failed to open folder";
+    }
+  }
+
+  function exportSet(name) {
+    const url = `/api/avatars/sets/${encodeURIComponent(name)}/export`;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${name}.claudia`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
   function openEditor(mode, set = null) {
     editorMode = mode;
     editorSet = set;
@@ -104,7 +157,10 @@
 {/if}
 
 <section>
-  <h3>All Sets</h3>
+  <div class="section-header">
+    <h3>All Sets</h3>
+    <button class="open-folder-link" onclick={openAvatarsFolder}>Open folder</button>
+  </div>
 
   {#if loading}
     <p class="muted">Loading...</p>
@@ -160,6 +216,11 @@
                 aria-label="Delete {set.name}"
               ><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M6 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1m2 0v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4h10Z"/></svg></button>
               <button
+                class="action-btn export-action"
+                onclick={(e) => { e.stopPropagation(); exportSet(set.name); }}
+                aria-label="Export {set.name}"
+              ><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8m0 0L5 7m3 3 3-3M3 12v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1"/></svg></button>
+              <button
                 class="action-btn edit-action"
                 onclick={(e) => { e.stopPropagation(); openEditor("edit", set); }}
                 aria-label="Edit {set.name}"
@@ -178,10 +239,23 @@
     set={editorSet}
     onclose={closeEditor}
     onsave={handleEditorSave}
+    onimport={handleImport}
+    {importing}
   />
 {/if}
 
 <style>
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: var(--space-3);
+  }
+
+  .section-header h3 {
+    margin-bottom: 0;
+  }
+
   section h3 {
     font-size: var(--text-xs);
     font-weight: 600;
@@ -190,6 +264,24 @@
     letter-spacing: 0.08em;
     color: var(--text-faint);
     margin-bottom: var(--space-3);
+  }
+
+  .open-folder-link {
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    font-size: var(--text-xs);
+    font-family: var(--font-body);
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    transition: color var(--duration-normal), text-decoration-color var(--duration-normal);
+  }
+
+  .open-folder-link:hover {
+    color: var(--text-muted);
+    text-decoration-color: var(--text-muted);
   }
 
   .muted {
@@ -336,6 +428,11 @@
   .delete-action:hover {
     color: var(--red);
     background: rgba(217, 85, 85, 0.25);
+  }
+
+  .export-action:hover {
+    color: var(--brand);
+    background: rgba(193, 95, 60, 0.2);
   }
 
   .edit-action:hover {

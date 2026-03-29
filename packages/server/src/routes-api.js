@@ -21,6 +21,9 @@ import {
   isValidSetName,
   getSetPath,
   VALID_FILENAMES,
+  exportSet,
+  importSet,
+  getAvatarsDir,
 } from "./avatar-storage.js";
 import { readSettings, hasClaudiaHooks, mergeHooks, removeHooks, writeSettings } from "./hooks.js";
 import { getPreferences, setPreferences } from "./preferences.js";
@@ -262,6 +265,73 @@ export function registerApiRoutes(app, tracker, services) {
     } catch (err) {
       const status = err.message.includes("default") ? 400 : 404;
       res.status(status).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/avatars/sets/:name/export", async (req, res) => {
+    const { name } = req.params;
+    if (!isValidSetName(name)) return res.status(400).json({ error: "Invalid set name" });
+
+    try {
+      const zipBuffer = await exportSet(name);
+      res.set({
+        "Content-Type": "application/zip",
+        "Content-Disposition": `attachment; filename="${name}.claudia"`,
+        "Content-Length": zipBuffer.length,
+      });
+      res.send(zipBuffer);
+    } catch (err) {
+      const status = err.message.includes("not found") ? 404 : 500;
+      res.status(status).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/avatars/import", async (req, res) => {
+    const chunks = [];
+    let totalSize = 0;
+    const MAX_IMPORT_SIZE = 20 * 1024 * 1024;
+
+    req.on("data", (chunk) => {
+      totalSize += chunk.length;
+      if (totalSize > MAX_IMPORT_SIZE) {
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+
+    req.on("end", async () => {
+      if (totalSize > MAX_IMPORT_SIZE) {
+        return res.status(400).json({ error: "File is too large" });
+      }
+
+      const zipBuffer = Buffer.concat(chunks);
+
+      // Derive set name from the filename query param
+      const filename = req.query.name || "imported";
+      const setName = filename.replace(/\.claudia$/i, "");
+
+      try {
+        const result = await importSet(setName, zipBuffer);
+        res.json({ ok: true, name: result.name });
+      } catch (err) {
+        res.status(400).json({ error: err.message });
+      }
+    });
+
+    req.on("error", () => {
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Upload failed" });
+      }
+    });
+  });
+
+  app.post("/api/avatars/open-folder", (req, res) => {
+    try {
+      openFolder(getAvatarsDir());
+      res.status(204).end();
+    } catch (err) {
+      res.status(500).json({ error: err.message });
     }
   });
 

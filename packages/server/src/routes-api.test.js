@@ -32,6 +32,9 @@ vi.mock("./avatar-storage.js", () => ({
   isValidSetName: vi.fn((n) => /^[a-z0-9-]+$/.test(n)),
   getSetPath: vi.fn((n) => `/tmp/avatars/${n}`),
   VALID_FILENAMES: new Set(["idle.webm", "idle.mp4", "busy.webm", "busy.mp4", "pending.webm", "pending.mp4"]),
+  exportSet: vi.fn(),
+  importSet: vi.fn(),
+  getAvatarsDir: vi.fn(() => "/tmp/avatars"),
 }));
 vi.mock("./hooks.js", () => ({
   readSettings: vi.fn(),
@@ -49,7 +52,7 @@ import fs from "node:fs/promises";
 import { focusTerminal, listTerminalWindows, renameTerminal } from "./focus.js";
 import { listProjects, removeProject, trackProject } from "./project-storage.js";
 import { spawnSession, cancelBrowse, openFolder } from "./spawner.js";
-import { listSets, getActiveSet, setActiveSet, deleteSet, updateSet } from "./avatar-storage.js";
+import { listSets, getActiveSet, setActiveSet, deleteSet, updateSet, exportSet, importSet } from "./avatar-storage.js";
 import { readSettings, hasClaudiaHooks, mergeHooks, writeSettings } from "./hooks.js";
 import { getPreferences, setPreferences } from "./preferences.js";
 
@@ -82,6 +85,37 @@ function request(server, method, urlPath, body) {
     });
     req.on("error", reject);
     if (body !== undefined) req.write(JSON.stringify(body));
+    req.end();
+  });
+}
+
+function requestRaw(server, method, urlPath, body, headers = {}) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(urlPath, `http://localhost:${server.address().port}`);
+    const opts = {
+      method,
+      hostname: url.hostname,
+      port: url.port,
+      path: url.pathname + url.search,
+      headers: {
+        ...headers,
+        "content-length": body ? body.length : 0,
+      },
+    };
+
+    const req = http.request(opts, (res) => {
+      const chunks = [];
+      res.on("data", (c) => chunks.push(c));
+      res.on("end", () => {
+        resolve({
+          status: res.statusCode,
+          headers: res.headers,
+          body: Buffer.concat(chunks).toString(),
+        });
+      });
+    });
+    req.on("error", reject);
+    if (body) req.write(body);
     req.end();
   });
 }
@@ -517,3 +551,57 @@ describe("POST /api/link/:sessionId", () => {
   });
 });
 
+describe("GET /api/avatars/sets/:name/export", () => {
+  it("returns a zip download with correct headers", async () => {
+    const fakeZip = Buffer.from("PK\x03\x04fake-zip-content");
+    exportSet.mockResolvedValue(fakeZip);
+
+    const res = await requestRaw(server, "GET", "/api/avatars/sets/my-set/export");
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toMatch(/application\/zip/);
+    expect(res.headers["content-disposition"]).toBe(
+      'attachment; filename="my-set.claudia"'
+    );
+  });
+
+  it("returns 404 for non-existent set", async () => {
+    exportSet.mockRejectedValue(new Error("Set not found"));
+
+    const res = await requestRaw(server, "GET", "/api/avatars/sets/ghost/export");
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 400 for invalid set name", async () => {
+    const res = await requestRaw(server, "GET", "/api/avatars/sets/INVALID_NAME!/export");
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("POST /api/avatars/import", () => {
+  it("imports a .claudia file and returns the set name", async () => {
+    importSet.mockResolvedValue({ name: "my-avatar" });
+
+    const res = await requestRaw(server, "POST", "/api/avatars/import?name=my-avatar.claudia",
+      Buffer.from("PK\x03\x04fake-zip"),
+      { "content-type": "application/zip" }
+    );
+    expect(res.status).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.ok).toBe(true);
+    expect(body.name).toBe("my-avatar");
+  });
+
+  it("returns 400 when import validation fails", async () => {
+    importSet.mockRejectedValue(
+      new Error("Avatar pack must contain exactly 3 files: idle, busy, and pending")
+    );
+
+    const res = await requestRaw(server, "POST", "/api/avatars/import?name=bad.claudia",
+      Buffer.from("PK\x03\x04bad-zip"),
+      { "content-type": "application/zip" }
+    );
+    expect(res.status).toBe(400);
+    const body = JSON.parse(res.body);
+    expect(body.error).toContain("exactly 3 files");
+  });
+});

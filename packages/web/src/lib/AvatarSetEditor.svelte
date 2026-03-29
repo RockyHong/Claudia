@@ -2,7 +2,7 @@
   import DropZone from "./DropZone.svelte";
   import Modal from "./Modal.svelte";
 
-  let { mode = "create", set = null, onclose, onsave } = $props();
+  let { mode = "create", set = null, onclose, onsave, onimport, importing = false } = $props();
 
   let name = $state(mode === "edit" ? set?.name ?? "" : "");
   let fileIdle = $state(null);
@@ -125,10 +125,18 @@
     </div>
 
     <div class="actions">
-      <button class="cancel-btn" onclick={onclose}>Cancel</button>
-      <button class="save-btn" onclick={handleSave} disabled={!canSave || saving}>
-        {saving ? "Saving..." : mode === "create" ? "Create" : "Save"}
-      </button>
+      {#if mode === "create" && onimport}
+        <button class="import-btn" onclick={onimport} disabled={importing}>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path d="M8 10V2m0 0L5 5m3-3 3 3M3 12v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1"/></svg>
+          {importing ? "Importing..." : "Import"}
+        </button>
+      {/if}
+      <div class="actions-right">
+        <button class="cancel-btn" onclick={onclose}>Cancel</button>
+        <button class="save-btn" onclick={handleSave} disabled={!canSave || saving}>
+          {saving ? "Saving..." : mode === "create" ? "Create" : "Save"}
+        </button>
+      </div>
     </div>
   {/snippet}
 </Modal>
@@ -168,8 +176,42 @@
 
   .actions {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
     gap: var(--space-2);
+  }
+
+  .actions-right {
+    display: flex;
+    gap: var(--space-2);
+  }
+
+  .import-btn {
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-1) var(--space-3);
+    min-height: 28px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    transition: all var(--duration-normal) var(--ease-in-out);
+  }
+
+  .import-btn:hover:not(:disabled) {
+    background: rgba(193, 95, 60, 0.06);
+    color: var(--brand);
+    border-color: var(--brand);
+  }
+
+  .import-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .cancel-btn {
