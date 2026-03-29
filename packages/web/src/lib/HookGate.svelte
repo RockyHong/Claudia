@@ -75,45 +75,49 @@
 
   .hook-gate-card {
     text-align: center;
-    max-width: 360px;
-    padding: 48px 32px;
+    max-width: 480px;
+    width: 90%;
+    padding: var(--space-10) var(--space-8);
   }
 
   .icon {
     color: var(--brand);
-    margin-bottom: 24px;
+    margin-bottom: var(--space-6);
   }
 
   h2 {
     font-family: var(--font-heading);
-    font-size: 1.5rem;
+    font-size: var(--text-xl);
     font-weight: 700;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-3);
   }
 
   p {
     color: var(--text-muted);
-    font-size: 0.875rem;
+    font-size: var(--text-sm);
     line-height: 1.6;
-    margin-bottom: 24px;
+    margin-bottom: var(--space-6);
   }
 
   .error {
     color: var(--red);
-    font-size: 0.8125rem;
-    margin-bottom: 16px;
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-4);
   }
 
   .install-btn {
     font-family: var(--font-body);
-    font-size: 0.9375rem;
-    font-weight: 600;
+    font-size: var(--text-base);
+    font-weight: 500;
     background: var(--brand);
     color: #fff;
     border: none;
     border-radius: 10px;
-    padding: 12px 32px;
+    padding: var(--space-3) var(--space-6);
+    min-height: 44px;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
     transition: background var(--duration-normal) var(--ease-in-out);
   }
 
@@ -122,7 +126,7 @@
   }
 
   .install-btn:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
   }
 </style>
