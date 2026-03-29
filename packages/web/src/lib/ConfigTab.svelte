@@ -107,7 +107,10 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sfx: { muted, volume } }),
         }).catch(() => {});
-        if (!muted) sfx.preview("send");
+        if (!muted) sfx.preview("pending");
+      }}
+      onclick={() => {
+        if (!sfx.muted) sfx.preview("pending");
       }}
     />
     <span class="sfx-value">{sfxVolume === 0 ? "Off" : `${Math.round(sfxVolume * 100)}%`}</span>
