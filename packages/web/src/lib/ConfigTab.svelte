@@ -2,15 +2,23 @@
   import ToggleSlider from "./ToggleSlider.svelte";
   import ConfirmDialog from "./ConfirmDialog.svelte";
 
-  let { nightMode = true, onnightmodechange, sfx } = $props();
+  let { nightMode = true, onnightmodechange } = $props();
 
   let sfxVolume = $state(0.5);
+  let sfxLoaded = $state(false);
 
-  $effect(() => {
-    if (sfx) {
-      sfxVolume = sfx.muted ? 0 : sfx.volume;
+  async function loadSfxPrefs() {
+    try {
+      const res = await fetch("/api/preferences");
+      const prefs = await res.json();
+      sfxVolume = prefs.sfx.muted ? 0 : prefs.sfx.volume;
+      sfxLoaded = true;
+    } catch {
+      sfxLoaded = true;
     }
-  });
+  }
+
+  loadSfxPrefs();
 
   let hooksInstalled = $state(null);
   let hooksBusy = $state(false);
@@ -99,9 +107,16 @@
         }}
         onchange={(e) => {
           sfxVolume = +e.target.value;
-          sfx.volume = sfxVolume || 0.01;
-          sfx.muted = sfxVolume === 0;
-          if (sfxVolume > 0) sfx.preview("pending");
+          const muted = sfxVolume === 0;
+          const volume = sfxVolume || 0.01;
+          fetch("/api/preferences", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sfx: { muted, volume } }),
+          }).catch(() => {});
+          if (!muted) {
+            fetch("/api/sfx/preview/send", { method: "POST" }).catch(() => {});
+          }
         }}
       />
     </label>

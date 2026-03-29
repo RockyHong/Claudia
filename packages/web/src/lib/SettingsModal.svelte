@@ -2,9 +2,9 @@
   import Modal from "./Modal.svelte";
   import ConfigTab from "./ConfigTab.svelte";
 
-  let { onclose, sfx, nightMode = true, onnightmodechange } = $props();
+  let { onclose, nightMode = true, onnightmodechange } = $props();
 </script>
 
 <Modal title="Settings" {onclose}>
-  <ConfigTab {nightMode} {onnightmodechange} {sfx} />
+  <ConfigTab {nightMode} {onnightmodechange} />
 </Modal>

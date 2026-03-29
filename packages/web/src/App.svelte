@@ -1,6 +1,5 @@
 <script>
   import { createSSEClient } from "./lib/sse.js";
-  import { createSFXController } from "./lib/sfx.js";
   import SessionList from "./lib/SessionList.svelte";
   import StatusBar from "./lib/StatusBar.svelte";
   import AvatarPanel from "./lib/AvatarPanel.svelte";
@@ -11,8 +10,7 @@
   let sessions = $state([]);
   let aggregateState = $state("idle");
   let statusMessage = $state("");
-  let previousStates = $state(new Map());
-  let bgMode = $state(localStorage.getItem("claudia-immersive") === "true");
+  let bgMode = $state(false);
   let showSettings = $state(false);
   let showAvatarModal = $state(false);
   let showSpawn = $state(false);
@@ -20,48 +18,42 @@
   let avatarVersion = $state(0);
   let sseConnected = $state(true);
   let hooksPassed = $state(false);
-  let nightMode = $state(localStorage.getItem("claudia-theme") !== "light");
+  let nightMode = $state(true);
 
-  function applyTheme(dark) {
-    document.documentElement.classList.toggle("light", !dark);
-    localStorage.setItem("claudia-theme", dark ? "dark" : "light");
+  async function loadPreferences() {
+    try {
+      const res = await fetch("/api/preferences");
+      const prefs = await res.json();
+      nightMode = prefs.theme !== "light";
+      bgMode = prefs.immersive;
+      applyTheme(nightMode, false);
+    } catch {
+      // Fallback defaults already set
+    }
   }
 
-  applyTheme(localStorage.getItem("claudia-theme") !== "light");
+  function applyTheme(dark, persist = true) {
+    document.documentElement.classList.toggle("light", !dark);
+    if (persist) {
+      fetch("/api/preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme: dark ? "dark" : "light" }),
+      }).catch(() => {});
+    }
+  }
 
-  const sfx = createSFXController();
+  loadPreferences();
 
   const sseClient = createSSEClient("/events", (update) => {
     sessions = update.sessions;
     aggregateState = update.aggregateState;
     statusMessage = update.statusMessage || "";
     usage = update.usage || null;
-    handleSessionTransitions(update.sessions);
     updateDocumentTitle(update.aggregateState, update.sessions);
   }, (connected) => {
     sseConnected = connected;
   });
-
-  function handleSessionTransitions(currentSessions) {
-    const newStates = new Map();
-
-    for (const s of currentSessions) {
-      const prev = previousStates.get(s.id);
-      newStates.set(s.id, s.state);
-
-      if (prev === s.state) continue;
-
-      if (s.state === "pending") {
-        sfx.playPending();
-      } else if (s.state === "busy") {
-        sfx.playBusy();
-      } else if (s.state === "idle" && prev) {
-        sfx.playIdle();
-      }
-    }
-
-    previousStates = newStates;
-  }
 
   function updateDocumentTitle(state, sessions) {
     const pendingCount = sessions.filter((s) => s.state === "pending").length;
@@ -118,7 +110,14 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         {#if !bgMode}Settings{/if}
       </button>
-      <button class="header-btn" class:active={bgMode} onclick={() => { bgMode = !bgMode; localStorage.setItem("claudia-immersive", bgMode); }}>
+      <button class="header-btn" class:active={bgMode} onclick={() => {
+        bgMode = !bgMode;
+        fetch("/api/preferences", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ immersive: bgMode }),
+        }).catch(() => {});
+      }}>
         {#if bgMode}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 4l6 6"/><path d="M10 14l-6 6"/></svg>
         {:else}
@@ -138,7 +137,6 @@
   {#if showSettings}
     <SettingsModal
       onclose={() => showSettings = false}
-      {sfx}
       {nightMode}
       onnightmodechange={(v) => { nightMode = v; applyTheme(v); }}
     />
