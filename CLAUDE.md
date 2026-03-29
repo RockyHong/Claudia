@@ -11,8 +11,9 @@ A personal receptionist app that monitors all active Claude Code sessions, displ
 3. **Execute** — `superpowers:subagent-driven-development` (preferred) or `superpowers:executing-plans`
 4. **Review** — `superpowers:requesting-code-review` between tasks and at completion
 5. **Finish** — `superpowers:finishing-a-development-branch` to merge/PR
+6. **Cleanup** — After user confirms the work is good and it's committed, delete the spec and plan files from `docs/superpowers/`
 
-Specs go to `docs/superpowers/specs/`, plans go to `docs/superpowers/plans/`.
+Specs go to `docs/superpowers/specs/`, plans go to `docs/superpowers/plans/`. These are temporal — they exist only during active development.
 
 **User instructions override Superpowers defaults** — if something below contradicts a skill, follow what's written here.
 
