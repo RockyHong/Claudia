@@ -1,6 +1,8 @@
 # Hook Coverage Improvements
 
-Expand Claudia's hook coverage to include new Claude Code hooks (`SubagentStop`, `PreCompact`), fix a pending-state suppression bug, and make the CLI display string dynamic.
+Status: implemented
+
+Expand Claudia's hook coverage to include new Claude Code hooks (`SubagentStop`, `PreCompact`), fix a pending-state suppression bug, and make the CLI display string dynamic. Also consolidated hook registration to web UI only (removed `claudia init` CLI command) and added hook remove button with confirm dialogs.
 
 ## Background
 
