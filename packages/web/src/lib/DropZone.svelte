@@ -93,10 +93,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-2);
     border: 1px dashed var(--border);
-    border-radius: 8px;
-    padding: 8px;
+    border-radius: var(--radius-md);
+    padding: var(--space-2);
     cursor: pointer;
     transition: border-color var(--duration-normal) var(--ease-in-out),
                 background var(--duration-normal) var(--ease-in-out);
@@ -127,7 +127,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     position: absolute;
     inset: 0;
   }
@@ -140,7 +140,7 @@
     justify-content: center;
     background: rgba(0, 0, 0, 0.6);
     color: var(--text);
-    font-size: 12px;
+    font-size: var(--text-xs);
     font-weight: 500;
     border-radius: 7px;
     opacity: 0;
@@ -165,7 +165,7 @@
   }
 
   .label {
-    font-size: 11px;
+    font-size: var(--text-xs);
     font-weight: 500;
     color: var(--text-muted);
     text-transform: uppercase;
@@ -176,9 +176,9 @@
 
   .dropzone.filled .label {
     position: absolute;
-    bottom: 6px;
+    bottom: var(--space-2);
     background: rgba(0, 0, 0, 0.6);
-    padding: 2px 6px;
-    border-radius: 3px;
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-xs);
   }
 </style>
