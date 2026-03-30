@@ -6,7 +6,7 @@
 export function createAmbienceController(src = "/sfx/typing-ambience.mp3") {
   const audio = new Audio(src);
   audio.loop = true;
-  audio.volume = 0.3;
+  audio.volume = 0.2;
   let playing = false;
 
   return {
