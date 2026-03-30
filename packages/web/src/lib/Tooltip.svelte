@@ -21,6 +21,7 @@
     left: 50%;
     transform: translateX(-50%) scale(0.9);
     white-space: pre-line;
+    width: max-content;
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     color: var(--text);

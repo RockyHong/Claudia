@@ -19,10 +19,11 @@
     return utilization > timeElapsedPct(resetsAt, windowMs);
   }
 
-  function tooltipText(utilization, outpacing) {
-    const pct = `${Math.round(utilization ?? 0)}% used`;
-    if (outpacing) return `${pct}\nMay run out before reset at current pace`;
-    return pct;
+  function tooltipText(utilization, countdown, outpacing) {
+    let line = `${Math.round(utilization ?? 0)}% used`;
+    if (countdown) line += ` · resets in ${countdown}`;
+    if (outpacing) line += `\nMay run out before reset at current pace`;
+    return line;
   }
 
   let countdownText5h = $state("");
@@ -68,7 +69,7 @@
 
 <div class="usage-rings" class:stale class:skeleton={!usage}>
   <div class="ring-item">
-    <Tooltip text={usage ? tooltipText(usage.fiveHour?.utilization, fiveHourOutpacing) : ""}>
+    <Tooltip text={usage ? tooltipText(usage.fiveHour?.utilization, countdownText5h, fiveHourOutpacing) : ""}>
       <div class="ring-wrap">
         <svg viewBox="0 0 24 24">
           <circle class="ring-bg" cx="12" cy="12" r="9"/>
@@ -83,12 +84,9 @@
       </div>
     </Tooltip>
     <span class="ring-label">5h</span>
-    {#if countdownText5h}
-      <span class="ring-reset">{countdownText5h}</span>
-    {/if}
   </div>
   <div class="ring-item">
-    <Tooltip text={usage ? tooltipText(usage.sevenDay?.utilization, sevenDayOutpacing) : ""}>
+    <Tooltip text={usage ? tooltipText(usage.sevenDay?.utilization, countdownText7d, sevenDayOutpacing) : ""}>
       <div class="ring-wrap">
         <svg viewBox="0 0 24 24">
           <circle class="ring-bg" cx="12" cy="12" r="9"/>
@@ -103,9 +101,6 @@
       </div>
     </Tooltip>
     <span class="ring-label">7d</span>
-    {#if countdownText7d}
-      <span class="ring-reset">{countdownText7d}</span>
-    {/if}
   </div>
   {#if !usage}
     <span class="ring-hint">waiting…</span>
@@ -173,9 +168,5 @@
   @keyframes breathe {
     0%, 100% { opacity: 0.5; }
     50% { opacity: 1; }
-  }
-
-  .ring-reset {
-    opacity: 0.7;
   }
 </style>
