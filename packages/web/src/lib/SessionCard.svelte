@@ -1,5 +1,6 @@
 <script>
   import { onMount } from "svelte";
+  import { GitBranch, Folder, Terminal } from "lucide-svelte";
 
   let { session } = $props();
 
@@ -204,7 +205,7 @@
     <div class="card-row card-row-detail">
       {#if session.git?.isGit}
         <span class="card-detail">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+          <GitBranch />
           {session.git.branch}{session.git.dirty ? " *" : ""}
         </span>
       {/if}
@@ -214,10 +215,10 @@
       {#if session.cwd}
         <div class="detail-actions">
           <button class="detail-icon-btn" onclick={openFolder} title="Open in explorer">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            <Folder />
           </button>
           <button class="detail-icon-btn" onclick={openTerminal} title="Open terminal here">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            <Terminal />
           </button>
         </div>
       {/if}
@@ -300,7 +301,7 @@
     gap: 4px;
   }
 
-  .card-detail svg {
+  .card-detail :global(svg) {
     width: 12px;
     height: 12px;
     stroke: var(--text-faint, #5c554e);
@@ -424,7 +425,7 @@
     color: var(--text-muted, #948b82);
   }
 
-  .detail-icon-btn svg {
+  .detail-icon-btn :global(svg) {
     width: 12px;
     height: 12px;
     flex-shrink: 0;

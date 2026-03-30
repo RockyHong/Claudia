@@ -1,6 +1,7 @@
 <script>
   import DropZone from "./DropZone.svelte";
   import Modal from "./Modal.svelte";
+  import { Upload } from "lucide-svelte";
 
   let { mode = "create", set = null, onclose, onsave, onimport, importing = false } = $props();
 
@@ -127,7 +128,7 @@
     <div class="actions">
       {#if mode === "create" && onimport}
         <button class="import-btn" onclick={onimport} disabled={importing}>
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><path d="M8 10V2m0 0L5 5m3-3 3 3M3 12v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1"/></svg>
+          <Upload size={14} strokeWidth={1.5} />
           {importing ? "Importing..." : "Import"}
         </button>
       {/if}

@@ -1,4 +1,6 @@
 <script>
+  import { BarChart3 } from "lucide-svelte";
+
   let { onchoice } = $props();
 </script>
 
@@ -6,11 +8,7 @@
 <div class="backdrop" onkeydown={() => {}} role="dialog" aria-modal="true" aria-label="Usage Monitoring">
   <div class="consent-card">
     <div class="icon">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 20V10" />
-        <path d="M18 20V4" />
-        <path d="M6 20v-4" />
-      </svg>
+      <BarChart3 size={40} strokeWidth={1.5} />
     </div>
     <h2>Usage Monitoring</h2>
     <p>

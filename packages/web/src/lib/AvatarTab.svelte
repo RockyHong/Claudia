@@ -1,6 +1,7 @@
 <script>
   import AvatarSetEditor from "./AvatarSetEditor.svelte";
   import ConfirmDialog from "./ConfirmDialog.svelte";
+  import { Trash2, Download, Pencil } from "lucide-svelte";
 
   let { onavatarchange } = $props();
 
@@ -226,17 +227,17 @@
                 class="action-btn delete-action"
                 onclick={(e) => { e.stopPropagation(); confirmDelete = set.name; }}
                 aria-label="Delete {set.name}"
-              ><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M6 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1m2 0v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4h10Z"/></svg></button>
+              ><Trash2 strokeWidth={1.5} /></button>
               <button
                 class="action-btn export-action"
                 onclick={(e) => { e.stopPropagation(); exportSet(set.name); }}
                 aria-label="Export {set.name}"
-              ><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8m0 0L5 7m3 3 3-3M3 12v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1"/></svg></button>
+              ><Download strokeWidth={1.5} /></button>
               <button
                 class="action-btn edit-action"
                 onclick={(e) => { e.stopPropagation(); openEditor("edit", set); }}
                 aria-label="Edit {set.name}"
-              ><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11.5 2.5a1.4 1.4 0 0 1 2 2L5 13l-3 1 1-3Z"/></svg></button>
+              ><Pencil strokeWidth={1.5} /></button>
             </div>
           {/if}
         </div>
@@ -432,7 +433,7 @@
     transition: color var(--duration-normal), background var(--duration-normal);
   }
 
-  .action-btn svg {
+  .action-btn :global(svg) {
     width: 13px;
     height: 13px;
   }
