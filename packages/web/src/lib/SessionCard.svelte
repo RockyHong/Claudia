@@ -15,6 +15,27 @@
   let terminalList = $state([]);
   let linkLoading = $state(false);
   let linkError = $state("");
+  let approveLoading = $state(false);
+  let flashClass = $state("");
+  let toolContextExpanded = $state(false);
+
+  async function handleDecision(decision) {
+    approveLoading = true;
+    flashClass = decision === "allow" ? "flash-approve" : "flash-deny";
+    try {
+      await fetch(`/api/permission/${session.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision }),
+      });
+    } catch {
+      // best-effort — if server is down, hook will timeout and fallback
+    }
+    setTimeout(() => {
+      flashClass = "";
+      approveLoading = false;
+    }, 300);
+  }
 
   onMount(() => {
     const handler = (e) => {
@@ -193,6 +214,17 @@
           </button>
         </div>
       {/if}
+    </div>
+  {/if}
+
+  {#if session.permissionRequest}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="tool-context" class:expanded={toolContextExpanded} onclick={() => toolContextExpanded = !toolContextExpanded} role="button" tabindex="0" onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), toolContextExpanded = !toolContextExpanded)}>
+      {session.permissionRequest.toolName}{session.permissionRequest.toolInput ? `: ${session.permissionRequest.toolInput}` : ''}
+    </div>
+    <div class="inline-actions">
+      <button class="action-btn action-approve {flashClass === 'flash-approve' ? 'flash-approve' : ''}" onclick={(e) => { e.stopPropagation(); handleDecision('allow'); }} disabled={approveLoading}>Approve</button>
+      <button class="action-btn action-deny {flashClass === 'flash-deny' ? 'flash-deny' : ''}" onclick={(e) => { e.stopPropagation(); handleDecision('deny'); }} disabled={approveLoading}>Deny</button>
     </div>
   {/if}
 </div>
@@ -408,5 +440,83 @@
       animation: none;
       box-shadow: none;
     }
+  }
+
+  .tool-context {
+    font-family: var(--font-mono, monospace);
+    font-size: var(--text-xs);
+    color: var(--amber);
+    margin-top: 6px;
+    padding: 6px 10px;
+    background: rgba(229, 160, 58, 0.08);
+    border-radius: var(--radius-sm);
+    line-height: 1.5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    transition: all var(--duration-normal, 150ms) var(--ease-in-out, ease);
+  }
+
+  .tool-context.expanded {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .inline-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(229, 160, 58, 0.2);
+  }
+
+  .action-btn {
+    all: unset;
+    font-family: var(--font-heading, sans-serif);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    padding: 6px 16px;
+    cursor: pointer;
+    transition: all var(--duration-normal, 150ms) var(--ease-in-out, ease);
+    flex: 1;
+    text-align: center;
+    box-sizing: border-box;
+  }
+
+  .action-approve {
+    background: rgba(74, 186, 106, 0.15);
+    color: var(--green);
+    border: 1px solid rgba(74, 186, 106, 0.3);
+  }
+
+  .action-approve:hover:not(:disabled) {
+    background: rgba(74, 186, 106, 0.25);
+  }
+
+  .action-deny {
+    background: rgba(217, 85, 85, 0.1);
+    color: var(--red);
+    border: 1px solid rgba(217, 85, 85, 0.2);
+  }
+
+  .action-deny:hover:not(:disabled) {
+    background: rgba(217, 85, 85, 0.2);
+  }
+
+  .action-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .flash-approve {
+    background: rgba(74, 186, 106, 0.4) !important;
+    transition: background 300ms ease;
+  }
+
+  .flash-deny {
+    background: rgba(217, 85, 85, 0.35) !important;
+    transition: background 300ms ease;
   }
 </style>
