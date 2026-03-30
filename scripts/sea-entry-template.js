@@ -1,10 +1,11 @@
 // SEA entry point — loaded by Node when the executable starts.
-// Extracts embedded web assets to a temp dir, then starts the server.
+// Extracts embedded web assets and server bundle to temp, then starts the server.
+// Must be CommonJS — Node SEA does not support ESM.
 
-import { writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
-import sea from "node:sea";
+const { writeFileSync, mkdirSync, existsSync } = require("node:fs");
+const { tmpdir } = require("node:os");
+const path = require("node:path");
+const sea = require("node:sea");
 
 // Extract web assets from embedded blob
 const WEB_DIST_DIR = path.join(tmpdir(), "claudia-web-dist");
@@ -13,6 +14,15 @@ if (!existsSync(WEB_DIST_DIR)) {
   mkdirSync(WEB_DIST_DIR, { recursive: true });
   const tarBuffer = sea.getAsset("web-dist");
   extractTar(tarBuffer, WEB_DIST_DIR);
+}
+
+// Extract server bundle from embedded blob
+const BUNDLE_DIR = path.join(tmpdir(), "claudia-sea");
+const BUNDLE_PATH = path.join(BUNDLE_DIR, "server-bundle.js");
+
+if (!existsSync(BUNDLE_PATH)) {
+  mkdirSync(BUNDLE_DIR, { recursive: true });
+  writeFileSync(BUNDLE_PATH, sea.getAsset("server-bundle", "utf8"));
 }
 
 // Set env so server knows where web assets are
@@ -25,15 +35,20 @@ const managed = true; // SEA is always managed mode
 
 const port = process.env.CLAUDIA_PORT || 48901;
 
-// Dynamic import of the bundled server
-const { startServer } = await import("./server-bundle.js");
-await startServer(port, { managed });
+// Dynamic import of the extracted server bundle
+async function main() {
+  const bundleUrl = "file://" + BUNDLE_PATH.replace(/\\/g, "/");
+  const { startServer } = await import(bundleUrl);
+  await startServer(port, { managed });
 
-if (isWallpaper) {
-  console.log(`Claudia wallpaper server ready on port ${port}`);
-} else {
-  console.log(`Claudia standalone server ready on port ${port}`);
+  if (isWallpaper) {
+    console.log(`Claudia wallpaper server ready on port ${port}`);
+  } else {
+    console.log(`Claudia standalone server ready on port ${port}`);
+  }
 }
+
+main();
 
 // Minimal tar extraction for flat archives
 function extractTar(buffer, destDir) {

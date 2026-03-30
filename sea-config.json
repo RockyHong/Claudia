@@ -3,8 +3,9 @@
   "output": "dist/sea-prep.blob",
   "disableExperimentalSEAWarning": true,
   "useSnapshot": false,
-  "useCodeCache": true,
+  "useCodeCache": false,
   "assets": {
-    "web-dist": "dist/web-dist.tar"
+    "web-dist": "dist/web-dist.tar",
+    "server-bundle": "dist/server-bundle.js"
   }
 }
