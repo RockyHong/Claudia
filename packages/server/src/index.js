@@ -30,12 +30,10 @@ let usageClient = null;
 const tracker = createSessionTracker({
   getGitStatus,
   onStateChange: (update) => {
-    if (usageClient) usageClient.refreshUsage().catch(() => {});
     const sounds = sfx.getSoundsForUpdate(update.sessions);
     broadcast({
       ...update,
       statusMessage: getStatusMessage(update.sessions),
-      usage: usageClient ? usageClient.getUsage() : null,
       sfx: sounds.length > 0 ? sounds : undefined,
     });
   },
@@ -255,7 +253,6 @@ app.get("/events", (req, res) => {
     sessions,
     aggregateState: tracker.getAggregateState(),
     statusMessage: getStatusMessage(sessions),
-    usage: usageClient ? usageClient.getUsage() : null,
   });
   res.write(`data: ${initial}\n\n`);
 
@@ -277,12 +274,8 @@ registerApiRoutes(app, tracker, {
   onUsageMonitoringChange: (enabled) => {
     if (enabled) {
       usageClient = createUsageClient();
-      usageClient.refreshUsage().then((usage) => {
-        if (usage) broadcast({ usage });
-      }).catch(() => {});
     } else {
       usageClient = null;
-      broadcast({ usage: null });
     }
   },
   heldPermissionResponses,
