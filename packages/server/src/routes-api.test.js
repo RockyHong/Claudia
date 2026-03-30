@@ -366,6 +366,51 @@ describe("GET /api/usage", () => {
   });
 });
 
+describe("GET /api/usage (with client)", () => {
+  let usageServer;
+  const mockUsageClient = {
+    refreshUsage: vi.fn(),
+  };
+
+  beforeAll(() => {
+    return new Promise((resolve) => {
+      const app2 = express();
+      app2.use(express.json());
+      registerApiRoutes(app2, mockTracker, {
+        getUsageClient: () => mockUsageClient,
+      });
+      usageServer = http.createServer(app2);
+      usageServer.listen(0, "127.0.0.1", resolve);
+    });
+  });
+
+  afterAll(() => {
+    return new Promise((resolve) => usageServer.close(resolve));
+  });
+
+  it("returns usage data from refreshUsage", async () => {
+    const mockUsage = {
+      fiveHour: { utilization: 42, resetsAt: "2026-03-28T15:00:00Z" },
+      sevenDay: { utilization: 68, resetsAt: "2026-03-31T04:00:00Z" },
+      fetchedAt: 1234567890,
+    };
+    mockUsageClient.refreshUsage.mockResolvedValue(mockUsage);
+
+    const res = await request(usageServer, "GET", "/api/usage");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(mockUsage);
+  });
+
+  it("returns 204 when refreshUsage returns null", async () => {
+    mockUsageClient.refreshUsage.mockResolvedValue(null);
+
+    const res = await request(usageServer, "GET", "/api/usage");
+
+    expect(res.status).toBe(204);
+  });
+});
+
 describe("GET /api/terminals", () => {
   it("returns filtered terminal window list", async () => {
     mockTracker.getLinkedHandles.mockReturnValue(new Set([111]));

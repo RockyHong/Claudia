@@ -64,9 +64,10 @@ export function registerApiRoutes(app, tracker, options = {}) {
     res.json({ ok: true });
   });
 
-  app.get("/api/usage", (req, res) => {
+  app.get("/api/usage", async (req, res) => {
     const client = services.getUsageClient();
-    const usage = client ? client.getUsage() : null;
+    if (!client) return res.status(204).end();
+    const usage = await client.refreshUsage();
     if (!usage) return res.status(204).end();
     res.json(usage);
   });
