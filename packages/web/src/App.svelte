@@ -37,6 +37,7 @@
       applyTheme(nightMode, false);
       usageMonitoring = prefs.usageMonitoring === true;
       autoFocus = prefs.autoFocus !== false;
+      if (usageMonitoring) startUsagePolling();
     } catch {
       // Fallback defaults already set
     }
@@ -55,6 +56,12 @@
 
   function setUsageMonitoring(enabled) {
     usageMonitoring = enabled;
+    if (enabled) {
+      startUsagePolling();
+    } else {
+      stopUsagePolling();
+      usage = null;
+    }
     fetch("/api/preferences", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -71,6 +78,36 @@
     }).catch(() => {});
   }
 
+  async function loadUsage() {
+    if (!usageMonitoring) {
+      usage = null;
+      return;
+    }
+    try {
+      const res = await fetch("/api/usage");
+      if (res.status === 204) return;
+      usage = await res.json();
+    } catch {
+      // Keep existing usage on failure
+    }
+  }
+
+  const USAGE_POLL_MS = 10 * 60 * 1000; // 10 minutes
+  let usagePollInterval = null;
+
+  function startUsagePolling() {
+    stopUsagePolling();
+    loadUsage();
+    usagePollInterval = setInterval(loadUsage, USAGE_POLL_MS);
+  }
+
+  function stopUsagePolling() {
+    if (usagePollInterval) {
+      clearInterval(usagePollInterval);
+      usagePollInterval = null;
+    }
+  }
+
   loadPreferences();
 
   const sseClient = createSSEClient("/events", (update) => {
@@ -79,7 +116,6 @@
       sessions = update.sessions;
       aggregateState = update.aggregateState;
       statusMessage = update.statusMessage || "";
-      usage = update.usage || null;
       updateDocumentTitle(update.aggregateState, update.sessions);
     }
 
