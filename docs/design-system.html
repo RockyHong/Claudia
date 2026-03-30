@@ -1017,9 +1017,61 @@
     </div>
   </div>
 
-  <!-- ======== 7. VISUAL HIERARCHY ======== -->
+  <!-- ======== 7. COLOR PALETTE ======== -->
   <div class="section">
-    <div class="section-title"><span>7</span> Visual Hierarchy</div>
+    <div class="section-title"><span>7</span> Color Palette</div>
+
+    <div class="subsection">
+      <div class="section-label">Text</div>
+      <div class="showcase">
+        <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+          <div style="display: flex; align-items: center; gap: var(--space-3);"><div style="width: 24px; height: 24px; border-radius: var(--radius-xs); background: var(--text);"></div><span style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); min-width: 100px;">--text</span><span style="font-size: var(--text-sm); color: var(--text);">Primary — headings, names, emphasis</span></div>
+          <div style="display: flex; align-items: center; gap: var(--space-3);"><div style="width: 24px; height: 24px; border-radius: var(--radius-xs); background: var(--text-muted);"></div><span style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); min-width: 100px;">--text-muted</span><span style="font-size: var(--text-sm); color: var(--text-muted);">Secondary — body text, descriptions, status lines</span></div>
+          <div style="display: flex; align-items: center; gap: var(--space-3);"><div style="width: 24px; height: 24px; border-radius: var(--radius-xs); background: var(--text-faint);"></div><span style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); min-width: 100px;">--text-faint</span><span style="font-size: var(--text-sm); color: var(--text-faint);">Tertiary — timestamps, labels, decorative</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <div class="section-label">Surfaces &amp; Borders</div>
+      <div class="showcase">
+        <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+          <div style="display: flex; align-items: center; gap: var(--space-3);"><div style="width: 24px; height: 24px; border-radius: var(--radius-xs); background: var(--bg); border: 1px solid var(--border);"></div><span style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); min-width: 100px;">--bg</span><span style="font-size: var(--text-sm); color: var(--text-muted);">Page background</span></div>
+          <div style="display: flex; align-items: center; gap: var(--space-3);"><div style="width: 24px; height: 24px; border-radius: var(--radius-xs); background: var(--bg-card); border: 1px solid var(--border);"></div><span style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); min-width: 100px;">--bg-card</span><span style="font-size: var(--text-sm); color: var(--text-muted);">Card surfaces</span></div>
+          <div style="display: flex; align-items: center; gap: var(--space-3);"><div style="width: 24px; height: 24px; border-radius: var(--radius-xs); background: var(--bg-raised); border: 1px solid var(--border);"></div><span style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); min-width: 100px;">--bg-raised</span><span style="font-size: var(--text-sm); color: var(--text-muted);">Raised elements, inputs, toggles</span></div>
+          <div style="display: flex; align-items: center; gap: var(--space-3);"><div style="width: 24px; height: 24px; border-radius: var(--radius-xs); background: var(--border);"></div><span style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); min-width: 100px;">--border</span><span style="font-size: var(--text-sm); color: var(--text-muted);">Default borders</span></div>
+          <div style="display: flex; align-items: center; gap: var(--space-3);"><div style="width: 24px; height: 24px; border-radius: var(--radius-xs); background: var(--border-active);"></div><span style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); min-width: 100px;">--border-active</span><span style="font-size: var(--text-sm); color: var(--text-muted);">Active / focus borders</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <div class="section-label">Brand</div>
+      <div class="showcase">
+        <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+          <div style="display: flex; align-items: center; gap: var(--space-3);"><div style="width: 24px; height: 24px; border-radius: var(--radius-xs); background: var(--brand);"></div><span style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); min-width: 100px;">--brand</span><span style="font-size: var(--text-sm); color: var(--text-muted);">Primary actions, active states</span></div>
+          <div style="display: flex; align-items: center; gap: var(--space-3);"><div style="width: 24px; height: 24px; border-radius: var(--radius-xs); background: var(--brand-hover);"></div><span style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); min-width: 100px;">--brand-hover</span><span style="font-size: var(--text-sm); color: var(--text-muted);">Hover state for brand elements</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <div class="section-label">Semantic</div>
+      <div class="showcase">
+        <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+          <div style="display: flex; align-items: center; gap: var(--space-3);"><div style="width: 24px; height: 24px; border-radius: var(--radius-xs); background: var(--green);"></div><span style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); min-width: 100px;">--green</span><span style="font-size: var(--text-sm); color: var(--text-muted);">Idle sessions, success</span></div>
+          <div style="display: flex; align-items: center; gap: var(--space-3);"><div style="width: 24px; height: 24px; border-radius: var(--radius-xs); background: var(--blue);"></div><span style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); min-width: 100px;">--blue</span><span style="font-size: var(--text-sm); color: var(--text-muted);">Busy sessions, active work</span></div>
+          <div style="display: flex; align-items: center; gap: var(--space-3);"><div style="width: 24px; height: 24px; border-radius: var(--radius-xs); background: var(--amber);"></div><span style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); min-width: 100px;">--amber</span><span style="font-size: var(--text-sm); color: var(--text-muted);">Pending, needs attention</span></div>
+          <div style="display: flex; align-items: center; gap: var(--space-3);"><div style="width: 24px; height: 24px; border-radius: var(--radius-xs); background: var(--red);"></div><span style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); min-width: 100px;">--red</span><span style="font-size: var(--text-sm); color: var(--text-muted);">Errors, destructive actions, blocked</span></div>
+          <div style="display: flex; align-items: center; gap: var(--space-3);"><div style="width: 24px; height: 24px; border-radius: var(--radius-xs); background: var(--gray);"></div><span style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-muted); min-width: 100px;">--gray</span><span style="font-size: var(--text-sm); color: var(--text-muted);">Inactive, disabled, stale</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== 8. VISUAL HIERARCHY ======== -->
+  <div class="section">
+    <div class="section-title"><span>8</span> Visual Hierarchy</div>
 
     <div class="subsection">
       <div class="section-label">Text weight through color, not size</div>
@@ -1056,9 +1108,9 @@
     </div>
   </div>
 
-  <!-- ======== 8. SPACING ======== -->
+  <!-- ======== 9. SPACING ======== -->
   <div class="section">
-    <div class="section-title"><span>8</span> Spacing Rhythm</div>
+    <div class="section-title"><span>9</span> Spacing Rhythm</div>
     <div class="showcase">
       <div style="display: flex; flex-direction: column; gap: var(--space-3);">
         <div style="display: flex; align-items: center; gap: var(--space-3);">
@@ -1113,9 +1165,9 @@
     </div>
   </div>
 
-  <!-- ======== 9. BORDER RADIUS ======== -->
+  <!-- ======== 10. BORDER RADIUS ======== -->
   <div class="section">
-    <div class="section-title"><span>9</span> Border Radius Scale</div>
+    <div class="section-title"><span>10</span> Border Radius Scale</div>
     <div class="showcase">
       <div class="showcase-row">
         <div class="radius-box" style="border-radius: 4px;">4px</div>
@@ -1149,9 +1201,9 @@
     </div>
   </div>
 
-  <!-- ======== 10. PATTERNS IN CONTEXT ======== -->
+  <!-- ======== 11. PATTERNS IN CONTEXT ======== -->
   <div class="section">
-    <div class="section-title"><span>10</span> Patterns in Context</div>
+    <div class="section-title"><span>11</span> Patterns in Context</div>
 
     <div class="subsection">
       <div class="section-label">Confirm dialog actions</div>
@@ -1201,9 +1253,9 @@
     </div>
   </div>
 
-  <!-- ======== 11. RULES SUMMARY ======== -->
+  <!-- ======== 12. RULES SUMMARY ======== -->
   <div class="section">
-    <div class="section-title"><span>11</span> Rules Summary</div>
+    <div class="section-title"><span>12</span> Rules Summary</div>
     <div class="showcase" style="gap: var(--space-4);">
       <div style="display: flex; flex-direction: column; gap: var(--space-3);">
         <p style="font-size: var(--text-sm); color: var(--text);"><strong>Spacing</strong> <span style="color: var(--text-muted);">&mdash; Use <code style="font-family: var(--font-mono); font-size: var(--text-xs); background: var(--bg-raised); padding: 1px 4px; border-radius: 3px;">--space-{n}</code> tokens only. No raw pixel values in component styles.</span></p>
