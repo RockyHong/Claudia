@@ -1,4 +1,6 @@
 <script>
+  import Tooltip from "./Tooltip.svelte";
+
   let { usage = null } = $props();
 
   const CIRCUMFERENCE = 2 * Math.PI * 9;
@@ -43,34 +45,38 @@
 
 <div class="usage-rings" class:stale class:skeleton={!usage}>
   <div class="ring-item">
-    <div class="ring-wrap">
-      <svg viewBox="0 0 24 24">
-        <circle class="ring-bg" cx="12" cy="12" r="9"/>
-        {#if usage}
-          <circle class="ring-fill" cx="12" cy="12" r="9"
-            stroke-dasharray={CIRCUMFERENCE}
-            stroke-dashoffset={dashOffset(usage.fiveHour?.utilization)}
-          />
-        {/if}
-      </svg>
-    </div>
+    <Tooltip text={usage ? `${Math.round(usage.fiveHour?.utilization ?? 0)}%` : ""}>
+      <div class="ring-wrap">
+        <svg viewBox="0 0 24 24">
+          <circle class="ring-bg" cx="12" cy="12" r="9"/>
+          {#if usage}
+            <circle class="ring-fill" cx="12" cy="12" r="9"
+              stroke-dasharray={CIRCUMFERENCE}
+              stroke-dashoffset={dashOffset(usage.fiveHour?.utilization)}
+            />
+          {/if}
+        </svg>
+      </div>
+    </Tooltip>
     <span class="ring-label">5h</span>
     {#if countdownText5h}
       <span class="ring-reset">{countdownText5h}</span>
     {/if}
   </div>
   <div class="ring-item">
-    <div class="ring-wrap">
-      <svg viewBox="0 0 24 24">
-        <circle class="ring-bg" cx="12" cy="12" r="9"/>
-        {#if usage}
-          <circle class="ring-fill" cx="12" cy="12" r="9"
-            stroke-dasharray={CIRCUMFERENCE}
-            stroke-dashoffset={dashOffset(usage.sevenDay?.utilization)}
-          />
-        {/if}
-      </svg>
-    </div>
+    <Tooltip text={usage ? `${Math.round(usage.sevenDay?.utilization ?? 0)}%` : ""}>
+      <div class="ring-wrap">
+        <svg viewBox="0 0 24 24">
+          <circle class="ring-bg" cx="12" cy="12" r="9"/>
+          {#if usage}
+            <circle class="ring-fill" cx="12" cy="12" r="9"
+              stroke-dasharray={CIRCUMFERENCE}
+              stroke-dashoffset={dashOffset(usage.sevenDay?.utilization)}
+            />
+          {/if}
+        </svg>
+      </div>
+    </Tooltip>
     <span class="ring-label">7d</span>
     {#if countdownText7d}
       <span class="ring-reset">{countdownText7d}</span>
