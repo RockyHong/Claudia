@@ -5,10 +5,37 @@
 
   const CIRCUMFERENCE = 2 * Math.PI * 9;
   const STALE_MS = 30 * 60 * 1000;
+  const WINDOW_5H = 5 * 60 * 60 * 1000;
+  const WINDOW_7D = 7 * 24 * 60 * 60 * 1000;
+
+  function timeElapsedPct(resetsAt, windowMs) {
+    if (!resetsAt) return 0;
+    const msLeft = Math.max(0, new Date(resetsAt).getTime() - Date.now());
+    return (1 - msLeft / windowMs) * 100;
+  }
+
+  function isOutpacing(utilization, resetsAt, windowMs) {
+    if (!utilization || utilization < 50) return false;
+    return utilization > timeElapsedPct(resetsAt, windowMs);
+  }
+
+  function isLowFuel(utilization) {
+    return (utilization ?? 0) >= 75;
+  }
+
+  function tooltipText(utilization, outpacing) {
+    const pct = `${Math.round(utilization ?? 0)}% used`;
+    if (outpacing) return `${pct}\nMay run out before reset at current pace`;
+    return pct;
+  }
 
   let countdownText5h = $state("");
   let countdownText7d = $state("");
   let stale = $state(false);
+  let fiveHourOutpacing = $state(false);
+  let fiveHourLowFuel = $state(false);
+  let sevenDayOutpacing = $state(false);
+  let sevenDayLowFuel = $state(false);
 
   function dashOffset(utilization) {
     return CIRCUMFERENCE * (1 - (utilization || 0) / 100);
@@ -28,29 +55,35 @@
     return remHours > 0 ? `${days}d ${remHours}h` : `${days}d`;
   }
 
-  function refreshCountdowns() {
+  function refreshState() {
     if (!usage) return;
     countdownText5h = formatCountdown(usage.fiveHour?.resetsAt);
     countdownText7d = formatCountdown(usage.sevenDay?.resetsAt);
     stale = usage.fetchedAt && (Date.now() - usage.fetchedAt > STALE_MS);
+    fiveHourOutpacing = isOutpacing(usage.fiveHour?.utilization, usage.fiveHour?.resetsAt, WINDOW_5H);
+    fiveHourLowFuel = isLowFuel(usage.fiveHour?.utilization);
+    sevenDayOutpacing = isOutpacing(usage.sevenDay?.utilization, usage.sevenDay?.resetsAt, WINDOW_7D);
+    sevenDayLowFuel = isLowFuel(usage.sevenDay?.utilization);
   }
 
   $effect(() => {
     usage;
-    refreshCountdowns();
-    const interval = setInterval(refreshCountdowns, 60_000);
+    refreshState();
+    const interval = setInterval(refreshState, 60_000);
     return () => clearInterval(interval);
   });
 </script>
 
 <div class="usage-rings" class:stale class:skeleton={!usage}>
   <div class="ring-item">
-    <Tooltip text={usage ? `${Math.round(usage.fiveHour?.utilization ?? 0)}%` : ""}>
+    <Tooltip text={usage ? tooltipText(usage.fiveHour?.utilization, fiveHourOutpacing) : ""}>
       <div class="ring-wrap">
         <svg viewBox="0 0 24 24">
           <circle class="ring-bg" cx="12" cy="12" r="9"/>
           {#if usage}
             <circle class="ring-fill" cx="12" cy="12" r="9"
+              class:low-fuel={fiveHourLowFuel}
+              class:outpacing={fiveHourOutpacing}
               stroke-dasharray={CIRCUMFERENCE}
               stroke-dashoffset={dashOffset(usage.fiveHour?.utilization)}
             />
@@ -64,12 +97,14 @@
     {/if}
   </div>
   <div class="ring-item">
-    <Tooltip text={usage ? `${Math.round(usage.sevenDay?.utilization ?? 0)}%` : ""}>
+    <Tooltip text={usage ? tooltipText(usage.sevenDay?.utilization, sevenDayOutpacing) : ""}>
       <div class="ring-wrap">
         <svg viewBox="0 0 24 24">
           <circle class="ring-bg" cx="12" cy="12" r="9"/>
           {#if usage}
             <circle class="ring-fill" cx="12" cy="12" r="9"
+              class:low-fuel={sevenDayLowFuel}
+              class:outpacing={sevenDayOutpacing}
               stroke-dasharray={CIRCUMFERENCE}
               stroke-dashoffset={dashOffset(usage.sevenDay?.utilization)}
             />
@@ -134,10 +169,24 @@
 
   .ring-fill {
     fill: none;
-    stroke: var(--text-faint);
+    stroke: var(--gray);
     stroke-width: 2.5;
     stroke-linecap: round;
-    transition: stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                stroke 0.3s ease;
+  }
+
+  .ring-fill.low-fuel {
+    stroke: var(--amber);
+  }
+
+  .ring-fill.outpacing {
+    animation: breathe 3.5s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
   }
 
   .ring-reset {

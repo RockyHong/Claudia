@@ -20,7 +20,7 @@
     bottom: calc(100% + 6px);
     left: 50%;
     transform: translateX(-50%) scale(0.9);
-    white-space: nowrap;
+    white-space: pre-line;
     font-family: var(--font-mono);
     font-size: var(--text-xs);
     color: var(--text);
