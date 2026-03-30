@@ -165,6 +165,78 @@ describe("GET /api/sessions", () => {
   });
 });
 
+describe("POST /hook/PermissionRequest (held response)", () => {
+  it("holds the response and returns decision JSON when resolved via /api/permission/:sessionId", async () => {
+    // First create a session
+    await request("POST", "/hook/SessionStart", {
+      session_id: "perm-sess-1",
+      cwd: "/proj",
+    });
+
+    // Send PermissionRequest — this will hang until resolved
+    const permPromise = request("POST", "/hook/PermissionRequest", {
+      session_id: "perm-sess-1",
+      tool_name: "Bash",
+      tool_input: { command: "npm test" },
+      cwd: "/proj",
+    });
+
+    // Wait a tick for the server to register the held response
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Resolve via decision endpoint
+    const decisionRes = await request("POST", "/api/permission/perm-sess-1", {
+      decision: "allow",
+    });
+    expect(decisionRes.status).toBe(200);
+    expect(decisionRes.body.ok).toBe(true);
+
+    // The held hook response should now complete with decision JSON
+    const hookRes = await permPromise;
+    expect(hookRes.status).toBe(200);
+    expect(hookRes.body.hookSpecificOutput.decision.behavior).toBe("allow");
+  });
+
+  it("returns deny decision with message", async () => {
+    await request("POST", "/hook/SessionStart", {
+      session_id: "perm-sess-2",
+      cwd: "/proj",
+    });
+
+    const permPromise = request("POST", "/hook/PermissionRequest", {
+      session_id: "perm-sess-2",
+      tool_name: "Bash",
+      cwd: "/proj",
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    await request("POST", "/api/permission/perm-sess-2", {
+      decision: "deny",
+    });
+
+    const hookRes = await permPromise;
+    expect(hookRes.body.hookSpecificOutput.decision.behavior).toBe("deny");
+    expect(hookRes.body.hookSpecificOutput.decision.message).toBe(
+      "Denied from Claudia dashboard",
+    );
+  });
+
+  it("returns 404 when no held response exists for session", async () => {
+    const res = await request("POST", "/api/permission/nonexistent", {
+      decision: "allow",
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 400 for invalid decision value", async () => {
+    const res = await request("POST", "/api/permission/any-session", {
+      decision: "maybe",
+    });
+    expect(res.status).toBe(400);
+  });
+});
+
 describe("GET /events (SSE)", () => {
   it("returns text/event-stream content type and sends initial data", async () => {
     await new Promise((resolve, reject) => {

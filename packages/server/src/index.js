@@ -23,6 +23,7 @@ const PORT = process.env.CLAUDIA_PORT || 48901;
 const SHUTDOWN_TOKEN_PATH = path.join(os.homedir(), ".claudia", "shutdown-token");
 
 const sseClients = new Set();
+const heldPermissionResponses = new Map();
 
 let usageClient = null;
 
@@ -166,6 +167,62 @@ app.post("/hook/:type", (req, res) => {
   if (type === "UserPromptSubmit") {
     broadcastSfx("send");
   }
+
+  // Hold PermissionRequest responses — resolve when user decides in dashboard
+  if (type === "PermissionRequest") {
+    // Clean up any previous held response for this session
+    const prev = heldPermissionResponses.get(event.session);
+    if (prev) prev.json({ ok: true });
+    heldPermissionResponses.set(event.session, res);
+
+    // Clean up if Claude Code disconnects before a decision is made
+    res.on("close", () => {
+      if (heldPermissionResponses.get(event.session) === res) {
+        heldPermissionResponses.delete(event.session);
+      }
+    });
+    return; // Don't respond yet
+  }
+
+  // For non-PermissionRequest hooks: if the session state changed away from pending,
+  // release any held response (the user handled it in the terminal)
+  if (event.session && heldPermissionResponses.has(event.session)) {
+    const session = tracker.getSession(event.session);
+    if (!session || session.state !== "pending") {
+      const held = heldPermissionResponses.get(event.session);
+      heldPermissionResponses.delete(event.session);
+      held.json({ ok: true });
+    }
+  }
+
+  res.json({ ok: true });
+});
+
+// Decision endpoint — resolves a held PermissionRequest response
+app.post("/api/permission/:sessionId", (req, res) => {
+  const { decision } = req.body || {};
+  if (decision !== "allow" && decision !== "deny") {
+    return res.status(400).json({ error: "Invalid decision, must be 'allow' or 'deny'" });
+  }
+
+  const held = heldPermissionResponses.get(req.params.sessionId);
+  if (!held) {
+    return res.status(404).json({ error: "No pending permission request for this session" });
+  }
+
+  heldPermissionResponses.delete(req.params.sessionId);
+
+  const hookOutput = {
+    hookSpecificOutput: {
+      hookEventName: "PermissionRequest",
+      decision:
+        decision === "allow"
+          ? { behavior: "allow" }
+          : { behavior: "deny", message: "Denied from Claudia dashboard" },
+    },
+  };
+
+  held.json(hookOutput);
   res.json({ ok: true });
 });
 
@@ -217,6 +274,7 @@ registerApiRoutes(app, tracker, {
       broadcast({ usage: null });
     }
   },
+  heldPermissionResponses,
 });
 
 // Serve built web UI

@@ -30,7 +30,9 @@ import { getPreferences, setPreferences } from "./preferences.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export function registerApiRoutes(app, tracker, services) {
+export function registerApiRoutes(app, tracker, options = {}) {
+  const { heldPermissionResponses } = options;
+  const services = options;
   // --- Projects API ---
 
   app.get("/api/projects", async (req, res) => {
