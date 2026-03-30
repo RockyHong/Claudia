@@ -91,40 +91,47 @@ for (const dir of tauriDirs) {
 }
 console.log("Copied to Tauri sidecar directories");
 
-// Simple tar packer — creates a flat tar with just files
+// Recursive tar packer — preserves relative paths (e.g. assets/index.js)
 function packTar(srcDir, destPath) {
-  const files = fs.readdirSync(srcDir);
   const chunks = [];
 
-  for (const name of files) {
-    const filePath = path.join(srcDir, name);
-    const stat = fs.statSync(filePath);
-    if (!stat.isFile()) continue;
+  function walk(dir, prefix) {
+    for (const entry of fs.readdirSync(dir)) {
+      const filePath = path.join(dir, entry);
+      const tarName = prefix ? `${prefix}/${entry}` : entry;
+      const stat = fs.statSync(filePath);
 
-    const data = fs.readFileSync(filePath);
+      if (stat.isDirectory()) {
+        walk(filePath, tarName);
+        continue;
+      }
 
-    // Create tar header (512 bytes)
-    const header = Buffer.alloc(512);
-    header.write(name, 0, Math.min(name.length, 100), "utf-8");
-    header.write("0000644\0", 100, 8, "utf-8");
-    header.write("0000000\0", 108, 8, "utf-8");
-    header.write("0000000\0", 116, 8, "utf-8");
-    header.write(stat.size.toString(8).padStart(11, "0") + "\0", 124, 12, "utf-8");
-    header.write(Math.floor(stat.mtimeMs / 1000).toString(8).padStart(11, "0") + "\0", 136, 12, "utf-8");
-    header.write("        ", 148, 8, "utf-8");
-    header.write("0", 156, 1, "utf-8");
+      const data = fs.readFileSync(filePath);
 
-    let checksum = 0;
-    for (let i = 0; i < 512; i++) checksum += header[i];
-    header.write(checksum.toString(8).padStart(6, "0") + "\0 ", 148, 8, "utf-8");
+      // Create tar header (512 bytes)
+      const header = Buffer.alloc(512);
+      header.write(tarName, 0, Math.min(tarName.length, 100), "utf-8");
+      header.write("0000644\0", 100, 8, "utf-8");
+      header.write("0000000\0", 108, 8, "utf-8");
+      header.write("0000000\0", 116, 8, "utf-8");
+      header.write(stat.size.toString(8).padStart(11, "0") + "\0", 124, 12, "utf-8");
+      header.write(Math.floor(stat.mtimeMs / 1000).toString(8).padStart(11, "0") + "\0", 136, 12, "utf-8");
+      header.write("        ", 148, 8, "utf-8");
+      header.write("0", 156, 1, "utf-8");
 
-    chunks.push(header);
-    chunks.push(data);
+      let checksum = 0;
+      for (let i = 0; i < 512; i++) checksum += header[i];
+      header.write(checksum.toString(8).padStart(6, "0") + "\0 ", 148, 8, "utf-8");
 
-    const padding = 512 - (data.length % 512);
-    if (padding < 512) chunks.push(Buffer.alloc(padding));
+      chunks.push(header);
+      chunks.push(data);
+
+      const padding = 512 - (data.length % 512);
+      if (padding < 512) chunks.push(Buffer.alloc(padding));
+    }
   }
 
+  walk(srcDir, "");
   chunks.push(Buffer.alloc(1024));
 
   fs.mkdirSync(path.dirname(destPath), { recursive: true });
