@@ -228,19 +228,19 @@ describe("win32 platform", () => {
 
   it("calls SetWindowText via powershell with the new title", async () => {
     succeedExecFile();
-    const result = await renameTerminal(12345, "claudia · myproject-01");
+    const result = await renameTerminal(12345, "myproject-01");
     expect(mockExecFile).toHaveBeenCalledOnce();
     expect(mockExecFile.mock.calls[0][0]).toBe("powershell");
     const psScript = mockExecFile.mock.calls[0][1][2];
     expect(psScript).toContain("[IntPtr]12345");
-    expect(psScript).toContain("claudia · myproject-01");
+    expect(psScript).toContain("myproject-01");
     expect(psScript).toContain("SetWindowText");
     expect(result).toBe(true);
   });
 
   it("returns false when powershell fails", async () => {
     failExecFile();
-    const result = await renameTerminal(12345, "claudia · test");
+    const result = await renameTerminal(12345, "test-01");
     expect(result).toBe(false);
   });
 });
@@ -377,7 +377,7 @@ describe("unknown platform (fallback)", () => {
   });
 
   it("renameTerminal returns false on non-win32 platform", async () => {
-    const result = await renameTerminal(12345, "claudia · test");
+    const result = await renameTerminal(12345, "test-01");
     expect(result).toBe(false);
     expect(mockExecFile).not.toHaveBeenCalled();
   });

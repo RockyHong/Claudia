@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import { generateTerminalTitle } from "./terminal-title.js";
 
 describe("generateTerminalTitle", () => {
-  it("generates title from cwd with claudia prefix", () => {
+  it("generates title from cwd", () => {
     const title = generateTerminalTitle("/home/user/myproject");
-    expect(title).toMatch(/^claudia · myproject-[0-9a-z]{2,}$/);
+    expect(title).toMatch(/^myproject-[0-9a-z]{2,}$/);
   });
 
   it("extracts last path segment from Windows-style paths", () => {

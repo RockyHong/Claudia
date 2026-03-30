@@ -545,7 +545,7 @@ describe("POST /api/link/:sessionId", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
-    expect(res.body.terminalTitle).toMatch(/^claudia · proj-[0-9a-z]{2,}$/);
+    expect(res.body.terminalTitle).toMatch(/^proj-[0-9a-z]{2,}$/);
     expect(renameTerminal).toHaveBeenCalledWith(456, res.body.terminalTitle);
     expect(mockTracker.linkSessionById).toHaveBeenCalledWith("s1", res.body.terminalTitle, 456);
   });

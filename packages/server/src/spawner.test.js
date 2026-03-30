@@ -291,12 +291,11 @@ describe("generateTerminalTitle", () => {
     expect(t1).not.toBe(t2);
   });
 
-  it("title format is 'claudia · <name>-<uid>'", async () => {
+  it("title format is '<name>-<uid>'", async () => {
     mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
     const { spawnSession } = await import("./spawner.js");
     const { terminalTitle } = await spawnSession("/home/user/myapp");
-    // The middle dot character used in the source is U+00B7
-    expect(terminalTitle).toMatch(/^claudia · .+-[0-9a-z]{2,}$/);
+    expect(terminalTitle).toMatch(/^.+-[0-9a-z]{2,}$/);
   });
 
   it("uses 'session' as name fallback when cwd is empty string", async () => {
