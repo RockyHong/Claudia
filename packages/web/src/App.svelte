@@ -173,7 +173,7 @@
 
 <div class="app" class:bg-mode={bgMode}>
   <header>
-    <h1><span>Claudia*</span></h1>
+    <h1><a href="https://github.com/RockyHong/Claudia" target="_blank" rel="noopener noreferrer"><span>Claudia*</span></a></h1>
     <div class="header-actions">
       {#if bgMode}
         <button class="header-btn" aria-label="Exit immersive" onclick={() => {
@@ -372,9 +372,18 @@
     color: var(--text);
   }
 
+  h1 a {
+    text-decoration: none;
+    color: inherit;
+  }
+
   h1 span {
     font-family: 'Roboto Slab', serif;
     color: var(--brand);
+  }
+
+  h1 a:hover span {
+    opacity: 0.8;
   }
 
   main {

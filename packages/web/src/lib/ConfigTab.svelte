@@ -87,7 +87,7 @@
   <ToggleSlider label="Night mode" checked={nightMode} onchange={onnightmodechange} />
   <ToggleSlider label="Auto focus" checked={autoFocus} onchange={onautofocuschange} />
   <label class="sfx-row">
-    <span class="sfx-label">Sound</span>
+    <span class="sfx-label">Notification sound</span>
     <input
       type="range"
       min="0"
@@ -145,11 +145,11 @@
     </div>
     <div class="hook-actions">
       <button class="hook-btn" onclick={requestInstall} disabled={hooksBusy}>
-        {hooksBusy ? "Working…" : "Reinstall"}
+        {hooksBusy ? "Working…" : "Reinstall hooks"}
       </button>
       {#if hooksInstalled}
         <button class="hook-btn danger" onclick={requestRemove} disabled={hooksBusy}>
-          Remove
+          Remove hooks
         </button>
       {/if}
     </div>
@@ -173,7 +173,7 @@
 {#if confirmAction === "install"}
   <ConfirmDialog
     message="This will install Claudia hooks into <code>~/.claude/settings.json</code>. Existing hooks are preserved."
-    confirmLabel="Install"
+    confirmLabel="Install hooks"
     variant="neutral"
     onconfirm={installHooks}
     oncancel={() => confirmAction = null}
@@ -181,7 +181,7 @@
 {:else if confirmAction === "remove"}
   <ConfirmDialog
     message="Remove all Claudia hooks from <code>~/.claude/settings.json</code>? Your other hooks will not be touched."
-    confirmLabel="Remove"
+    confirmLabel="Remove hooks"
     onconfirm={removeHooks}
     oncancel={() => confirmAction = null}
   />

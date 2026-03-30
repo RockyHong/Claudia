@@ -171,7 +171,7 @@
 <section>
   <div class="section-header">
     <h3>All Sets</h3>
-    <button class="open-folder-link" onclick={openAvatarsFolder}>Open folder</button>
+    <button class="open-folder-link" onclick={openAvatarsFolder}>Open avatars folder</button>
   </div>
 
   {#if loading}
