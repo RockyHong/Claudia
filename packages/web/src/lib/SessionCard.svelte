@@ -321,6 +321,7 @@
     top: 100%;
     left: 0;
     margin-top: 4px;
+    margin-bottom: 4px;
     min-width: 240px;
     max-width: 360px;
     background: var(--bg-card);

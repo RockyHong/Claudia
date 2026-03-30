@@ -6,6 +6,7 @@
   import AvatarPanel from "./lib/AvatarPanel.svelte";
   import SettingsModal from "./lib/SettingsModal.svelte";
   import AvatarModal from "./lib/AvatarModal.svelte";
+  import SpawnPopover from "./lib/SpawnPopover.svelte";
   import HookGate from "./lib/HookGate.svelte";
 
   let sessions = $state([]);
@@ -160,7 +161,7 @@
   }} />
 
   <main>
-    <SessionList {sessions} {showSpawn} {usage} {usageMonitoring} immersive={bgMode} onusagemonitoringchange={setUsageMonitoring} ontogglespawn={() => showSpawn = !showSpawn} onclosespawn={() => showSpawn = false} />
+    <SessionList {sessions} {showSpawn} {usage} {usageMonitoring} immersive={bgMode} onusagemonitoringchange={setUsageMonitoring} ontogglespawn={() => showSpawn = !showSpawn} />
   </main>
 
   {#if showSettings}
@@ -179,6 +180,10 @@
         showSettings = false;
       }}
     />
+  {/if}
+
+  {#if showSpawn}
+    <SpawnPopover onclose={() => showSpawn = false} />
   {/if}
 
   {#if showAvatarModal}
@@ -480,6 +485,11 @@
 
   .app.bg-mode :global(.card .detail-icon-btn:hover) {
     color: rgba(255, 255, 255, 0.5);
+  }
+
+  .app.bg-mode :global(.link-dropdown) {
+    top: auto;
+    bottom: 100%;
   }
 
   .app.bg-mode :global(.backdrop) {

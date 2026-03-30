@@ -1,10 +1,10 @@
 <script>
   import SessionCard from "./SessionCard.svelte";
-  import SpawnPopover from "./SpawnPopover.svelte";
+
   import UsageRings from "./UsageRings.svelte";
   import ConsentModal from "./ConsentModal.svelte";
 
-  let { sessions = [], showSpawn = false, immersive = false, usage = null, usageMonitoring = false, onusagemonitoringchange, ontogglespawn, onclosespawn } = $props();
+  let { sessions = [], showSpawn = false, immersive = false, usage = null, usageMonitoring = false, onusagemonitoringchange, ontogglespawn } = $props();
 
   const statePriority = { pending: 0, idle: 1, busy: 2 };
 
@@ -40,9 +40,6 @@
     <SessionCard {session} />
   {/each}
 
-  {#if showSpawn}
-    <SpawnPopover onclose={onclosespawn} />
-  {/if}
 </div>
 
 </div>
