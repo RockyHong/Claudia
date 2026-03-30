@@ -10,7 +10,3 @@ Actionable work items. Bug-by-bug, feature-by-feature.
 - [ ] Test Tauri build end-to-end
 - [ ] Steam Workshop submission for WE package
 - [ ] Real `preview.jpg` for WE Workshop listing
-
-## Blocked
-
-- [ ] Quick actions (approve/deny from Claudia) — blocked by lack of Claude Code approval API
