@@ -111,9 +111,7 @@ Self-documenting. `getSessionDisplayName(cwd)` not `getName(s)`. Booleans as nat
 | `npm run build` | `packages/web/dist/` | Vite production build |
 | `npm run bundle:server` | `dist/server-bundle.js` | esbuild, express kept external |
 | `npm run build:sea:x64` | `dist/claudia-server-x64.exe` | Node SEA 64-bit |
-| `npm run build:sea:x86` | `dist/claudia-server-x86.exe` | Node SEA 32-bit (for WE) |
 | `npm run build:tauri` | Tauri app + SEA sidecar | Needs Rust toolchain |
-| `npm run build:we` | `dist/claudia-wallpaper.zip` | SEA + WE template files |
 
 CI: `.github/workflows/build.yml` — triggered by version tag push.
 

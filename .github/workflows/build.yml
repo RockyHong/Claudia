@@ -24,22 +24,6 @@ jobs:
           name: sea-x64
           path: dist/claudia-server-x64.exe
 
-  build-sea-x86:
-    name: Build SEA (x86)
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          architecture: x86
-      - run: npm ci
-      - run: npm run build:sea:x86
-      - uses: actions/upload-artifact@v4
-        with:
-          name: sea-x86
-          path: dist/claudia-server-x86.exe
-
   build-standalone-win:
     name: Build Standalone (Windows)
     needs: build-sea-x64
@@ -93,28 +77,9 @@ jobs:
           name: standalone-mac
           path: src-tauri/target/release/bundle/dmg/*.dmg
 
-  package-we:
-    name: Package Wallpaper Engine
-    needs: build-sea-x86
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      - uses: actions/download-artifact@v4
-        with:
-          name: sea-x86
-          path: dist/
-      - run: node scripts/package-we.js
-      - uses: actions/upload-artifact@v4
-        with:
-          name: we-package
-          path: dist/claudia-wallpaper.zip
-
   release:
     name: Create GitHub Release
-    needs: [build-standalone-win, build-standalone-mac, package-we]
+    needs: [build-standalone-win, build-standalone-mac]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
@@ -126,5 +91,4 @@ jobs:
           files: |
             artifacts/standalone-win/Claudia-Windows.zip
             artifacts/standalone-mac/*.dmg
-            artifacts/we-package/claudia-wallpaper.zip
           generate_release_notes: true

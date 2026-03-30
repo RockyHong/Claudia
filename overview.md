@@ -102,13 +102,12 @@ Hooks installed in `~/.claude/settings.json` via the dashboard (first-run prompt
 
 ## Distribution
 
-Three entry points, same server code. Build details in `docs/building.md`.
+Two entry points, same server code. Build details in `docs/building.md`.
 
 | Entry | Shell | Runtime |
 |---|---|---|
 | `bin/cli.js` | Browser tab | Node.js (npx) |
 | `bin/standalone.js` | Tauri native window | Node SEA 64-bit + Tauri |
-| `bin/wallpaper.js` | Wallpaper Engine | Node SEA 32-bit + WE iframe |
 
 CLI: `npx claudia` / `npx claudia teardown`
 
@@ -133,7 +132,7 @@ CLI: `npx claudia` / `npx claudia teardown`
 | `git-status.js` | Git branch/status for session metadata |
 | `usage.js` | Claude API usage/cost from `~/.claude/.credentials.json` |
 | `sfx-preview.js` | Inline HTML page for SFX testing |
-| `job-object.js` | Windows Job Object — child process cleanup for standalone/WE |
+| `job-object.js` | Windows Job Object — child process cleanup for standalone |
 | `lifecycle.js` | Shared lifecycle state for managed distributions |
 
 ## Web — `packages/web/src/`
@@ -165,8 +164,8 @@ CLI: `npx claudia` / `npx claudia teardown`
 | Path | Contains |
 |---|---|
 | `src-tauri/` | Tauri config, Rust shell, sidecar binaries |
-| `scripts/` | `bundle-server.js`, `build-sea.js`, `package-we.js` |
-| `docs/building.md` | Build instructions for all 3 distributions |
+| `scripts/` | `bundle-server.js`, `build-sea.js` |
+| `docs/building.md` | Build instructions for both distributions |
 | `packages/server/assets/` | Default avatar videos (`avatar/`), sound files (`sfx/`) |
 
 ---
@@ -175,7 +174,7 @@ CLI: `npx claudia` / `npx claudia teardown`
 
 ```
 claudia/
-├── bin/cli.js, standalone.js, wallpaper.js
+├── bin/cli.js, standalone.js
 ├── packages/
 │   ├── server/src/          # 17 modules (see table)
 │   │   └── assets/          # avatars/, sfx/

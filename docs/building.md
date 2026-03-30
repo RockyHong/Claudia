@@ -1,6 +1,6 @@
 # Building Claudia
 
-Three distributions, one codebase. Pick the one you need.
+Two distributions, one codebase. Pick the one you need.
 
 ```
                   +-------------------+
@@ -8,10 +8,10 @@ Three distributions, one codebase. Pick the one you need.
                   |   + Web Dashboard |
                   +--------+----------+
                            |
-            +--------------+--------------+
-            |              |              |
-        npx claudia    Standalone    Wallpaper Engine
-        (npm package)  (desktop app) (desktop wallpaper)
+                  +--------+--------+
+                  |                 |
+              npx claudia      Standalone
+              (npm package)    (desktop app)
 ```
 
 ---
@@ -99,52 +99,6 @@ npx tauri build
 
 ---
 
-## 3. Wallpaper Engine
-
-**What you get:** A Steam Workshop item. Claudia runs as your desktop wallpaper.
-
-**How it works:** Wallpaper Engine launches a 32-bit `.exe` (Node SEA) that runs the server. WE's built-in browser renders `index.html`, which iframes `localhost:48901`. Switching wallpaper kills the server.
-
-### Prerequisites
-
-| Tool | Why |
-|------|-----|
-| Node.js 22+ (32-bit) | WE requires 32-bit executables |
-| npm | Package manager |
-
-### Build
-
-```bash
-npm run build:we
-```
-
-This runs:
-
-1. **`build:sea:x86`** -- builds a 32-bit Node SEA
-2. **`package-we.js`** -- copies SEA + template files into a zip
-
-Output: `dist/claudia-wallpaper.zip`
-
-### What's in the zip
-
-```
-claudia-wallpaper/
-  server.exe       32-bit Node SEA (Express + web UI baked in)
-  project.json     WE config: type "application", launches server.exe
-  index.html       Loads localhost:48901 in an iframe (with retry logic)
-  preview.jpg      Workshop thumbnail (placeholder -- replace before publishing)
-```
-
-### Publishing to Steam Workshop
-
-1. Build the zip
-2. Extract to a folder
-3. Replace `preview.jpg` with a real screenshot (620x348 recommended)
-4. In Wallpaper Engine: Editor > Open from folder > select the folder
-5. Upload to Workshop
-
----
-
 ## CI (GitHub Actions)
 
 Push a version tag to build everything automatically:
@@ -159,7 +113,6 @@ The workflow (`.github/workflows/build.yml`) runs:
 ```
 build-sea-x64 (Windows) --> build-standalone-win (zip) --+
                                                           +--> release
-build-sea-x86 (Windows) --> package-we (zip) ------------+        |
                                                           +--> GitHub Release
 build-standalone-mac -----> Claudia.dmg -----------------+    with all artifacts
 ```
@@ -167,7 +120,6 @@ build-standalone-mac -----> Claudia.dmg -----------------+    with all artifacts
 Artifacts attached to the release:
 - `Claudia-Windows.zip` -- portable exe (extract and run)
 - `Claudia.dmg` -- macOS disk image (drag to Applications)
-- `claudia-wallpaper.zip` -- Wallpaper Engine package
 
 Manual trigger: Actions tab > "Build Distribution Artifacts" > Run workflow.
 
@@ -175,15 +127,15 @@ Manual trigger: Actions tab > "Build Distribution Artifacts" > Run workflow.
 
 ## Architecture at a glance
 
-All three distributions run the same code:
+Both distributions run the same code:
 
-| Layer | npx | Standalone | Wallpaper Engine |
-|-------|-----|-----------|------------------|
-| Window | Browser tab | Tauri (native) | WE's CEF |
-| Server | Node.js | Node SEA (64-bit) | Node SEA (32-bit) |
-| Entry | `bin/cli.js` | `bin/standalone.js` | `bin/wallpaper.js` |
-| Child cleanup | Detached (survive) | Job Object (die together) | Job Object (die together) |
-| Lifecycle | Ctrl+C | Close window | Switch wallpaper |
+| Layer | npx | Standalone |
+|-------|-----|-----------|
+| Window | Browser tab | Tauri (native) |
+| Server | Node.js | Node SEA (64-bit) |
+| Entry | `bin/cli.js` | `bin/standalone.js` |
+| Child cleanup | Detached (survive) | Job Object (die together) |
+| Lifecycle | Ctrl+C | Close window |
 
 ---
 
@@ -196,10 +148,6 @@ All three distributions run the same code:
 **Tauri build fails**
 - Install Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 - Windows: install [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) with "Desktop development with C++".
-
-**WE wallpaper shows blank screen**
-- Server takes a moment to start. The iframe retries for 30 seconds.
-- Check if port 48901 is free: `netstat -ano | findstr :48901`
 
 **Bundle fails with import errors**
 - Run `npm install` first. esbuild needs to be installed.

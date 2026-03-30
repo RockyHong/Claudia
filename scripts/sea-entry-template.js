@@ -2,10 +2,21 @@
 // Extracts embedded web assets and server bundle to temp, then starts the server.
 // Must be CommonJS — Node SEA does not support ESM.
 
-const { writeFileSync, mkdirSync, existsSync } = require("node:fs");
+const { appendFileSync, writeFileSync, mkdirSync, existsSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const path = require("node:path");
 const sea = require("node:sea");
+
+// Crash log for debugging
+const LOG_PATH = path.join(tmpdir(), "claudia-sea.log");
+process.on("uncaughtException", (err) => {
+  appendFileSync(LOG_PATH, `[${new Date().toISOString()}] UNCAUGHT: ${err.stack || err}\n`);
+  process.exit(1);
+});
+process.on("unhandledRejection", (err) => {
+  appendFileSync(LOG_PATH, `[${new Date().toISOString()}] UNHANDLED: ${err.stack || err}\n`);
+  process.exit(1);
+});
 
 // Extract web assets from embedded blob
 const WEB_DIST_DIR = path.join(tmpdir(), "claudia-web-dist");
@@ -28,11 +39,7 @@ if (!existsSync(BUNDLE_PATH)) {
 // Set env so server knows where web assets are
 process.env.CLAUDIA_WEB_DIST = WEB_DIST_DIR;
 
-// Determine entry mode from executable name
-const exeName = path.basename(process.execPath).toLowerCase();
-const isWallpaper = exeName.includes("wallpaper");
 const managed = true; // SEA is always managed mode
-
 const port = process.env.CLAUDIA_PORT || 48901;
 
 // Dynamic import of the extracted server bundle
@@ -40,17 +47,12 @@ async function main() {
   const bundleUrl = "file://" + BUNDLE_PATH.replace(/\\/g, "/");
   const { startServer } = await import(bundleUrl);
   await startServer(port, { managed });
-
-  if (isWallpaper) {
-    console.log(`Claudia wallpaper server ready on port ${port}`);
-  } else {
-    console.log(`Claudia standalone server ready on port ${port}`);
-  }
+  console.log(`Claudia standalone server ready on port ${port}`);
 }
 
 main();
 
-// Minimal tar extraction for flat archives
+// Tar extraction — preserves relative paths (e.g. assets/index.js)
 function extractTar(buffer, destDir) {
   let offset = 0;
   const view = new Uint8Array(buffer);
@@ -64,8 +66,9 @@ function extractTar(buffer, destDir) {
     const sizeStr = new TextDecoder().decode(header.slice(124, 136)).trim();
     const size = parseInt(sizeStr, 8) || 0;
     if (size > 0) {
-      const data = view.slice(offset, offset + size);
-      writeFileSync(path.join(destDir, path.basename(name)), Buffer.from(data));
+      const outPath = path.join(destDir, name);
+      mkdirSync(path.dirname(outPath), { recursive: true });
+      writeFileSync(outPath, Buffer.from(view.slice(offset, offset + size)));
     }
     offset += Math.ceil(size / 512) * 512;
   }

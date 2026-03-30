@@ -1,4 +1,4 @@
-// Shared lifecycle state for managed distributions (standalone, wallpaper).
+// Shared lifecycle state for managed distributions (standalone).
 
 let jobHandle = null;
 
