@@ -235,6 +235,31 @@ describe("POST /hook/PermissionRequest (held response)", () => {
     });
     expect(res.status).toBe(400);
   });
+
+  it("releases held response when session ends", async () => {
+    await request("POST", "/hook/SessionStart", {
+      session_id: "perm-sess-end",
+      cwd: "/proj",
+    });
+
+    const permPromise = request("POST", "/hook/PermissionRequest", {
+      session_id: "perm-sess-end",
+      tool_name: "Bash",
+      cwd: "/proj",
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    // End the session — should release the held response
+    await request("POST", "/hook/SessionEnd", {
+      session_id: "perm-sess-end",
+      cwd: "/proj",
+    });
+
+    const hookRes = await permPromise;
+    // Should get a plain ok response (not a decision), meaning it was released
+    expect(hookRes.status).toBe(200);
+  });
 });
 
 describe("GET /events (SSE)", () => {

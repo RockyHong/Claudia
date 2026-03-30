@@ -168,6 +168,13 @@ app.post("/hook/:type", (req, res) => {
     broadcastSfx("send");
   }
 
+  // Release held permission response if session was removed (stopped)
+  if (event.state === "stopped" && heldPermissionResponses.has(event.session)) {
+    const held = heldPermissionResponses.get(event.session);
+    heldPermissionResponses.delete(event.session);
+    held.json({ ok: true });
+  }
+
   // Hold PermissionRequest responses — resolve when user decides in dashboard
   if (type === "PermissionRequest") {
     // Clean up any previous held response for this session
