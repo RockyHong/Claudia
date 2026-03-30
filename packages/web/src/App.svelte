@@ -500,6 +500,27 @@
     color: rgba(255, 255, 255, 0.5);
   }
 
+  .app.bg-mode :global(.tool-context) {
+    background: rgba(229, 160, 58, 0.1);
+    color: var(--amber);
+  }
+
+  .app.bg-mode :global(.inline-actions) {
+    border-top-color: rgba(229, 160, 58, 0.15);
+  }
+
+  .app.bg-mode :global(.action-approve) {
+    background: rgba(74, 186, 106, 0.12);
+    color: var(--green);
+    border-color: rgba(74, 186, 106, 0.25);
+  }
+
+  .app.bg-mode :global(.action-deny) {
+    background: rgba(217, 85, 85, 0.08);
+    color: var(--red);
+    border-color: rgba(217, 85, 85, 0.15);
+  }
+
   .app.bg-mode :global(.link-dropdown) {
     top: auto;
     bottom: 100%;
