@@ -12,6 +12,7 @@ struct ServerProcess(Mutex<Option<Child>>);
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let exe_dir = std::env::current_exe()
                 .expect("failed to get current exe path")

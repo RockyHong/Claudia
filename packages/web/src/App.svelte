@@ -2,6 +2,7 @@
   import { createSSEClient } from "./lib/sse.js";
   import { createSFXController } from "./lib/sfx.js";
   import { createAmbienceController } from "./lib/ambience.js";
+  import { initTauriBridge } from "./lib/tauri-bridge.js";
   import SessionList from "./lib/SessionList.svelte";
   import StatusBar from "./lib/StatusBar.svelte";
   import AvatarPanel from "./lib/AvatarPanel.svelte";
@@ -131,6 +132,7 @@
   }
 
   loadPreferences();
+  initTauriBridge();
 
   const sseClient = createSSEClient("/events", (update) => {
     // SFX-only messages (e.g. "send" on UserPromptSubmit) have no sessions

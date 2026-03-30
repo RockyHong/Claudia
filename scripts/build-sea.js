@@ -79,6 +79,18 @@ execSync([
 
 console.log(`\nSEA built: ${outputPath}`);
 
+// Auto-copy to Tauri directories (build-time + runtime)
+const tauriDirs = [
+  path.join(root, "src-tauri/binaries"),                      // build-time (externalBin)
+  path.join(root, "src-tauri/target/release/binaries"),        // runtime (dev builds)
+];
+for (const dir of tauriDirs) {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.copyFileSync(outputPath, path.join(dir, "claudia-server-x86_64-pc-windows-msvc.exe"));
+  fs.copyFileSync(outputPath, path.join(dir, "claudia-server.exe"));
+}
+console.log("Copied to Tauri sidecar directories");
+
 // Simple tar packer — creates a flat tar with just files
 function packTar(srcDir, destPath) {
   const files = fs.readdirSync(srcDir);

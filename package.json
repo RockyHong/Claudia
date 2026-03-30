@@ -24,6 +24,7 @@
     "build:sea": "node scripts/build-sea.js",
     "build:sea:x86": "node scripts/build-sea.js --arch x86",
     "build:sea:x64": "node scripts/build-sea.js --arch x64",
+    "dev:tauri": "npm run build:sea:x64 && cargo build --release --manifest-path src-tauri/Cargo.toml",
     "build:tauri": "npm run build:sea:x64 && npx tauri build",
     "build:we": "npm run build:sea:x86 && node scripts/package-we.js"
   },
@@ -43,6 +44,7 @@
     "system-tray"
   ],
   "devDependencies": {
+    "@tauri-apps/cli": "^2.10.1",
     "esbuild": "^0.27.4",
     "postject": "^1.0.0-alpha.6",
     "vitest": "^4.1.0"

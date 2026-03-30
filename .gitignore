@@ -33,8 +33,10 @@ coverage/
 *.log
 npm-debug.log*
 
-# Tauri (future)
+# Tauri
 src-tauri/target/
+src-tauri/binaries/
+src-tauri/gen/
 
 # Claude Code local settings (personal, not shared)
 .claude/settings.local.json

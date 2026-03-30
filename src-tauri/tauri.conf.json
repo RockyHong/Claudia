@@ -2,18 +2,20 @@
   "$schema": "https://raw.githubusercontent.com/nicedoc/tauri-plugin-schema/refs/heads/main/schema.json",
   "productName": "Claudia",
   "version": "0.1.0",
-  "identifier": "com.claudia.app",
+  "identifier": "com.claudia.desktop",
   "build": {
     "frontendDist": "../packages/web/dist",
     "beforeBuildCommand": "",
     "beforeDevCommand": ""
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
         "title": "Claudia",
         "width": 640,
         "height": 800,
+        "maximized": true,
         "resizable": true,
         "fullscreen": false,
         "url": "http://localhost:48901"

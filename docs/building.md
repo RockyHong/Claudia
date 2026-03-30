@@ -43,6 +43,7 @@ That's it. No build step beyond the web UI.
 | Node.js 22+ | SEA requires recent Node | `nvm install 22` |
 | Rust + Cargo | Tauri is a Rust app | [rustup.rs](https://rustup.rs/) |
 | npm | Package manager | Comes with Node |
+| @tauri-apps/cli | Tauri build toolchain | `npm install -D @tauri-apps/cli` |
 
 ### Build
 
@@ -84,7 +85,13 @@ npm run build                  # -> packages/web/dist/
 npm run build:sea:x64          # -> dist/claudia-server-x64.exe
 
 # 4. Copy SEA into Tauri's sidecar dir
-cp dist/claudia-server-x64.exe src-tauri/binaries/claudia-server.exe
+#    Tauri requires the target triple suffix — use `rustc -vV | grep host` to find yours
+# Windows:
+cp dist/claudia-server-x64.exe src-tauri/binaries/claudia-server-x86_64-pc-windows-msvc.exe
+# macOS Apple Silicon:
+# cp dist/claudia-server-x64 src-tauri/binaries/claudia-server-aarch64-apple-darwin
+# macOS Intel:
+# cp dist/claudia-server-x64 src-tauri/binaries/claudia-server-x86_64-apple-darwin
 
 # 5. Build Tauri
 npx tauri build
