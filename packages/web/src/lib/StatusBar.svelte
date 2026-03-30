@@ -48,6 +48,10 @@
     padding: var(--space-3) var(--space-4);
   }
 
+  .immersive .status-inner {
+    margin: 0;
+  }
+
   .dot {
     width: 8px;
     height: 8px;
