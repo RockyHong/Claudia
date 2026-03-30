@@ -8,6 +8,9 @@ use std::process::{Command, Child};
 use std::sync::Mutex;
 use tauri::Manager;
 
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+
 struct ServerProcess(Mutex<Option<Child>>);
 
 fn main() {
@@ -22,8 +25,10 @@ fn main() {
 
             let server_exe = exe_dir.join("binaries").join("claudia-server.exe");
 
-            let child = Command::new(&server_exe)
-                .spawn()
+            let mut cmd = Command::new(&server_exe);
+            #[cfg(windows)]
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+            let child = cmd.spawn()
                 .expect("failed to start claudia-server");
 
             app.manage(ServerProcess(Mutex::new(Some(child))));

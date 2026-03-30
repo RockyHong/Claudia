@@ -318,6 +318,15 @@ export function openTerminal(cwd) {
   strategy(cwd);
 }
 
+/**
+ * Open a URL in the system's default browser.
+ */
+export function openUrl(url) {
+  const cmd = openStrategies[currentPlatform];
+  if (!cmd) throw new Error(`Unsupported platform: ${currentPlatform}`);
+  spawn(cmd, [url], { detached: true, stdio: "ignore" }).unref();
+}
+
 function escapeAppleScript(str) {
   return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }

@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { focusTerminal, flashWindow, listTerminalWindows, renameTerminal } from "./focus.js";
 import { generateTerminalTitle } from "./terminal-title.js";
 import { trackProject, listProjects, removeProject } from "./project-storage.js";
-import { spawnSession, browseFolder, cancelBrowse, openFolder, openTerminal } from "./spawner.js";
+import { spawnSession, browseFolder, cancelBrowse, openFolder, openTerminal, openUrl } from "./spawner.js";
 import { parseMultipart } from "./multipart.js";
 import {
   getActiveSetPath,
@@ -122,6 +122,19 @@ export function registerApiRoutes(app, tracker, options = {}) {
       services.onUsageMonitoringChange(prefs.usageMonitoring);
     }
     res.json(prefs);
+  });
+
+  app.post("/api/open-url", (req, res) => {
+    const { url } = req.body;
+    if (!url || typeof url !== "string") {
+      return res.status(400).json({ error: "Missing url" });
+    }
+    try {
+      openUrl(url);
+      res.status(204).end();
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   app.post("/api/open-folder", (req, res) => {
