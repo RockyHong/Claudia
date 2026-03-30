@@ -5,7 +5,7 @@
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<div class="backdrop" onkeydown={() => {}} role="dialog" aria-modal="true" aria-label="Usage Monitoring">
+<div class="backdrop" onkeydown={() => {}} role="dialog" aria-modal="true" aria-label="Usage Monitoring" tabindex="-1">
   <div class="consent-card">
     <div class="icon">
       <BarChart3 size={40} strokeWidth={1.5} />
