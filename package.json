@@ -1,5 +1,5 @@
 {
-  "name": "claudia",
+  "name": "cldi",
   "version": "0.1.0",
   "description": "A personal receptionist for all your Claude Code agents",
   "private": true,
@@ -9,7 +9,7 @@
     "packages/web"
   ],
   "bin": {
-    "claudia": "./bin/cli.js",
+    "cldi": "./bin/cli.js",
     "claudia-standalone": "./bin/standalone.js",
     "claudia-wallpaper": "./bin/wallpaper.js"
   },
