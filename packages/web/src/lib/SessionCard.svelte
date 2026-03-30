@@ -17,6 +17,7 @@
   let linkError = $state("");
   let approveLoading = $state(false);
   let flashClass = $state("");
+  let decisionMade = $state(false);
   let toolContextExpanded = $state(false);
 
   async function handleDecision(decision) {
@@ -34,8 +35,14 @@
     setTimeout(() => {
       flashClass = "";
       approveLoading = false;
+      decisionMade = true;
     }, 300);
   }
+
+  // Reset when a new permission request arrives for this session
+  $effect(() => {
+    if (session.permissionRequest) decisionMade = false;
+  });
 
   onMount(() => {
     const handler = (e) => {
@@ -217,7 +224,7 @@
     </div>
   {/if}
 
-  {#if session.permissionRequest}
+  {#if session.permissionRequest && !decisionMade}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="tool-context" class:expanded={toolContextExpanded} onclick={() => toolContextExpanded = !toolContextExpanded} role="button" tabindex="0" onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), toolContextExpanded = !toolContextExpanded)}>
       {session.permissionRequest.toolName}{session.permissionRequest.toolInput ? `: ${session.permissionRequest.toolInput}` : ''}
