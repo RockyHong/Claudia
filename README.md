@@ -1,6 +1,6 @@
 # Claudia
 
-A personal receptionist for all your Claude Code agents.
+Your Claude keeper — one dashboard for all your Claude Code sessions.
 
 ```
   ┌──────────────────────────────────┐
@@ -17,7 +17,7 @@ A personal receptionist for all your Claude Code agents.
 
 When you run multiple Claude Code sessions across different terminals, you constantly tab-switch to check: *Is it done? Does it need me? Which terminal was that?*
 
-Claudia watches all your sessions in one browser tab. She tells you when and where to look — so you don't have to.
+Claudia keeps watch over all your sessions in one browser tab. She tells you when and where to look — so you don't have to.
 
 ## Quick Start
 
@@ -34,7 +34,7 @@ On first run, the dashboard will prompt you to install hooks. That's it — run 
 - **Live session tracking** — see all active Claude Code sessions at a glance
 - **State detection** — Idle, Busy, Pending (needs you)
 - **Terminal focus** — click to jump to the right terminal (Windows, macOS, Linux)
-- **Personality** — Claudia is a receptionist, not a dashboard. She talks like one.
+- **Personality** — Claudia is your Claude keeper, not a dashboard. She talks like one.
 - **Dynamic favicon** — tab icon changes color by state, so you can spot it even when minimized
 - **Dark/light mode** — follows your system preference
 - **Zero dependencies on Claude Code** — if Claudia isn't running, hooks fail silently. Nothing changes about your CLI experience.
