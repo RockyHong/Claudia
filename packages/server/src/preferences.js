@@ -7,6 +7,7 @@ const DEFAULTS = {
   theme: "dark",
   immersive: false,
   autoFocus: true,
+  typingAmbience: false,
   sfx: { muted: false, volume: 0.5 },
 };
 

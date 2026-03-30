@@ -1,6 +1,7 @@
 <script>
   import { createSSEClient } from "./lib/sse.js";
   import { createSFXController } from "./lib/sfx.js";
+  import { createAmbienceController } from "./lib/ambience.js";
   import SessionList from "./lib/SessionList.svelte";
   import StatusBar from "./lib/StatusBar.svelte";
   import AvatarPanel from "./lib/AvatarPanel.svelte";
@@ -24,8 +25,10 @@
   let nightMode = $state(true);
   let usageMonitoring = $state(false);
   let autoFocus = $state(true);
+  let typingAmbience = $state(false);
 
   const sfx = createSFXController();
+  const ambience = createAmbienceController();
 
   async function loadPreferences() {
     try {
@@ -38,6 +41,7 @@
       applyTheme(nightMode, false);
       usageMonitoring = prefs.usageMonitoring === true;
       autoFocus = prefs.autoFocus !== false;
+      typingAmbience = prefs.typingAmbience === true;
       if (usageMonitoring) startUsagePolling();
     } catch {
       // Fallback defaults already set
@@ -78,6 +82,23 @@
       body: JSON.stringify({ autoFocus: enabled }),
     }).catch(() => {});
   }
+
+  function setTypingAmbience(enabled) {
+    typingAmbience = enabled;
+    fetch("/api/preferences", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ typingAmbience: enabled }),
+    }).catch(() => {});
+  }
+
+  $effect(() => {
+    if (typingAmbience && aggregateState === "busy") {
+      ambience.start();
+    } else {
+      ambience.stop();
+    }
+  });
 
   async function loadUsage() {
     if (!usageMonitoring) {
@@ -218,6 +239,8 @@
       {sfx}
       {nightMode}
       onnightmodechange={(v) => { nightMode = v; applyTheme(v); }}
+      {typingAmbience}
+      ontypingambiencechange={setTypingAmbience}
       {usageMonitoring}
       onusagemonitoringchange={setUsageMonitoring}
       {autoFocus}

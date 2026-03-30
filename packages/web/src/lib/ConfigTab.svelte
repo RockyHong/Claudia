@@ -3,7 +3,7 @@
   import ConfirmDialog from "./ConfirmDialog.svelte";
   import ConsentModal from "./ConsentModal.svelte";
 
-  let { nightMode = true, onnightmodechange, sfx, usageMonitoring = false, onusagemonitoringchange, autoFocus = true, onautofocuschange, onhooksremoved } = $props();
+  let { nightMode = true, onnightmodechange, typingAmbience = false, ontypingambiencechange, sfx, usageMonitoring = false, onusagemonitoringchange, autoFocus = true, onautofocuschange, onhooksremoved } = $props();
 
   let showConsent = $state(false);
 
@@ -86,6 +86,7 @@
   <h3>Preferences</h3>
   <ToggleSlider label="Night mode" checked={nightMode} onchange={onnightmodechange} />
   <ToggleSlider label="Auto focus" checked={autoFocus} onchange={onautofocuschange} />
+  <ToggleSlider label="Typing ambience" checked={typingAmbience} onchange={ontypingambiencechange} />
   <label class="sfx-row">
     <span class="sfx-label">Notification sound</span>
     <input
