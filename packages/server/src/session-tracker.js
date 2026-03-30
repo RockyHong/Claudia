@@ -29,6 +29,7 @@ function createSession(id, cwd) {
     lastEvent: Date.now(),
     stateChangedAt: Date.now(),
     pendingMessage: null,
+    permissionRequest: null,
     spawned: false,
     terminalTitle: null,
     windowHandle: null,
@@ -85,7 +86,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
   }
 
   function handleEvent(event) {
-    const { session: sessionId, state, tool, cwd, message, ts, hookType } = event;
+    const { session: sessionId, state, tool, cwd, message, ts, hookType, permissionRequest } = event;
 
     if (!sessionId || !state) return;
 
@@ -142,6 +143,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
         session.state = State.BUSY;
         session.lastTool = tool || session.lastTool;
         session.pendingMessage = null;
+        session.permissionRequest = null;
         break;
 
       case "idle":
@@ -152,6 +154,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
         session.state = State.IDLE;
         session.lastTool = null;
         session.pendingMessage = null;
+        session.permissionRequest = null;
         session.subagentActivity = 0;
         session.activeSubagents = 0;
         if (prevState !== State.IDLE && session.terminalTitle && onIdleAlert) {
@@ -162,6 +165,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
       case "pending": {
         session.state = State.PENDING;
         session.pendingMessage = message || null;
+        session.permissionRequest = permissionRequest || null;
         if (prevState !== State.PENDING && session.terminalTitle && onPendingAlert) {
           onPendingAlert(session);
         }
@@ -199,6 +203,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
       lastEvent: s.lastEvent,
       stateChangedAt: s.stateChangedAt,
       pendingMessage: s.pendingMessage,
+      permissionRequest: s.permissionRequest,
       spawned: s.spawned,
       terminalTitle: s.terminalTitle,
       windowHandle: s.windowHandle,
@@ -292,6 +297,7 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
       lastEvent: s.lastEvent,
       stateChangedAt: s.stateChangedAt,
       pendingMessage: s.pendingMessage,
+      permissionRequest: s.permissionRequest,
       spawned: s.spawned,
       terminalTitle: s.terminalTitle,
       windowHandle: s.windowHandle,

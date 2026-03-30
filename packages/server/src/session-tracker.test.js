@@ -235,6 +235,49 @@ describe("session-tracker", () => {
       tracker.handleEvent({ session: "unknown-id", state: "pending", message: "hi" });
       expect(tracker.getSessions()).toHaveLength(0);
     });
+
+    it("stores permissionRequest on pending event", () => {
+      tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
+      tracker.handleEvent({
+        session: "s1",
+        state: "pending",
+        permissionRequest: { toolName: "Bash", toolInput: "npm test" },
+      });
+
+      const session = tracker.getSession("s1");
+      expect(session.permissionRequest).toEqual({
+        toolName: "Bash",
+        toolInput: "npm test",
+      });
+    });
+
+    it("clears permissionRequest when state leaves pending", () => {
+      tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
+      tracker.handleEvent({
+        session: "s1",
+        state: "pending",
+        permissionRequest: { toolName: "Bash", toolInput: "npm test" },
+      });
+      tracker.handleEvent({ session: "s1", state: "busy", tool: "Bash" });
+
+      const session = tracker.getSession("s1");
+      expect(session.permissionRequest).toBeNull();
+    });
+
+    it("includes permissionRequest in getSessions output", () => {
+      tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
+      tracker.handleEvent({
+        session: "s1",
+        state: "pending",
+        permissionRequest: { toolName: "Edit", toolInput: "src/foo.js" },
+      });
+
+      const sessions = tracker.getSessions();
+      expect(sessions[0].permissionRequest).toEqual({
+        toolName: "Edit",
+        toolInput: "src/foo.js",
+      });
+    });
   });
 
   describe("display name extraction", () => {
