@@ -230,6 +230,10 @@ app.post("/api/permission/:sessionId", (req, res) => {
   };
 
   held.json(hookOutput);
+
+  // Immediately transition session to busy so the dashboard reflects the decision
+  tracker.handleEvent({ session: req.params.sessionId, state: "busy" });
+
   res.json({ ok: true });
 });
 
