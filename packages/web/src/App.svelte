@@ -22,6 +22,7 @@
   let hooksPassed = $state(false);
   let nightMode = $state(true);
   let usageMonitoring = $state(false);
+  let autoFocus = $state(true);
 
   const sfx = createSFXController();
 
@@ -35,6 +36,7 @@
       sfx.volume = prefs.sfx.volume;
       applyTheme(nightMode, false);
       usageMonitoring = prefs.usageMonitoring === true;
+      autoFocus = prefs.autoFocus !== false;
     } catch {
       // Fallback defaults already set
     }
@@ -57,6 +59,15 @@
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ usageMonitoring: enabled }),
+    }).catch(() => {});
+  }
+
+  function setAutoFocus(enabled) {
+    autoFocus = enabled;
+    fetch("/api/preferences", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ autoFocus: enabled }),
     }).catch(() => {});
   }
 
@@ -172,6 +183,8 @@
       onnightmodechange={(v) => { nightMode = v; applyTheme(v); }}
       {usageMonitoring}
       onusagemonitoringchange={setUsageMonitoring}
+      {autoFocus}
+      onautofocuschange={setAutoFocus}
       onhooksremoved={() => {
         sessions = [];
         aggregateState = "idle";

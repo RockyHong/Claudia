@@ -38,10 +38,14 @@ const tracker = createSessionTracker({
       sfx: sounds.length > 0 ? sounds : undefined,
     });
   },
-  onPendingAlert: (session) => {
+  onPendingAlert: async (session) => {
+    const prefs = await getPreferences();
+    if (prefs.autoFocus === false) return;
     focusTerminal(session.displayName, "alert", session.windowHandle);
   },
-  onIdleAlert: (session) => {
+  onIdleAlert: async (session) => {
+    const prefs = await getPreferences();
+    if (prefs.autoFocus === false) return;
     focusTerminal(session.displayName, "navigate", session.windowHandle);
   },
 });

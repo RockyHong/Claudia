@@ -6,6 +6,7 @@ const DEFAULTS = {
   activeSet: "default",
   theme: "dark",
   immersive: false,
+  autoFocus: true,
   sfx: { muted: false, volume: 0.5 },
 };
 
