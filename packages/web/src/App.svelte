@@ -478,10 +478,6 @@
     stroke: rgba(255, 255, 255, 0.25);
   }
 
-  .app.bg-mode :global(.usage-rings .ring-fill.low-fuel) {
-    stroke: var(--amber);
-  }
-
   .app.bg-mode :global(.usage-rings .ring-item) {
     color: rgba(255, 255, 255, 0.25);
   }

@@ -19,10 +19,6 @@
     return utilization > timeElapsedPct(resetsAt, windowMs);
   }
 
-  function isLowFuel(utilization) {
-    return (utilization ?? 0) >= 75;
-  }
-
   function tooltipText(utilization, outpacing) {
     const pct = `${Math.round(utilization ?? 0)}% used`;
     if (outpacing) return `${pct}\nMay run out before reset at current pace`;
@@ -33,9 +29,7 @@
   let countdownText7d = $state("");
   let stale = $state(false);
   let fiveHourOutpacing = $state(false);
-  let fiveHourLowFuel = $state(false);
   let sevenDayOutpacing = $state(false);
-  let sevenDayLowFuel = $state(false);
 
   function dashOffset(utilization) {
     return CIRCUMFERENCE * (1 - (utilization || 0) / 100);
@@ -61,9 +55,7 @@
     countdownText7d = formatCountdown(usage.sevenDay?.resetsAt);
     stale = usage.fetchedAt && (Date.now() - usage.fetchedAt > STALE_MS);
     fiveHourOutpacing = isOutpacing(usage.fiveHour?.utilization, usage.fiveHour?.resetsAt, WINDOW_5H);
-    fiveHourLowFuel = isLowFuel(usage.fiveHour?.utilization);
     sevenDayOutpacing = isOutpacing(usage.sevenDay?.utilization, usage.sevenDay?.resetsAt, WINDOW_7D);
-    sevenDayLowFuel = isLowFuel(usage.sevenDay?.utilization);
   }
 
   $effect(() => {
@@ -82,7 +74,6 @@
           <circle class="ring-bg" cx="12" cy="12" r="9"/>
           {#if usage}
             <circle class="ring-fill" cx="12" cy="12" r="9"
-              class:low-fuel={fiveHourLowFuel}
               class:outpacing={fiveHourOutpacing}
               stroke-dasharray={CIRCUMFERENCE}
               stroke-dashoffset={dashOffset(usage.fiveHour?.utilization)}
@@ -103,7 +94,6 @@
           <circle class="ring-bg" cx="12" cy="12" r="9"/>
           {#if usage}
             <circle class="ring-fill" cx="12" cy="12" r="9"
-              class:low-fuel={sevenDayLowFuel}
               class:outpacing={sevenDayOutpacing}
               stroke-dasharray={CIRCUMFERENCE}
               stroke-dashoffset={dashOffset(usage.sevenDay?.utilization)}
@@ -174,10 +164,6 @@
     stroke-linecap: round;
     transition: stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1),
                 stroke 0.3s ease;
-  }
-
-  .ring-fill.low-fuel {
-    stroke: var(--amber);
   }
 
   .ring-fill.outpacing {
