@@ -104,6 +104,10 @@
     }
   }
 
+  function flashTerminal(hwnd) {
+    fetch(`/api/flash/${hwnd}`, { method: "POST" }).catch(() => {});
+  }
+
   async function linkTerminal(hwnd) {
     try {
       await fetch(`/api/link/${session.id}`, {
@@ -149,7 +153,7 @@
             <div class="link-dropdown-item link-dropdown-empty">No terminals found</div>
           {:else}
             {#each terminalList as terminal}
-              <button class="link-dropdown-item" onclick={() => linkTerminal(terminal.hwnd)}>
+              <button class="link-dropdown-item" onclick={() => linkTerminal(terminal.hwnd)} onmouseenter={() => flashTerminal(terminal.hwnd)}>
                 {terminal.title}
               </button>
             {/each}

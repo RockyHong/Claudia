@@ -5,7 +5,7 @@ import path from "node:path";
 import { platform } from "node:os";
 import express from "express";
 import { fileURLToPath } from "node:url";
-import { focusTerminal, listTerminalWindows, renameTerminal } from "./focus.js";
+import { focusTerminal, flashWindow, listTerminalWindows, renameTerminal } from "./focus.js";
 import { generateTerminalTitle } from "./terminal-title.js";
 import { trackProject, listProjects, removeProject } from "./project-storage.js";
 import { spawnSession, browseFolder, cancelBrowse, openFolder, openTerminal } from "./spawner.js";
@@ -401,6 +401,14 @@ export function registerApiRoutes(app, tracker, services) {
 
     console.log(`[link] session=${session.displayName} title=${terminalTitle} hwnd=${windowHandle}`);
     res.json({ ok: true, terminalTitle });
+  });
+
+  // Flash a terminal window overlay (hover preview, no focus steal)
+  app.post("/api/flash/:hwnd", (req, res) => {
+    const hwnd = parseInt(req.params.hwnd, 10);
+    if (!hwnd || hwnd <= 0) return res.status(400).json({ error: "Invalid hwnd" });
+    flashWindow(hwnd);
+    res.json({ ok: true });
   });
 
   // Trigger terminal focus for a session

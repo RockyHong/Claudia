@@ -234,6 +234,47 @@ function focusFallback() {
 }
 
 /**
+ * Flash a blue overlay on a window by HWND without stealing focus.
+ * Used for hover-preview in the terminal link dropdown.
+ * Windows-only — no-op on other platforms.
+ */
+export function flashWindow(windowHandle) {
+  if (currentPlatform !== "win32" || !windowHandle) return Promise.resolve(false);
+  const color = FLASH_COLORS.navigate;
+  const ps = [
+    "Add-Type -AssemblyName System.Windows.Forms",
+    'Add-Type -Language CSharp @"\n' + WIN_HELPER_CS + '\n"@',
+    "[WinHelper]::SetProcessDpiAwareness(2) | Out-Null",
+    "$hwnd = [IntPtr]" + windowHandle,
+    "if ($hwnd -ne [IntPtr]::Zero -and -not [WinHelper]::IsIconic($hwnd)) {",
+    "  $rect = [WinHelper]::GetWindowBounds($hwnd)",
+    "  $w = $rect.Right - $rect.Left",
+    "  $h = $rect.Bottom - $rect.Top",
+    "  if ($w -gt 0 -and $h -gt 0) {",
+    "    $form = New-Object System.Windows.Forms.Form",
+    "    $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::None",
+    "    $form.BackColor = [System.Drawing.Color]::FromArgb(" + color.r + ", " + color.g + ", " + color.b + ")",
+    "    $form.Opacity = 0.3",
+    "    $form.TopMost = $true",
+    "    $form.ShowInTaskbar = $false",
+    "    $form.StartPosition = [System.Windows.Forms.FormStartPosition]::Manual",
+    "    $form.Location = New-Object System.Drawing.Point($rect.Left, $rect.Top)",
+    "    $form.Size = New-Object System.Drawing.Size($w, $h)",
+    "    $form.Show()",
+    "    Start-Sleep -Milliseconds 200",
+    "    for ($i = 6; $i -ge 0; $i--) {",
+    "      $form.Opacity = $i * 0.05",
+    "      $form.Refresh()",
+    "      Start-Sleep -Milliseconds 30",
+    "    }",
+    "    $form.Close()",
+    "  }",
+    "}",
+  ].join("\n");
+  return runFile("powershell", ["-NoProfile", "-Command", ps]);
+}
+
+/**
  * Check which window handles from the given array are no longer valid.
  * Returns a Set of handles whose windows have been closed.
  * Only works on win32 — returns empty set on other platforms.
@@ -280,7 +321,7 @@ const TERMINAL_PROCESS_NAMES = [
   "WezTerm",
 ];
 
-// C# helper for EnumWindows-based window enumeration.
+// C# helper: enumerates visible, non-minimized windows with their PIDs.
 // Compiled once per PowerShell invocation via Add-Type.
 const WIN_ENUM_CS = [
   "using System; using System.Collections.Generic; using System.Runtime.InteropServices; using System.Text;",
@@ -288,13 +329,14 @@ const WIN_ENUM_CS = [
   "  public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);",
   '  [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);',
   '  [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);',
+  '  [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr hWnd);',
   '  [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);',
   '  [DllImport("user32.dll")] public static extern int GetWindowTextLength(IntPtr hWnd);',
   '  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);',
   "  public static List<string> GetVisibleWindows() {",
   "    var result = new List<string>();",
   "    EnumWindows((hWnd, lParam) => {",
-  "      if (IsWindowVisible(hWnd)) {",
+  "      if (IsWindowVisible(hWnd) && !IsIconic(hWnd)) {",
   "        int len = GetWindowTextLength(hWnd);",
   "        if (len > 0) {",
   "          var sb = new StringBuilder(len + 1);",
@@ -325,14 +367,14 @@ export function listTerminalWindows(excludeHandles = new Set()) {
   const ps = [
     `$names = @(${nameFilter})`,
     'Add-Type -Language CSharp @"\n' + WIN_ENUM_CS + '\n"@',
-    "$procs = @{}",
-    "Get-Process | ForEach-Object { $procs[$_.Id] = $_.ProcessName }",
+    "$pids = @{}",
+    "Get-Process | Where-Object { $names -contains $_.ProcessName } | ForEach-Object { $pids[$_.Id] = $true }",
     "[WinEnum]::GetVisibleWindows() | ForEach-Object {",
     "  $parts = $_ -split '\\|', 3",
     "  $hwnd = $parts[0]",
-    "  $pid = [int]$parts[1]",
+    "  $wpid = [int]$parts[1]",
     "  $title = $parts[2]",
-    "  if ($procs.ContainsKey($pid) -and $names -contains $procs[$pid]) {",
+    "  if ($pids.ContainsKey($wpid)) {",
     '    "$hwnd|$title"',
     "  }",
     "}",
