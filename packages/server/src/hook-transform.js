@@ -10,7 +10,16 @@ const HOOK_TYPE_MAP = {
 	UserPromptSubmit: (input) => ({ state: "busy" }),
 	PreToolUse: (input) => ({ state: "busy", tool: truncate(input.tool_name) }),
 	PostToolUse: (input) => ({ state: "busy", tool: truncate(input.tool_name) }),
-	PermissionRequest: (input) => ({ state: "pending", tool: truncate(input.tool_name) }),
+	PermissionRequest: (input) => ({
+		state: "pending",
+		tool: truncate(input.tool_name),
+		permissionRequest: {
+			toolName: input.tool_name,
+			toolInput: input.tool_input
+				? truncate(JSON.stringify(input.tool_input), 500)
+				: null,
+		},
+	}),
 	Stop: (input) => ({ state: "idle" }),
 	SessionEnd: (input) => ({ state: "stopped" }),
 	SubagentStop: (input) => ({ state: "busy" }),

@@ -29,6 +29,46 @@ describe("transformHookPayload", () => {
 		expect(result.tool).toBe("Edit");
 	});
 
+	it("maps PermissionRequest to pending with permissionRequest data", () => {
+		const input = {
+			session_id: "sess-123",
+			tool_name: "Bash",
+			tool_input: { command: "npm run test -- --coverage" },
+			cwd: "/home/user/project",
+		};
+		const result = transformHookPayload("PermissionRequest", input);
+		expect(result.state).toBe("pending");
+		expect(result.tool).toBe("Bash");
+		expect(result.permissionRequest).toEqual({
+			toolName: "Bash",
+			toolInput: '{"command":"npm run test -- --coverage"}',
+		});
+	});
+
+	it("truncates long toolInput in permissionRequest to 500 chars", () => {
+		const input = {
+			session_id: "sess-123",
+			tool_name: "Edit",
+			tool_input: { content: "x".repeat(1000) },
+			cwd: "/home/user/project",
+		};
+		const result = transformHookPayload("PermissionRequest", input);
+		expect(result.permissionRequest.toolInput.length).toBeLessThanOrEqual(500);
+	});
+
+	it("handles missing tool_input in PermissionRequest", () => {
+		const input = {
+			session_id: "sess-123",
+			tool_name: "Bash",
+			cwd: "/home/user/project",
+		};
+		const result = transformHookPayload("PermissionRequest", input);
+		expect(result.permissionRequest).toEqual({
+			toolName: "Bash",
+			toolInput: null,
+		});
+	});
+
 	it("maps Stop to idle", () => {
 		const result = transformHookPayload("Stop", BASE_INPUT);
 		expect(result.state).toBe("idle");
