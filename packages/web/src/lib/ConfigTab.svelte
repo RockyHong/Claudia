@@ -85,8 +85,8 @@
 <section>
   <h3>Preferences</h3>
   <ToggleSlider label="Night mode" checked={nightMode} onchange={onnightmodechange} />
-  <ToggleSlider label="Auto focus" checked={autoFocus} onchange={onautofocuschange} />
-  <ToggleSlider label="Typing ambience" checked={typingAmbience} onchange={ontypingambiencechange} />
+  <ToggleSlider label="Focus terminal on alert" checked={autoFocus} onchange={onautofocuschange} />
+  <ToggleSlider label="Typing ambience sound" checked={typingAmbience} onchange={ontypingambiencechange} />
   <label class="sfx-row">
     <span class="sfx-label">Notification sound</span>
     <input
@@ -121,7 +121,7 @@
 <section>
   <h3>Claude Code Connection</h3>
   <ToggleSlider
-    label="Usage monitoring"
+    label="API usage monitoring"
     checked={usageMonitoring}
     onchange={(v) => {
       if (v) {
