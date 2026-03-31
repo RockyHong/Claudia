@@ -16,15 +16,20 @@
   let narrow = $state(false);
 
   onMount(() => {
-    const mq = window.matchMedia("(max-width: 900px)");
-    narrow = mq.matches;
-    const handler = (e) => { narrow = e.matches; };
-    mq.addEventListener("change", handler);
+    const mqNarrow = window.matchMedia("(max-width: 900px)");
+    const mqPortrait = window.matchMedia("(orientation: portrait)");
+    const update = () => { narrow = mqNarrow.matches || mqPortrait.matches; };
+    update();
+    mqNarrow.addEventListener("change", update);
+    mqPortrait.addEventListener("change", update);
 
     const saved = localStorage.getItem("md-viewer-theme");
     if (saved === "dark") darkMode = true;
 
-    return () => mq.removeEventListener("change", handler);
+    return () => {
+      mqNarrow.removeEventListener("change", update);
+      mqPortrait.removeEventListener("change", update);
+    };
   });
 
   async function loadTree() {
