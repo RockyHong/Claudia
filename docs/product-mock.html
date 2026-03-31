@@ -3,14 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Claudia Theme Demo</title>
+<title>Claudia Product Mock</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ============================================
-     CLAUDIA DESIGN SYSTEM — Theme Demo
-     Brand: #c15f3c (Claude orange-pink)
+     CLAUDIA PRODUCT MOCK
+     Assembled dashboard layout + immersive mode
+     See design-system.html for component rules
      ============================================ */
 
   :root {
@@ -304,13 +305,6 @@
     gap: var(--space-2);
     flex-wrap: wrap;
   }
-  .swatch-row-label {
-    font-size: var(--text-xs);
-    color: var(--text-faint);
-    font-weight: 500;
-    width: 100%;
-    margin-bottom: var(--space-1);
-  }
   .swatch {
     width: 48px;
     height: 48px;
@@ -354,42 +348,6 @@
     padding: var(--space-3) var(--space-4);
     border-radius: 8px;
     border: 1px solid var(--border);
-  }
-
-  /* ---- Modal Preview ---- */
-  .modal-preview {
-    background: var(--bg-raised);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: var(--space-6);
-    position: relative;
-  }
-  .modal-preview::before {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, rgba(193, 95, 60, 0.15), transparent 50%);
-    z-index: 0;
-    pointer-events: none;
-  }
-  .modal-title {
-    font-family: var(--font-heading);
-    font-size: var(--text-xl);
-    font-weight: 700;
-    margin-bottom: var(--space-3);
-    position: relative;
-  }
-  .modal-text {
-    color: var(--text-muted);
-    font-size: var(--text-sm);
-    margin-bottom: var(--space-5);
-    position: relative;
-  }
-  .modal-actions {
-    display: flex;
-    gap: var(--space-3);
-    position: relative;
   }
 
   /* ---- Divider ---- */
@@ -715,21 +673,6 @@
 
   <div class="divider"></div>
 
-  <!-- Modal Preview -->
-  <div>
-    <div class="section-label" style="margin-bottom: var(--space-3);">Modal / Panel</div>
-    <div class="modal-preview">
-      <div class="modal-title">Avatar Settings</div>
-      <div class="modal-text">Choose an avatar set for your Claudia receptionist. Each set has unique idle, working, and attention animations.</div>
-      <div class="modal-actions">
-        <button class="btn btn-primary">Save changes</button>
-        <button class="btn btn-ghost">Cancel</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="divider"></div>
-
   <!-- Typography -->
   <div>
     <div class="section-label" style="margin-bottom: var(--space-3);">Typography</div>
@@ -760,54 +703,6 @@
         <div class="swatch" style="background: #6e3120;"><span class="label">800</span></div>
         <div class="swatch" style="background: #4d221a;"><span class="label">900</span></div>
       </div>
-    </div>
-  </div>
-
-  <div class="divider"></div>
-
-  <!-- Semantic Colors -->
-  <div>
-    <div class="section-label" style="margin-bottom: var(--space-3);">Semantic Colors</div>
-    <div class="swatches">
-      <div class="swatch-row" style="padding-bottom: 20px;">
-        <div class="swatch" style="background: var(--green); width: 64px;"><span class="label">Idle</span></div>
-        <div class="swatch" style="background: var(--blue); width: 64px;"><span class="label">Busy</span></div>
-        <div class="swatch" style="background: var(--amber); width: 64px;"><span class="label">Pending</span></div>
-        <div class="swatch" style="background: var(--red); width: 64px;"><span class="label">Error</span></div>
-        <div class="swatch" style="background: var(--brand); width: 64px;"><span class="label">Brand</span></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="divider"></div>
-
-  <!-- Surface Colors -->
-  <div>
-    <div class="section-label" style="margin-bottom: var(--space-3);">Surfaces & Neutrals</div>
-    <div class="swatches">
-      <div class="swatch-row" style="padding-bottom: 20px;">
-        <div class="swatch" style="background: var(--bg); width: 64px;"><span class="label">bg</span></div>
-        <div class="swatch" style="background: var(--bg-card); width: 64px;"><span class="label">card</span></div>
-        <div class="swatch" style="background: var(--bg-raised); width: 64px;"><span class="label">raised</span></div>
-        <div class="swatch" style="background: var(--border); width: 64px;"><span class="label">border</span></div>
-        <div class="swatch" style="background: var(--border-active); width: 64px;"><span class="label">active</span></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="divider"></div>
-
-  <!-- Buttons -->
-  <div>
-    <div class="section-label" style="margin-bottom: var(--space-3);">Buttons</div>
-    <div style="display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: center;">
-      <button class="btn btn-primary">Primary action</button>
-      <button class="btn btn-primary" style="opacity: 0.5; pointer-events: none;">Disabled</button>
-      <button class="btn btn-ghost">Ghost button</button>
-      <button class="btn btn-ghost">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-        Retry
-      </button>
     </div>
   </div>
 

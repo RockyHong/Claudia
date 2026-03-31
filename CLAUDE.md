@@ -42,7 +42,8 @@ claudia/
     techstack.md                 Tech choices, architecture rules
     building.md                  Build instructions (npx, Tauri)
     privacy.md                   What Claudia accesses, removal options
-    design-system.html           Canonical visual reference
+    design-system.html           Component catalog + design rules
+    product-mock.html            Assembled dashboard + immersive mode
     superpowers/
       specs/                     Design specs (from brainstorming)
       plans/                     Implementation plans
@@ -69,7 +70,7 @@ These are non-negotiable. Every line of code should reflect them.
 
 ### Visual Design System
 
-`docs/design-system.html` is the canonical visual reference for all UI components. It defines the element catalog (buttons, inputs, toggles), modal system (shell, confirm, gate), and layout principles (spacing rhythm, border-radius scale, visual hierarchy). Every UI component must follow its patterns — when in doubt, open the demo.
+`docs/design-system.html` is the canonical reference for UI components — element catalog (buttons, inputs, toggles), modal system (shell, confirm, gate), color palette, and layout principles (spacing rhythm, border-radius scale, visual hierarchy). Every UI component must follow its patterns. `docs/product-mock.html` shows the assembled dashboard layout and immersive mode — use it for composition and product-level decisions, not component rules.
 
 **Tooltips:** Add only to icon-only elements whose meaning isn't obvious from context or interaction. Use `<Tooltip text="...">` (not HTML `title`). Text is specific and concise (<30 chars) — name the target, not just the verb ("Open project folder" not "Open folder"). If one icon in a group gets a tooltip, all siblings should too.
 
