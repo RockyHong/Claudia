@@ -1,6 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import { GitBranch, Folder, Terminal } from "lucide-svelte";
+  import Tooltip from "./Tooltip.svelte";
 
   let { session } = $props();
 
@@ -167,10 +168,10 @@
       <span class="dot {config.dot}"></span>
       <span class="name">
         {session.terminalTitle || session.displayName}
-        {#if !session.spawned}
-          <span class="orphan-badge" title="Click to link a terminal" role="button" tabindex="0" onclick={openLinkDropdown} onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), openLinkDropdown(e))}>unlinked</span>
-        {/if}
       </span>
+      {#if !session.spawned}
+        <Tooltip text="Link to terminal window"><span class="orphan-badge" role="button" tabindex="0" onclick={openLinkDropdown} onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), openLinkDropdown(e))}>unlinked</span></Tooltip>
+      {/if}
       {#if showLinkDropdown}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -197,7 +198,7 @@
         &middot; {elapsed}
       {/if}
       {#if session.subagentActivity > 0}
-        <span class="subagent-count" title="Subagents completed this turn">{session.subagentActivity} sub</span>
+        <Tooltip text="Subagent tasks this turn"><span class="subagent-count">{session.subagentActivity} sub</span></Tooltip>
       {/if}
     </span>
   </div>
@@ -211,16 +212,16 @@
         </span>
       {/if}
       {#if session.compacted}
-        <span class="card-detail compacted-badge" title="Context was compacted">compacted</span>
+        <Tooltip text="Context was compacted"><span class="card-detail compacted-badge">compacted</span></Tooltip>
       {/if}
       {#if session.cwd}
         <div class="detail-actions">
-          <button class="detail-icon-btn" onclick={openFolder} title="Open in explorer">
+          <Tooltip text="Open project folder"><button class="detail-icon-btn" onclick={openFolder}>
             <Folder />
-          </button>
-          <button class="detail-icon-btn" onclick={openTerminal} title="Open terminal here">
+          </button></Tooltip>
+          <Tooltip text="Open terminal at project"><button class="detail-icon-btn" onclick={openTerminal}>
             <Terminal />
-          </button>
+          </button></Tooltip>
         </div>
       {/if}
     </div>
@@ -345,7 +346,6 @@
     background: var(--bg-raised);
     padding: 2px 6px;
     border-radius: var(--radius-sm);
-    margin-left: 6px;
     vertical-align: middle;
     cursor: pointer;
     transition: color var(--duration-normal, 150ms) var(--ease-in-out, ease),
