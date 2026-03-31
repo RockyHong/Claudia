@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicedoc/tauri-plugin-schema/refs/heads/main/schema.json",
   "productName": "Claudia",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "identifier": "com.claudia.desktop",
   "build": {
     "frontendDist": "../packages/web/dist",
