@@ -11,6 +11,7 @@
   import SpawnPopover from "./lib/SpawnPopover.svelte";
   import HookGate from "./lib/HookGate.svelte";
   import { Minimize2, Image, Settings } from "lucide-svelte";
+  import Tooltip from "./lib/Tooltip.svelte";
 
   let sessions = $state([]);
   let aggregateState = $state("idle");
@@ -200,25 +201,43 @@
     <h1><a href="https://github.com/RockyHong/Claudia" target="_blank" rel="noopener noreferrer"><span>Claudia*</span></a></h1>
     <div class="header-actions">
       {#if bgMode}
-        <button class="header-btn" aria-label="Exit immersive" onclick={() => {
-          bgMode = false;
-          fetch("/api/preferences", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ immersive: false }),
-          }).catch(() => {});
-        }}>
-          <Minimize2 size={16} />
+        <Tooltip text="Exit immersive mode">
+          <button class="header-btn" aria-label="Exit immersive" onclick={() => {
+            bgMode = false;
+            fetch("/api/preferences", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ immersive: false }),
+            }).catch(() => {});
+          }}>
+            <Minimize2 size={16} />
+          </button>
+        </Tooltip>
+      {/if}
+      {#if bgMode}
+        <Tooltip text="Avatar">
+          <button class="header-btn" onclick={() => showAvatarModal = true}>
+            <Image size={16} strokeWidth={1.5} />
+          </button>
+        </Tooltip>
+      {:else}
+        <button class="header-btn" onclick={() => showAvatarModal = true}>
+          <Image size={16} strokeWidth={1.5} />
+          Avatar
         </button>
       {/if}
-      <button class="header-btn" onclick={() => showAvatarModal = true}>
-        <Image size={16} strokeWidth={1.5} />
-        {#if !bgMode}Avatar{/if}
-      </button>
-      <button class="header-btn" onclick={() => showSettings = true}>
-        <Settings size={16} />
-        {#if !bgMode}Settings{/if}
-      </button>
+      {#if bgMode}
+        <Tooltip text="Settings">
+          <button class="header-btn" onclick={() => showSettings = true}>
+            <Settings size={16} />
+          </button>
+        </Tooltip>
+      {:else}
+        <button class="header-btn" onclick={() => showSettings = true}>
+          <Settings size={16} />
+          Settings
+        </button>
+      {/if}
     </div>
   </header>
 
