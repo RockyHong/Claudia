@@ -1,5 +1,205 @@
 <script>
-  let { cwd } = $props();
+  import { onMount } from "svelte";
+  import ViewerToolbar from "./ViewerToolbar.svelte";
+  import FileTree from "./FileTree.svelte";
+  import MdContent from "./MdContent.svelte";
+  import TableOfContents from "./TableOfContents.svelte";
+
+  let { cwd = "" } = $props();
+
+  let tree = $state([]);
+  let selectedPath = $state("");
+  let headings = $state([]);
+  let treeVisible = $state(true);
+  let tocVisible = $state(true);
+  let darkMode = $state(false);
+  let narrow = $state(false);
+
+  onMount(() => {
+    const mq = window.matchMedia("(max-width: 900px)");
+    narrow = mq.matches;
+    const handler = (e) => { narrow = e.matches; };
+    mq.addEventListener("change", handler);
+
+    const saved = localStorage.getItem("md-viewer-theme");
+    if (saved === "dark") darkMode = true;
+
+    return () => mq.removeEventListener("change", handler);
+  });
+
+  async function loadTree() {
+    if (!cwd) return;
+    try {
+      const res = await fetch(`/api/md/tree?cwd=${encodeURIComponent(cwd)}`);
+      const data = await res.json();
+      tree = data.tree || [];
+    } catch {
+      tree = [];
+    }
+  }
+
+  onMount(() => { loadTree(); });
+
+  function selectFile(filePath) {
+    selectedPath = filePath;
+    if (narrow) treeVisible = false;
+  }
+
+  function toggleTheme() {
+    darkMode = !darkMode;
+    localStorage.setItem("md-viewer-theme", darkMode ? "dark" : "light");
+  }
+
+  let showTreeOverlay = $derived(narrow && treeVisible);
+  let showTocOverlay = $derived(narrow && tocVisible);
 </script>
 
-<div>MD Viewer — {cwd}</div>
+<div class="viewer" class:dark={darkMode}>
+  <ViewerToolbar
+    filePath={selectedPath}
+    {treeVisible}
+    {tocVisible}
+    {darkMode}
+    onToggleTree={() => treeVisible = !treeVisible}
+    onToggleToc={() => tocVisible = !tocVisible}
+    onToggleTheme={toggleTheme}
+  />
+
+  <div class="viewer-body">
+    {#if treeVisible && !narrow}
+      <aside class="panel panel-tree">
+        <FileTree {tree} {selectedPath} onSelectFile={selectFile} />
+      </aside>
+    {/if}
+
+    {#if showTreeOverlay}
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="overlay-backdrop" onclick={() => treeVisible = false} onkeydown={(e) => e.key === 'Escape' && (treeVisible = false)}></div>
+      <aside class="panel panel-tree overlay">
+        <FileTree {tree} {selectedPath} onSelectFile={selectFile} />
+      </aside>
+    {/if}
+
+    <MdContent {cwd} filePath={selectedPath} onHeadings={(h) => headings = h} />
+
+    {#if tocVisible && !narrow && headings.length > 0}
+      <aside class="panel panel-toc">
+        <TableOfContents {headings} />
+      </aside>
+    {/if}
+
+    {#if showTocOverlay && headings.length > 0}
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="overlay-backdrop" onclick={() => tocVisible = false} onkeydown={(e) => e.key === 'Escape' && (tocVisible = false)}></div>
+      <aside class="panel panel-toc overlay">
+        <TableOfContents {headings} />
+      </aside>
+    {/if}
+  </div>
+</div>
+
+<style>
+  .viewer {
+    --viewer-bg: #faf8f5;
+    --viewer-toolbar-bg: #f5f0ec;
+    --viewer-sidebar-bg: #f0ebe6;
+    --viewer-text: #2c2520;
+    --viewer-text-muted: #6e655d;
+    --viewer-text-faint: #a39a91;
+    --viewer-border: #e0d8d0;
+    --viewer-hover: rgba(0, 0, 0, 0.04);
+    --viewer-active: rgba(0, 0, 0, 0.07);
+    --viewer-code-bg: rgba(0, 0, 0, 0.04);
+    --viewer-link: #3a75c4;
+    --viewer-accent: #a84e31;
+    --viewer-red: #c43c3c;
+
+    --font-heading: 'Space Grotesk', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: var(--viewer-bg);
+    color: var(--viewer-text);
+    font-family: var(--font-body);
+  }
+
+  .viewer.dark {
+    --viewer-bg: #1a1714;
+    --viewer-toolbar-bg: #211e1a;
+    --viewer-sidebar-bg: #1e1b17;
+    --viewer-text: #e0d8d0;
+    --viewer-text-muted: #948b82;
+    --viewer-text-faint: #5c554e;
+    --viewer-border: #302922;
+    --viewer-hover: rgba(255, 255, 255, 0.04);
+    --viewer-active: rgba(255, 255, 255, 0.07);
+    --viewer-code-bg: rgba(255, 255, 255, 0.05);
+    --viewer-link: #7aabef;
+    --viewer-accent: #c15f3c;
+    --viewer-red: #d95555;
+  }
+
+  .viewer-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .panel {
+    flex-shrink: 0;
+    overflow-y: auto;
+    background: var(--viewer-sidebar-bg);
+  }
+
+  .panel-tree {
+    width: 220px;
+    border-right: 1px solid var(--viewer-border);
+  }
+
+  .panel-toc {
+    width: 180px;
+    border-left: 1px solid var(--viewer-border);
+  }
+
+  .overlay {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 20;
+    box-shadow: 4px 0 16px rgba(0, 0, 0, 0.15);
+  }
+
+  .panel-tree.overlay {
+    left: 0;
+  }
+
+  .panel-toc.overlay {
+    right: 0;
+  }
+
+  .overlay-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 10;
+  }
+
+  :global(body) {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  :global(*) {
+    box-sizing: border-box;
+  }
+
+  :global(*) {
+    scrollbar-width: thin;
+    scrollbar-color: var(--viewer-border) transparent;
+  }
+</style>
