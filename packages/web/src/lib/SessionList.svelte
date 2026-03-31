@@ -3,7 +3,8 @@
 
   import UsageRings from "./UsageRings.svelte";
   import ConsentModal from "./ConsentModal.svelte";
-  import { Ghost } from "lucide-svelte";
+  import { Ghost, Info } from "lucide-svelte";
+  import Tooltip from "./Tooltip.svelte";
 
   let { sessions = [], showSpawn = false, immersive = false, usage = null, usageMonitoring = false, onusagemonitoringchange, ontogglespawn } = $props();
 
@@ -23,7 +24,7 @@
 
 <div class="sessions-panel" class:immersive>
 <div class="section-header">
-  <span class="section-label">Sessions</span>
+  <span class="section-label">Sessions <Tooltip text="Sessions appear automatically when Claude Code sends hook events"><Info size={11} /></Tooltip></span>
   {#if usageMonitoring}
     <UsageRings {usage} />
   {:else}
@@ -70,12 +71,25 @@
   }
 
   .section-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     font-family: var(--font-heading);
     font-size: var(--text-xs);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--text-faint);
+  }
+
+  .section-label :global(.tooltip-anchor) {
+    opacity: 0.5;
+    cursor: help;
+    transition: opacity var(--duration-normal) var(--ease-in-out);
+  }
+
+  .section-label :global(.tooltip-anchor:hover) {
+    opacity: 1;
   }
 
   .list {
