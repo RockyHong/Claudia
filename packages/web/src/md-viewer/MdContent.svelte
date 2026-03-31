@@ -133,7 +133,7 @@
     max-width: 720px;
     margin: 0 auto;
     line-height: 1.8;
-    font-family: var(--font-body);
+    font-family: var(--font-reading);
     color: var(--viewer-text);
   }
 

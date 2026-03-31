@@ -88,6 +88,7 @@
 
     --font-heading: 'Space Grotesk', sans-serif;
     --font-body: 'DM Sans', sans-serif;
+    --font-reading: 'Inter', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
 
     display: flex;
