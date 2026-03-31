@@ -154,7 +154,7 @@ POST /hook/:type    (primary — used by hooks, raw stdin JSON, server transform
 POST /event         (legacy — pre-formatted {session, state, tool, cwd, message, ts})
 ```
 
-Hook types: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PermissionRequest`, `Notification`, `Stop`, `SessionEnd`
+Hook types: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PermissionRequest`, `Stop`, `SessionEnd`, `SubagentStop`, `PreCompact`
 
 SSE stream at `GET /events` pushes state updates to the browser. See `overview.md` for the full protocol.
 

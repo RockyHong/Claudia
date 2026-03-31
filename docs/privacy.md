@@ -61,17 +61,28 @@ These are display-only and read-only. No git state is ever modified.
 
 When you launch a new Claude Code session from the dashboard, Claudia uses Node's `spawn` and `execFile` to start processes. No background processes are kept beyond the spawned Claude Code session itself.
 
-## Uninstall
+## Removal Options
+
+There are three ways to remove Claudia, depending on what you want to undo:
+
+### Full uninstall (hooks + data)
 
 ```bash
 npx cldi uninstall
 ```
 
-This removes all hooks Claudia added to `~/.claude/settings.json` and deletes the `~/.claudia/` directory. Your other hooks and Claude Code settings are untouched.
+This is interactive — it shows what will be removed and asks for confirmation before proceeding. It does two things:
+
+1. **Removes hooks** from `~/.claude/settings.json` — only entries containing `127.0.0.1:48901/hook`. Your other hooks and Claude Code settings are untouched.
+2. **Deletes `~/.claudia/`** — avatars, projects, preferences, and shutdown token.
+
+### Remove hooks only (keep data)
+
+Open the dashboard and go to **Settings > Remove hooks**. This removes all Claudia hook entries from `~/.claude/settings.json` but leaves `~/.claudia/` intact — your avatars, project names, and preferences are preserved. You can reinstall hooks later from the same Settings tab.
 
 ### Manual removal
 
-If you prefer to remove Claudia by hand:
+If Claudia isn't running and you want to clean up by hand:
 
 **Delete the data directory:**
 
@@ -85,4 +96,4 @@ Remove-Item -Recurse -Force "$env:USERPROFILE\.claudia"
 
 **Remove hooks from `~/.claude/settings.json`:**
 
-Open the file in any text editor and remove all hook entries whose command contains `127.0.0.1:48901/hook`. The file is standard JSON — the `hooks` object contains arrays of hook definitions, and you want to remove any object whose `command` field references that address.
+Open the file in any text editor and remove all hook entries whose command contains `127.0.0.1:48901/hook`. The file is standard JSON — the `hooks` object contains arrays of hook definitions. Remove any object whose `command` field references that address. If a hook type array becomes empty after removal, you can delete the entire key.

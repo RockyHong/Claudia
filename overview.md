@@ -67,8 +67,8 @@ Claude Code sessions ──► hooks (stdin JSON via POST) ──► Claudia ser
 | State | Trigger hooks | Meaning |
 |---|---|---|
 | `idle` | `SessionStart`, `Stop` | Waiting for user input |
-| `busy` | `UserPromptSubmit`, `PreToolUse`, `PostToolUse` | Working |
-| `pending` | `PermissionRequest`, `Notification` | Needs user attention |
+| `busy` | `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `SubagentStop`, `PreCompact` | Working |
+| `pending` | `PermissionRequest` | Needs user attention |
 | `stopped` | `SessionEnd` | Session closed |
 
 Aggregate rule: `pending` > `busy` > `idle` (highest priority wins for avatar/favicon).
@@ -81,7 +81,7 @@ Stale pruning: no event for 10 min → session removed.
 
 Hooks installed in `~/.claude/settings.json` via the dashboard (first-run prompt or Settings → Reinstall). Claude Code passes context as **stdin JSON** (not env vars). The `"hooks"` key wraps all hook arrays. See `packages/server/src/hooks.js` for exact config shape.
 
-8 hook types: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PermissionRequest`, `Notification`, `Stop`, `SessionEnd`.
+9 hook types: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PermissionRequest`, `Stop`, `SessionEnd`, `SubagentStop`, `PreCompact`.
 
 ## SSE Payload
 

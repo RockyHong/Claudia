@@ -53,7 +53,7 @@ Terminal 3 (claude code)  ──┘
                     Browser dashboard
 ```
 
-Claude Code [hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) fire on tool use, notification, and session stop, sending a small JSON payload to Claudia's local server. Claudia tracks session state, detects idle/busy/pending transitions, and pushes updates to your browser via Server-Sent Events.
+Claude Code [hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) fire on session start, tool use, permission requests, and session stop, sending a small JSON payload to Claudia's local server. Claudia tracks session state, detects idle/busy/pending transitions, and pushes updates to your browser via Server-Sent Events.
 
 All localhost. Nothing leaves your machine.
 
@@ -136,11 +136,11 @@ Volume and mute controls are in the Settings modal.
 npx cldi uninstall
 ```
 
-This removes all hooks Claudia added and deletes `~/.claudia/` (avatars, projects, preferences). Your other hooks and Claude Code settings are untouched.
+This removes all Claudia hooks from `~/.claude/settings.json` and deletes `~/.claudia/` (avatars, projects, preferences). Your other hooks and Claude Code settings are untouched.
 
-To remove hooks only without deleting data, use **Settings > Remove Hooks** in the dashboard.
+To remove hooks only without deleting data, use **Settings > Remove hooks** in the dashboard.
 
-For manual removal steps, see [docs/privacy.md](docs/privacy.md).
+For all removal options and manual steps, see [docs/privacy.md](docs/privacy.md).
 
 ## Contributing
 
