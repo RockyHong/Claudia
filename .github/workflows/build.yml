@@ -22,9 +22,9 @@ jobs:
       - run: npm run build:tauri
       # Portable zip (extract and run, no installer)
       - run: |
-          mkdir dist-standalone
+          mkdir -p dist-standalone/binaries
           cp src-tauri/target/release/Claudia.exe dist-standalone/
-          cp src-tauri/binaries/claudia-server-x86_64-pc-windows-msvc.exe dist-standalone/claudia-server.exe
+          cp src-tauri/binaries/claudia-server-x86_64-pc-windows-msvc.exe dist-standalone/binaries/claudia-server.exe
         shell: bash
       - shell: pwsh
         run: Compress-Archive -Path dist-standalone/* -DestinationPath Claudia-Windows.zip
