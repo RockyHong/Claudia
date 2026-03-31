@@ -360,21 +360,19 @@
   .dot-idle { background: var(--green); }
   .dot-busy {
     background: var(--blue);
-    box-shadow: 0 0 6px var(--blue);
-    animation: glow-dot 2.5s ease-in-out infinite;
+    animation: pulse-dot 2.5s ease-in-out infinite;
   }
   .dot-pending {
     background: var(--amber);
-    box-shadow: 0 0 6px var(--amber);
-    animation: glow-dot 1.8s ease-in-out infinite;
+    animation: pulse-dot 1.8s ease-in-out infinite;
   }
   .dot-disconnected {
     background: var(--text-faint, var(--gray));
   }
 
-  @keyframes glow-dot {
-    0%, 100% { box-shadow: 0 0 6px currentColor; opacity: 1; }
-    50% { box-shadow: 0 0 2px currentColor; opacity: 0.5; }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
   }
 
   .orphan-badge {
