@@ -198,21 +198,18 @@
         &middot; {elapsed}
       {/if}
       {#if session.subagentActivity > 0}
-        <Tooltip text="Subagent tasks this turn"><span class="subagent-count">{session.subagentActivity} sub</span></Tooltip>
+        <span class="subagent-badge">{session.subagentActivity} subagent{session.subagentActivity !== 1 ? "s" : ""}</span>
       {/if}
     </span>
   </div>
 
-  {#if session.git?.isGit || session.cwd || session.compacted}
+  {#if session.git?.isGit || session.cwd}
     <div class="card-row card-row-detail">
       {#if session.git?.isGit}
         <span class="card-detail">
           <GitBranch />
           {session.git.branch}{session.git.dirty ? " *" : ""}
         </span>
-      {/if}
-      {#if session.compacted}
-        <Tooltip text="Context was compacted"><span class="card-detail compacted-badge">compacted</span></Tooltip>
       {/if}
       {#if session.cwd}
         <div class="detail-actions">
@@ -432,16 +429,16 @@
     flex-shrink: 0;
   }
 
-  .subagent-count {
-    font-size: var(--text-xs);
-    color: var(--text-faint, #5c554e);
-    margin-left: 4px;
-  }
-
-  .compacted-badge {
-    font-size: var(--text-xs);
-    color: var(--text-faint, #5c554e);
-    opacity: 0.7;
+  .subagent-badge {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-faint);
+    background: var(--bg-raised);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    vertical-align: middle;
   }
 
   @media (prefers-reduced-motion: reduce) {

@@ -36,7 +36,6 @@ function createSession(id, cwd) {
     git: null,
     subagentActivity: 0,
     activeSubagents: 0,
-    compacted: false,
   };
 }
 
@@ -177,8 +176,6 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
     }
 
     if (hookType === "SubagentStop") session.subagentActivity++;
-    if (hookType === "PreCompact") session.compacted = true;
-
     if (session.state !== prevState) {
       session.stateChangedAt = Date.now();
     }
@@ -210,7 +207,6 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
       git: s.git,
       subagentActivity: s.subagentActivity,
       activeSubagents: s.activeSubagents,
-      compacted: s.compacted,
     }));
   }
 
@@ -304,7 +300,6 @@ export function createSessionTracker({ onStateChange, getGitStatus, onPendingAle
       git: s.git,
       subagentActivity: s.subagentActivity,
       activeSubagents: s.activeSubagents,
-      compacted: s.compacted,
     };
   }
 

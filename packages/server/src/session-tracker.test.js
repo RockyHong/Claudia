@@ -163,21 +163,6 @@ describe("session-tracker", () => {
       expect(tracker.getSessions()[0].subagentActivity).toBe(0);
     });
 
-    it("compacted flag sets to true on PreCompact hookType", () => {
-      tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
-      tracker.handleEvent({ session: "s1", state: "busy", hookType: "PreCompact" });
-
-      expect(tracker.getSessions()[0].compacted).toBe(true);
-    });
-
-    it("compacted flag does NOT reset on idle (lifetime flag)", () => {
-      tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
-      tracker.handleEvent({ session: "s1", state: "busy", hookType: "PreCompact" });
-      tracker.handleEvent({ session: "s1", state: "idle" });
-
-      expect(tracker.getSessions()[0].compacted).toBe(true);
-    });
-
     it("tracks activeSubagents — increments on PreToolUse with Agent tool", () => {
       tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj", tool: "Agent", hookType: "PreToolUse" });
       expect(tracker.getSessions()[0].activeSubagents).toBe(1);
