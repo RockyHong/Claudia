@@ -155,7 +155,6 @@ SSE stream at `GET /events` pushes state updates to the browser. See `overview.m
 
 ## Planning
 
-- `todo.md` — Actionable work items (source of truth for what's left)
 - `overview.md` — Product context, data flow, event protocol, module index
 - `techstack.md` — Tech choices, architecture rules, coding patterns, storage locations
 - `docs/building.md` — Build instructions for both distributions (npx, Tauri)
