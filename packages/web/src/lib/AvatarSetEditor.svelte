@@ -124,7 +124,7 @@
     </fieldset>
 
     <fieldset class="field-group">
-      <legend class="field-label">Videos</legend>
+      <legend class="field-label">Videos <span class="format-hint">.webm .mp4</span></legend>
       <div class="drop-grid">
         <DropZone label="Idle" file={fileIdle} previewUrl={existingUrl("idle")} onfile={(f) => fileIdle = f} />
         <DropZone label="Working" file={fileBusy} previewUrl={existingUrl("busy")} onfile={(f) => fileBusy = f} />
@@ -167,6 +167,13 @@
     color: var(--text-faint);
     margin-bottom: var(--space-2);
     padding: 0;
+  }
+
+  .format-hint {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: normal;
+    opacity: 0.6;
   }
 
   .error-bar {
