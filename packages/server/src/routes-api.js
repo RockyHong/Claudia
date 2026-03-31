@@ -28,6 +28,7 @@ import {
 import { readSettings, hasClaudiaHooks, mergeHooks, removeHooks, writeSettings } from "./hooks.js";
 import { getPreferences, setPreferences } from "./preferences.js";
 import { buildMdTree, readMdFile } from "./md-files.js";
+import { getCachedStatus } from "./claude-status.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -449,6 +450,14 @@ export function registerApiRoutes(app, tracker, options = {}) {
       }
       res.status(400).json({ error: err.message });
     }
+  });
+
+  // --- Claude platform status ---
+
+  app.get("/api/claude-status", (req, res) => {
+    const status = getCachedStatus();
+    if (!status) return res.status(204).end();
+    res.json(status);
   });
 
   // Flash a terminal window overlay (hover preview, no focus steal)

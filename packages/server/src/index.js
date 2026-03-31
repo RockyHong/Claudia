@@ -15,6 +15,7 @@ import { registerApiRoutes } from "./routes-api.js";
 import { createUsageClient } from "./usage.js";
 import { createSFX } from "./sfx.js";
 import { getPreferences } from "./preferences.js";
+import { startStatusPolling, stopStatusPolling } from "./claude-status.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIST = process.env.CLAUDIA_WEB_DIST || path.resolve(__dirname, "../../web/dist");
@@ -332,6 +333,7 @@ export async function startServer(port = PORT, options = {}) {
     usageClient.refreshUsage().catch(() => {});
   }
   const windowCheckInterval = setInterval(pruneDeadSpawnedSessions, WINDOW_CHECK_INTERVAL_MS);
+  startStatusPolling();
 
   const shutdownToken = randomUUID();
   await fs.writeFile(SHUTDOWN_TOKEN_PATH, shutdownToken, { mode: 0o600 });
@@ -344,6 +346,7 @@ export async function startServer(port = PORT, options = {}) {
 
     const shutdown = () => {
       clearInterval(windowCheckInterval);
+      stopStatusPolling();
       tracker.stop();
       for (const client of sseClients) {
         client.end();

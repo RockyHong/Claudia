@@ -13,6 +13,7 @@
   import HookGate from "./lib/HookGate.svelte";
   import { Minimize2, Image, Settings } from "lucide-svelte";
   import Tooltip from "./lib/Tooltip.svelte";
+  import ClaudeStatus from "./lib/ClaudeStatus.svelte";
 
   let sessions = $state([]);
   let aggregateState = $state("idle");
@@ -216,6 +217,7 @@
   <header>
     <h1><a href="https://github.com/RockyHong/Claudia" target="_blank" rel="noopener noreferrer"><span>Claudia*</span></a></h1>
     <div class="header-actions">
+      <ClaudeStatus immersive={bgMode} />
       {#if bgMode}
         <Tooltip text="Exit immersive mode">
           <button class="header-btn" aria-label="Exit immersive" onclick={() => {
