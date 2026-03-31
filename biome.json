@@ -1,0 +1,25 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
+	"files": {
+		"includes": [
+			"bin/**",
+			"packages/server/src/**",
+			"packages/server/package.json",
+			"packages/web/src/**",
+			"packages/web/package.json",
+			"packages/web/*.config.js",
+			"scripts/**"
+		]
+	},
+	"linter": {
+		"rules": {
+			"style": {
+				"useTemplate": "warn"
+			},
+			"correctness": {
+				"noUnusedFunctionParameters": "warn",
+				"noUnusedVariables": "off"
+			}
+		}
+	}
+}

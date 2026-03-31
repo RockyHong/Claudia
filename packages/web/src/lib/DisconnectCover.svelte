@@ -1,15 +1,13 @@
 <script>
-  import { WifiOff } from "lucide-svelte";
+let { onretry } = $props();
 
-  let { onretry } = $props();
+let retrying = $state(false);
 
-  let retrying = $state(false);
-
-  function retry() {
-    retrying = true;
-    onretry?.();
-    setTimeout(() => retrying = false, 2000);
-  }
+function _retry() {
+	retrying = true;
+	onretry?.();
+	setTimeout(() => (retrying = false), 2000);
+}
 </script>
 
 <div class="disconnect-gate">

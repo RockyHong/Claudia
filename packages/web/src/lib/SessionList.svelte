@@ -1,25 +1,26 @@
 <script>
-  import SessionCard from "./SessionCard.svelte";
+let {
+	sessions = [],
+	showSpawn = false,
+	immersive = false,
+	usage = null,
+	usageMonitoring = false,
+	onusagemonitoringchange,
+	ontogglespawn,
+} = $props();
 
-  import UsageRings from "./UsageRings.svelte";
-  import ConsentModal from "./ConsentModal.svelte";
-  import { Ghost, Info } from "lucide-svelte";
-  import Tooltip from "./Tooltip.svelte";
+const statePriority = { pending: 0, idle: 1, busy: 2 };
 
-  let { sessions = [], showSpawn = false, immersive = false, usage = null, usageMonitoring = false, onusagemonitoringchange, ontogglespawn } = $props();
+let _showConsent = $state(false);
 
-  const statePriority = { pending: 0, idle: 1, busy: 2 };
-
-  let showConsent = $state(false);
-
-  let sorted = $derived(
-    [...sessions].sort((a, b) => {
-      const pa = statePriority[a.state] ?? 3;
-      const pb = statePriority[b.state] ?? 3;
-      if (pa !== pb) return pa - pb;
-      return b.lastEvent - a.lastEvent;
-    })
-  );
+let _sorted = $derived(
+	[...sessions].sort((a, b) => {
+		const pa = statePriority[a.state] ?? 3;
+		const pb = statePriority[b.state] ?? 3;
+		if (pa !== pb) return pa - pb;
+		return b.lastEvent - a.lastEvent;
+	}),
+);
 </script>
 
 <div class="sessions-panel" class:immersive>

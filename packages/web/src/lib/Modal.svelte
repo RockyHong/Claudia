@@ -1,13 +1,13 @@
 <script>
-  let { title, onclose, children } = $props();
+let { title, onclose, children } = $props();
 
-  function handleKeydown(e) {
-    if (e.key === "Escape") onclose();
-  }
+function _handleKeydown(e) {
+	if (e.key === "Escape") onclose();
+}
 
-  function handleBackdrop(e) {
-    if (e.target === e.currentTarget) onclose();
-  }
+function _handleBackdrop(e) {
+	if (e.target === e.currentTarget) onclose();
+}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />

@@ -1,18 +1,11 @@
 <script>
-  import { ChevronRight, FileText } from "lucide-svelte";
-  import FileTree from "./FileTree.svelte";
+let { tree = [], selectedPath = "", onSelectFile = () => {} } = $props();
 
-  let {
-    tree = [],
-    selectedPath = "",
-    onSelectFile = () => {},
-  } = $props();
+let expanded = $state({});
 
-  let expanded = $state({});
-
-  function toggleFolder(name) {
-    expanded[name] = !expanded[name];
-  }
+function _toggleFolder(name) {
+	expanded[name] = !expanded[name];
+}
 </script>
 
 <nav class="file-tree" aria-label="Project files">

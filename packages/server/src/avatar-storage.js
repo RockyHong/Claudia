@@ -1,21 +1,28 @@
 import fs from "node:fs/promises";
-import path from "node:path";
 import os from "node:os";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 import AdmZip from "adm-zip";
 import { createPreferences } from "./preferences.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-export const VALID_FILENAMES = new Set(["idle.webm", "idle.mp4", "busy.webm", "busy.mp4", "pending.webm", "pending.mp4"]);
+export const VALID_FILENAMES = new Set([
+	"idle.webm",
+	"idle.mp4",
+	"busy.webm",
+	"busy.mp4",
+	"pending.webm",
+	"pending.mp4",
+]);
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const MAX_ZIP_SIZE = 20 * 1024 * 1024;
 const REQUIRED_STATES = ["idle", "busy", "pending"];
 
 // Magic bytes for video format validation
 const MAGIC_BYTES = {
-	webm: { offset: 0, bytes: [0x1a, 0x45, 0xdf, 0xa3] },   // EBML header
-	mp4:  { offset: 4, bytes: [0x66, 0x74, 0x79, 0x70] },    // "ftyp"
+	webm: { offset: 0, bytes: [0x1a, 0x45, 0xdf, 0xa3] }, // EBML header
+	mp4: { offset: 4, bytes: [0x66, 0x74, 0x79, 0x70] }, // "ftyp"
 };
 
 function hasValidMagicBytes(data, filename) {
@@ -235,22 +242,27 @@ export function createAvatarStorage(baseDir) {
 		try {
 			zip = new AdmZip(zipBuffer);
 		} catch {
-			throw new Error("This file doesn't look like a valid .claudia avatar pack");
+			throw new Error(
+				"This file doesn't look like a valid .claudia avatar pack",
+			);
 		}
 
 		const entries = zip.getEntries();
 
 		// Filter to only valid filenames (no directories, no invalid names)
 		const validEntries = entries.filter(
-			(e) => !e.isDirectory && VALID_FILENAMES.has(e.entryName)
+			(e) => !e.isDirectory && VALID_FILENAMES.has(e.entryName),
 		);
 
 		// Check exactly 3 valid files, one per state
 		const states = new Set(validEntries.map((e) => e.entryName.split(".")[0]));
-		if (validEntries.length !== 3 || states.size !== 3 ||
-				!REQUIRED_STATES.every((s) => states.has(s))) {
+		if (
+			validEntries.length !== 3 ||
+			states.size !== 3 ||
+			!REQUIRED_STATES.every((s) => states.has(s))
+		) {
 			throw new Error(
-				"Avatar pack must contain exactly 3 files: idle, busy, and pending"
+				"Avatar pack must contain exactly 3 files: idle, busy, and pending",
 			);
 		}
 

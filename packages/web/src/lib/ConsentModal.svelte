@@ -1,7 +1,5 @@
 <script>
-  import { BarChart3 } from "lucide-svelte";
-
-  let { onchoice } = $props();
+let { onchoice } = $props();
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->

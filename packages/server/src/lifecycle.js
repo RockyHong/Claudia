@@ -3,9 +3,9 @@
 let jobHandle = null;
 
 export function setJobHandle(handle) {
-  jobHandle = handle;
+	jobHandle = handle;
 }
 
 export function getJobHandle() {
-  return jobHandle;
+	return jobHandle;
 }

@@ -5,6 +5,6 @@ const params = new URLSearchParams(window.location.search);
 const cwd = params.get("cwd") || "";
 
 mount(MdViewer, {
-  target: document.getElementById("app"),
-  props: { cwd },
+	target: document.getElementById("app"),
+	props: { cwd },
 });

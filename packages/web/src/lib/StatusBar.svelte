@@ -1,7 +1,15 @@
 <script>
-  let { aggregateState = "idle", statusMessage = "", sessionCount = 0, disconnected = false, immersive = false } = $props();
+let {
+	aggregateState = "idle",
+	statusMessage = "",
+	sessionCount = 0,
+	disconnected = false,
+	immersive = false,
+} = $props();
 
-  let dotClass = $derived(disconnected ? "dot-disconnected" : `dot-${aggregateState}`);
+let _dotClass = $derived(
+	disconnected ? "dot-disconnected" : `dot-${aggregateState}`,
+);
 </script>
 
 <footer class="status-bar" class:pending={!disconnected && aggregateState === "pending"} class:immersive>

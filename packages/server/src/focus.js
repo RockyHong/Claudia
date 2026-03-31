@@ -4,134 +4,138 @@ import { platform } from "node:os";
 const currentPlatform = platform();
 
 const strategies = {
-  win32: focusWindows,
-  darwin: focusMac,
-  linux: focusLinux,
+	win32: focusWindows,
+	darwin: focusMac,
+	linux: focusLinux,
 };
 
 const FLASH_COLORS = {
-  navigate: { r: 100, g: 160, b: 255, hex: "#64A0FF" },
-  alert: { r: 255, g: 180, b: 80, hex: "#FFB450" },
+	navigate: { r: 100, g: 160, b: 255, hex: "#64A0FF" },
+	alert: { r: 255, g: 180, b: 80, hex: "#FFB450" },
 };
 
 /**
  * Focus a terminal window by HWND (spawned sessions)
  * or by display name (best-effort for orphan sessions).
  */
-export function focusTerminal(displayName, intent = "navigate", windowHandle = null) {
-  const strategy = strategies[currentPlatform] || focusFallback;
-  const color = FLASH_COLORS[intent] || FLASH_COLORS.navigate;
-  return strategy(sanitize(displayName), color, windowHandle);
+export function focusTerminal(
+	displayName,
+	intent = "navigate",
+	windowHandle = null,
+) {
+	const strategy = strategies[currentPlatform] || focusFallback;
+	const color = FLASH_COLORS[intent] || FLASH_COLORS.navigate;
+	return strategy(sanitize(displayName), color, windowHandle);
 }
 
 function runExec(command) {
-  return new Promise((resolve) => {
-    exec(command, { timeout: 10000 }, (err) => {
-      resolve(!err);
-    });
-  });
+	return new Promise((resolve) => {
+		exec(command, { timeout: 10000 }, (err) => {
+			resolve(!err);
+		});
+	});
 }
 
 function runFile(cmd, args) {
-  return new Promise((resolve) => {
-    execFile(cmd, args, { timeout: 10000 }, (err) => {
-      resolve(!err);
-    });
-  });
+	return new Promise((resolve) => {
+		execFile(cmd, args, { timeout: 10000 }, (err) => {
+			resolve(!err);
+		});
+	});
 }
 
 // C# helper shared by all Windows focus calls.
 // Compiled once per PowerShell invocation.
 const WIN_HELPER_CS = [
-  "using System;",
-  "using System.Runtime.InteropServices;",
-  "public class WinHelper {",
-  "  [DllImport(\"user32.dll\")] public static extern bool SetForegroundWindow(IntPtr hWnd);",
-  "  [DllImport(\"user32.dll\")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);",
-  "  [DllImport(\"user32.dll\")] public static extern bool IsIconic(IntPtr hWnd);",
-  "  [DllImport(\"user32.dll\")] public static extern IntPtr GetForegroundWindow();",
-  "  [DllImport(\"user32.dll\")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr lpdwProcessId);",
-  "  [DllImport(\"kernel32.dll\")] public static extern uint GetCurrentThreadId();",
-  "  [DllImport(\"user32.dll\")] public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);",
-  "  [DllImport(\"user32.dll\")] public static extern bool BringWindowToTop(IntPtr hWnd);",
-  "  [DllImport(\"shcore.dll\")] public static extern int SetProcessDpiAwareness(int value);",
-  "  [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }",
-  "  [DllImport(\"dwmapi.dll\")] public static extern int DwmGetWindowAttribute(IntPtr hwnd, int attr, out RECT rect, int cbSize);",
-  "  public static RECT GetWindowBounds(IntPtr hwnd) { RECT r; DwmGetWindowAttribute(hwnd, 9, out r, Marshal.SizeOf(typeof(RECT))); return r; }",
-  "  [StructLayout(LayoutKind.Sequential)] public struct FLASHWINFO { public uint cbSize; public IntPtr hwnd; public uint dwFlags; public uint uCount; public uint dwTimeout; }",
-  "  [DllImport(\"user32.dll\")] public static extern bool FlashWindowEx(ref FLASHWINFO pfwi);",
-  "  public static void Flash(IntPtr hwnd) { FLASHWINFO fi = new FLASHWINFO(); fi.cbSize = (uint)Marshal.SizeOf(typeof(FLASHWINFO)); fi.hwnd = hwnd; fi.dwFlags = 14; fi.uCount = 5; fi.dwTimeout = 0; FlashWindowEx(ref fi); }",
-  "  public static void ForceForeground(IntPtr hwnd) {",
-  "    if (IsIconic(hwnd)) ShowWindow(hwnd, 9);",
-  "    IntPtr fg = GetForegroundWindow();",
-  "    uint fgThread = GetWindowThreadProcessId(fg, IntPtr.Zero);",
-  "    uint curThread = GetCurrentThreadId();",
-  "    if (fgThread != curThread) {",
-  "      AttachThreadInput(curThread, fgThread, true);",
-  "      BringWindowToTop(hwnd);",
-  "      SetForegroundWindow(hwnd);",
-  "      AttachThreadInput(curThread, fgThread, false);",
-  "    } else { SetForegroundWindow(hwnd); }",
-  "  }",
-  "}",
+	"using System;",
+	"using System.Runtime.InteropServices;",
+	"public class WinHelper {",
+	'  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);',
+	'  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);',
+	'  [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr hWnd);',
+	'  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();',
+	'  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr lpdwProcessId);',
+	'  [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();',
+	'  [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);',
+	'  [DllImport("user32.dll")] public static extern bool BringWindowToTop(IntPtr hWnd);',
+	'  [DllImport("shcore.dll")] public static extern int SetProcessDpiAwareness(int value);',
+	"  [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }",
+	'  [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr hwnd, int attr, out RECT rect, int cbSize);',
+	"  public static RECT GetWindowBounds(IntPtr hwnd) { RECT r; DwmGetWindowAttribute(hwnd, 9, out r, Marshal.SizeOf(typeof(RECT))); return r; }",
+	"  [StructLayout(LayoutKind.Sequential)] public struct FLASHWINFO { public uint cbSize; public IntPtr hwnd; public uint dwFlags; public uint uCount; public uint dwTimeout; }",
+	'  [DllImport("user32.dll")] public static extern bool FlashWindowEx(ref FLASHWINFO pfwi);',
+	"  public static void Flash(IntPtr hwnd) { FLASHWINFO fi = new FLASHWINFO(); fi.cbSize = (uint)Marshal.SizeOf(typeof(FLASHWINFO)); fi.hwnd = hwnd; fi.dwFlags = 14; fi.uCount = 5; fi.dwTimeout = 0; FlashWindowEx(ref fi); }",
+	"  public static void ForceForeground(IntPtr hwnd) {",
+	"    if (IsIconic(hwnd)) ShowWindow(hwnd, 9);",
+	"    IntPtr fg = GetForegroundWindow();",
+	"    uint fgThread = GetWindowThreadProcessId(fg, IntPtr.Zero);",
+	"    uint curThread = GetCurrentThreadId();",
+	"    if (fgThread != curThread) {",
+	"      AttachThreadInput(curThread, fgThread, true);",
+	"      BringWindowToTop(hwnd);",
+	"      SetForegroundWindow(hwnd);",
+	"      AttachThreadInput(curThread, fgThread, false);",
+	"    } else { SetForegroundWindow(hwnd); }",
+	"  }",
+	"}",
 ].join("\n");
 
 function buildWindowsFlashScript(color) {
-  return [
-    "  [WinHelper]::Flash($hwnd)",
-    "  [WinHelper]::ForceForeground($hwnd)",
-    "  Start-Sleep -Milliseconds 50",
-    "  if (-not [WinHelper]::IsIconic($hwnd)) {",
-    "    $rect = [WinHelper]::GetWindowBounds($hwnd)",
-    "    $w = $rect.Right - $rect.Left",
-    "    $h = $rect.Bottom - $rect.Top",
-    "    if ($w -gt 0 -and $h -gt 0) {",
-    "      $form = New-Object System.Windows.Forms.Form",
-    "      $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::None",
-    "      $form.BackColor = [System.Drawing.Color]::FromArgb(" + color.r + ", " + color.g + ", " + color.b + ")",
-    "      $form.Opacity = 0.3",
-    "      $form.TopMost = $true",
-    "      $form.ShowInTaskbar = $false",
-    "      $form.StartPosition = [System.Windows.Forms.FormStartPosition]::Manual",
-    "      $form.Location = New-Object System.Drawing.Point($rect.Left, $rect.Top)",
-    "      $form.Size = New-Object System.Drawing.Size($w, $h)",
-    "      $form.Show()",
-    "      Start-Sleep -Milliseconds 200",
-    "      for ($i = 6; $i -ge 0; $i--) {",
-    "        $form.Opacity = $i * 0.05",
-    "        $form.Refresh()",
-    "        Start-Sleep -Milliseconds 30",
-    "      }",
-    "      $form.Close()",
-    "    }",
-    "  }",
-  ];
+	return [
+		"  [WinHelper]::Flash($hwnd)",
+		"  [WinHelper]::ForceForeground($hwnd)",
+		"  Start-Sleep -Milliseconds 50",
+		"  if (-not [WinHelper]::IsIconic($hwnd)) {",
+		"    $rect = [WinHelper]::GetWindowBounds($hwnd)",
+		"    $w = $rect.Right - $rect.Left",
+		"    $h = $rect.Bottom - $rect.Top",
+		"    if ($w -gt 0 -and $h -gt 0) {",
+		"      $form = New-Object System.Windows.Forms.Form",
+		"      $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::None",
+		`      $form.BackColor = [System.Drawing.Color]::FromArgb(${color.r}, ${color.g}, ${color.b})`,
+		"      $form.Opacity = 0.3",
+		"      $form.TopMost = $true",
+		"      $form.ShowInTaskbar = $false",
+		"      $form.StartPosition = [System.Windows.Forms.FormStartPosition]::Manual",
+		"      $form.Location = New-Object System.Drawing.Point($rect.Left, $rect.Top)",
+		"      $form.Size = New-Object System.Drawing.Size($w, $h)",
+		"      $form.Show()",
+		"      Start-Sleep -Milliseconds 200",
+		"      for ($i = 6; $i -ge 0; $i--) {",
+		"        $form.Opacity = $i * 0.05",
+		"        $form.Refresh()",
+		"        Start-Sleep -Milliseconds 30",
+		"      }",
+		"      $form.Close()",
+		"    }",
+		"  }",
+	];
 }
 
 function focusWindows(name, color, windowHandle) {
-  // Use stored HWND (spawned) or fall back to title matching (orphan, best-effort).
-  const findWindow = windowHandle
-    ? ["$hwnd = [IntPtr]" + windowHandle]
-    : [
-        "$hwnd = [IntPtr]::Zero",
-        "$p = Get-Process | Where-Object { $_.MainWindowTitle -match [regex]::Escape('" + name.replace(/'/g, "''") + "') -and $_.MainWindowHandle -ne 0 } | Select-Object -First 1",
-        "if ($p) { $hwnd = $p.MainWindowHandle }",
-      ];
+	// Use stored HWND (spawned) or fall back to title matching (orphan, best-effort).
+	const findWindow = windowHandle
+		? [`$hwnd = [IntPtr]${windowHandle}`]
+		: [
+				"$hwnd = [IntPtr]::Zero",
+				`$p = Get-Process | Where-Object { $_.MainWindowTitle -match [regex]::Escape('${name.replace(/'/g, "''")}') -and $_.MainWindowHandle -ne 0 } | Select-Object -First 1`,
+				"if ($p) { $hwnd = $p.MainWindowHandle }",
+			];
 
-  const ps = [
-    "Add-Type -AssemblyName System.Windows.Forms",
-    'Add-Type -Language CSharp @"\n' + WIN_HELPER_CS + '\n"@',
-    "[WinHelper]::SetProcessDpiAwareness(2) | Out-Null",
-    ...findWindow,
-    "if ($hwnd -ne [IntPtr]::Zero) {",
-    ...buildWindowsFlashScript(color),
-    "}",
-  ].join("\n");
-  return runFile("powershell", ["-NoProfile", "-Command", ps]);
+	const ps = [
+		"Add-Type -AssemblyName System.Windows.Forms",
+		`Add-Type -Language CSharp @"\n${WIN_HELPER_CS}\n"@`,
+		"[WinHelper]::SetProcessDpiAwareness(2) | Out-Null",
+		...findWindow,
+		"if ($hwnd -ne [IntPtr]::Zero) {",
+		...buildWindowsFlashScript(color),
+		"}",
+	].join("\n");
+	return runFile("powershell", ["-NoProfile", "-Command", ps]);
 }
 
 function focusMac(name, color, _windowHandle) {
-  const script = `
+	const script = `
     use framework "AppKit"
     use scripting additions
 
@@ -189,11 +193,11 @@ function focusMac(name, color, _windowHandle) {
       end repeat
     end tell
   `.trim();
-  return runFile("osascript", ["-e", script]);
+	return runFile("osascript", ["-e", script]);
 }
 
 async function focusLinux(name, color, _windowHandle) {
-  const flashAndFocus = `
+	const flashAndFocus = `
     WID=$(xdotool search --name '${name}' 2>/dev/null | head -1)
     if [ -z "$WID" ]; then
       WID=$(xdotool search --class terminal 2>/dev/null | head -1)
@@ -226,11 +230,11 @@ root.destroy()
       fi
     fi
   `;
-  return runExec(flashAndFocus);
+	return runExec(flashAndFocus);
 }
 
 function focusFallback() {
-  return Promise.resolve(false);
+	return Promise.resolve(false);
 }
 
 /**
@@ -239,39 +243,40 @@ function focusFallback() {
  * Windows-only — no-op on other platforms.
  */
 export function flashWindow(windowHandle) {
-  if (currentPlatform !== "win32" || !windowHandle) return Promise.resolve(false);
-  const color = FLASH_COLORS.navigate;
-  const ps = [
-    "Add-Type -AssemblyName System.Windows.Forms",
-    'Add-Type -Language CSharp @"\n' + WIN_HELPER_CS + '\n"@',
-    "[WinHelper]::SetProcessDpiAwareness(2) | Out-Null",
-    "$hwnd = [IntPtr]" + windowHandle,
-    "if ($hwnd -ne [IntPtr]::Zero -and -not [WinHelper]::IsIconic($hwnd)) {",
-    "  $rect = [WinHelper]::GetWindowBounds($hwnd)",
-    "  $w = $rect.Right - $rect.Left",
-    "  $h = $rect.Bottom - $rect.Top",
-    "  if ($w -gt 0 -and $h -gt 0) {",
-    "    $form = New-Object System.Windows.Forms.Form",
-    "    $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::None",
-    "    $form.BackColor = [System.Drawing.Color]::FromArgb(" + color.r + ", " + color.g + ", " + color.b + ")",
-    "    $form.Opacity = 0.3",
-    "    $form.TopMost = $true",
-    "    $form.ShowInTaskbar = $false",
-    "    $form.StartPosition = [System.Windows.Forms.FormStartPosition]::Manual",
-    "    $form.Location = New-Object System.Drawing.Point($rect.Left, $rect.Top)",
-    "    $form.Size = New-Object System.Drawing.Size($w, $h)",
-    "    $form.Show()",
-    "    Start-Sleep -Milliseconds 200",
-    "    for ($i = 6; $i -ge 0; $i--) {",
-    "      $form.Opacity = $i * 0.05",
-    "      $form.Refresh()",
-    "      Start-Sleep -Milliseconds 30",
-    "    }",
-    "    $form.Close()",
-    "  }",
-    "}",
-  ].join("\n");
-  return runFile("powershell", ["-NoProfile", "-Command", ps]);
+	if (currentPlatform !== "win32" || !windowHandle)
+		return Promise.resolve(false);
+	const color = FLASH_COLORS.navigate;
+	const ps = [
+		"Add-Type -AssemblyName System.Windows.Forms",
+		`Add-Type -Language CSharp @"\n${WIN_HELPER_CS}\n"@`,
+		"[WinHelper]::SetProcessDpiAwareness(2) | Out-Null",
+		`$hwnd = [IntPtr]${windowHandle}`,
+		"if ($hwnd -ne [IntPtr]::Zero -and -not [WinHelper]::IsIconic($hwnd)) {",
+		"  $rect = [WinHelper]::GetWindowBounds($hwnd)",
+		"  $w = $rect.Right - $rect.Left",
+		"  $h = $rect.Bottom - $rect.Top",
+		"  if ($w -gt 0 -and $h -gt 0) {",
+		"    $form = New-Object System.Windows.Forms.Form",
+		"    $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::None",
+		`    $form.BackColor = [System.Drawing.Color]::FromArgb(${color.r}, ${color.g}, ${color.b})`,
+		"    $form.Opacity = 0.3",
+		"    $form.TopMost = $true",
+		"    $form.ShowInTaskbar = $false",
+		"    $form.StartPosition = [System.Windows.Forms.FormStartPosition]::Manual",
+		"    $form.Location = New-Object System.Drawing.Point($rect.Left, $rect.Top)",
+		"    $form.Size = New-Object System.Drawing.Size($w, $h)",
+		"    $form.Show()",
+		"    Start-Sleep -Milliseconds 200",
+		"    for ($i = 6; $i -ge 0; $i--) {",
+		"      $form.Opacity = $i * 0.05",
+		"      $form.Refresh()",
+		"      Start-Sleep -Milliseconds 30",
+		"    }",
+		"    $form.Close()",
+		"  }",
+		"}",
+	].join("\n");
+	return runFile("powershell", ["-NoProfile", "-Command", ps]);
 }
 
 /**
@@ -280,26 +285,36 @@ export function flashWindow(windowHandle) {
  * Only works on win32 — returns empty set on other platforms.
  */
 export function findDeadWindows(handles) {
-  if (currentPlatform !== "win32" || handles.length === 0) {
-    return Promise.resolve(new Set());
-  }
+	if (currentPlatform !== "win32" || handles.length === 0) {
+		return Promise.resolve(new Set());
+	}
 
-  const handleList = handles.join(",");
-  const ps = [
-    'Add-Type -Language CSharp @"\nusing System; using System.Runtime.InteropServices;\npublic class WinCheck { [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr hWnd); }\n"@',
-    `$handles = @(${handleList})`,
-    "$handles | ForEach-Object { if (-not [WinCheck]::IsWindow([IntPtr]$_)) { $_ } }",
-  ].join("\n");
+	const handleList = handles.join(",");
+	const ps = [
+		'Add-Type -Language CSharp @"\nusing System; using System.Runtime.InteropServices;\npublic class WinCheck { [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr hWnd); }\n"@',
+		`$handles = @(${handleList})`,
+		"$handles | ForEach-Object { if (-not [WinCheck]::IsWindow([IntPtr]$_)) { $_ } }",
+	].join("\n");
 
-  return new Promise((resolve) => {
-    execFile("powershell", ["-NoProfile", "-Command", ps], { timeout: 10000 }, (err, stdout) => {
-      if (err) return resolve(new Set());
-      const dead = new Set(
-        stdout.trim().split(/\r?\n/).filter(Boolean).map(Number).filter((n) => n > 0),
-      );
-      resolve(dead);
-    });
-  });
+	return new Promise((resolve) => {
+		execFile(
+			"powershell",
+			["-NoProfile", "-Command", ps],
+			{ timeout: 10000 },
+			(err, stdout) => {
+				if (err) return resolve(new Set());
+				const dead = new Set(
+					stdout
+						.trim()
+						.split(/\r?\n/)
+						.filter(Boolean)
+						.map(Number)
+						.filter((n) => n > 0),
+				);
+				resolve(dead);
+			},
+		);
+	});
 }
 
 /**
@@ -307,50 +322,50 @@ export function findDeadWindows(handles) {
  * Used to filter visible windows to terminal-like applications only.
  */
 const TERMINAL_PROCESS_NAMES = [
-  "WindowsTerminal",
-  "cmd",
-  "powershell",
-  "pwsh",
-  "ConEmuC64",
-  "ConEmuC",
-  "mintty",
-  "Alacritty",
-  "kitty",
-  "Hyper",
-  "Tabby",
-  "WezTerm",
+	"WindowsTerminal",
+	"cmd",
+	"powershell",
+	"pwsh",
+	"ConEmuC64",
+	"ConEmuC",
+	"mintty",
+	"Alacritty",
+	"kitty",
+	"Hyper",
+	"Tabby",
+	"WezTerm",
 ];
 
 // C# helper: enumerates visible, non-minimized windows with their PIDs.
 // Compiled once per PowerShell invocation via Add-Type.
 const WIN_ENUM_CS = [
-  "using System; using System.Collections.Generic; using System.Runtime.InteropServices; using System.Text;",
-  "public class WinEnum {",
-  "  public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);",
-  '  [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);',
-  '  [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);',
-  '  [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr hWnd);',
-  '  [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);',
-  '  [DllImport("user32.dll")] public static extern int GetWindowTextLength(IntPtr hWnd);',
-  '  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);',
-  "  public static List<string> GetVisibleWindows() {",
-  "    var result = new List<string>();",
-  "    EnumWindows((hWnd, lParam) => {",
-  "      if (IsWindowVisible(hWnd) && !IsIconic(hWnd)) {",
-  "        int len = GetWindowTextLength(hWnd);",
-  "        if (len > 0) {",
-  "          var sb = new StringBuilder(len + 1);",
-  "          GetWindowText(hWnd, sb, sb.Capacity);",
-  "          uint procId;",
-  "          GetWindowThreadProcessId(hWnd, out procId);",
-  '          result.Add(hWnd.ToInt64() + "|" + procId + "|" + sb.ToString());',
-  "        }",
-  "      }",
-  "      return true;",
-  "    }, IntPtr.Zero);",
-  "    return result;",
-  "  }",
-  "}",
+	"using System; using System.Collections.Generic; using System.Runtime.InteropServices; using System.Text;",
+	"public class WinEnum {",
+	"  public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);",
+	'  [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);',
+	'  [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);',
+	'  [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr hWnd);',
+	'  [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);',
+	'  [DllImport("user32.dll")] public static extern int GetWindowTextLength(IntPtr hWnd);',
+	'  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);',
+	"  public static List<string> GetVisibleWindows() {",
+	"    var result = new List<string>();",
+	"    EnumWindows((hWnd, lParam) => {",
+	"      if (IsWindowVisible(hWnd) && !IsIconic(hWnd)) {",
+	"        int len = GetWindowTextLength(hWnd);",
+	"        if (len > 0) {",
+	"          var sb = new StringBuilder(len + 1);",
+	"          GetWindowText(hWnd, sb, sb.Capacity);",
+	"          uint procId;",
+	"          GetWindowThreadProcessId(hWnd, out procId);",
+	'          result.Add(hWnd.ToInt64() + "|" + procId + "|" + sb.ToString());',
+	"        }",
+	"      }",
+	"      return true;",
+	"    }, IntPtr.Zero);",
+	"    return result;",
+	"  }",
+	"}",
 ].join("\n");
 
 /**
@@ -359,46 +374,51 @@ const WIN_ENUM_CS = [
  * Windows-only — returns [] on other platforms.
  */
 export function listTerminalWindows(excludeHandles = new Set()) {
-  if (currentPlatform !== "win32") {
-    return Promise.resolve([]);
-  }
+	if (currentPlatform !== "win32") {
+		return Promise.resolve([]);
+	}
 
-  const nameFilter = TERMINAL_PROCESS_NAMES.map((n) => `'${n}'`).join(",");
-  const ps = [
-    `$names = @(${nameFilter})`,
-    'Add-Type -Language CSharp @"\n' + WIN_ENUM_CS + '\n"@',
-    "$pids = @{}",
-    "Get-Process | Where-Object { $names -contains $_.ProcessName } | ForEach-Object { $pids[$_.Id] = $true }",
-    "[WinEnum]::GetVisibleWindows() | ForEach-Object {",
-    "  $parts = $_ -split '\\|', 3",
-    "  $hwnd = $parts[0]",
-    "  $wpid = [int]$parts[1]",
-    "  $title = $parts[2]",
-    "  if ($pids.ContainsKey($wpid)) {",
-    '    "$hwnd|$title"',
-    "  }",
-    "}",
-  ].join("\n");
+	const nameFilter = TERMINAL_PROCESS_NAMES.map((n) => `'${n}'`).join(",");
+	const ps = [
+		`$names = @(${nameFilter})`,
+		`Add-Type -Language CSharp @"\n${WIN_ENUM_CS}\n"@`,
+		"$pids = @{}",
+		"Get-Process | Where-Object { $names -contains $_.ProcessName } | ForEach-Object { $pids[$_.Id] = $true }",
+		"[WinEnum]::GetVisibleWindows() | ForEach-Object {",
+		"  $parts = $_ -split '\\|', 3",
+		"  $hwnd = $parts[0]",
+		"  $wpid = [int]$parts[1]",
+		"  $title = $parts[2]",
+		"  if ($pids.ContainsKey($wpid)) {",
+		'    "$hwnd|$title"',
+		"  }",
+		"}",
+	].join("\n");
 
-  return new Promise((resolve) => {
-    execFile("powershell", ["-NoProfile", "-Command", ps], { timeout: 10000 }, (err, stdout) => {
-      if (err) return resolve([]);
-      const windows = stdout
-        .trim()
-        .split(/\r?\n/)
-        .filter(Boolean)
-        .map((line) => {
-          const sep = line.indexOf("|");
-          if (sep === -1) return null;
-          const hwnd = parseInt(line.slice(0, sep), 10);
-          const title = line.slice(sep + 1);
-          if (!hwnd || hwnd <= 0) return null;
-          return { hwnd, title };
-        })
-        .filter((w) => w !== null && !excludeHandles.has(w.hwnd));
-      resolve(windows);
-    });
-  });
+	return new Promise((resolve) => {
+		execFile(
+			"powershell",
+			["-NoProfile", "-Command", ps],
+			{ timeout: 10000 },
+			(err, stdout) => {
+				if (err) return resolve([]);
+				const windows = stdout
+					.trim()
+					.split(/\r?\n/)
+					.filter(Boolean)
+					.map((line) => {
+						const sep = line.indexOf("|");
+						if (sep === -1) return null;
+						const hwnd = parseInt(line.slice(0, sep), 10);
+						const title = line.slice(sep + 1);
+						if (!hwnd || hwnd <= 0) return null;
+						return { hwnd, title };
+					})
+					.filter((w) => w !== null && !excludeHandles.has(w.hwnd));
+				resolve(windows);
+			},
+		);
+	});
 }
 
 /**
@@ -406,20 +426,20 @@ export function listTerminalWindows(excludeHandles = new Set()) {
  * Windows-only — returns false on other platforms.
  */
 export function renameTerminal(windowHandle, newTitle) {
-  if (currentPlatform !== "win32") {
-    return Promise.resolve(false);
-  }
+	if (currentPlatform !== "win32") {
+		return Promise.resolve(false);
+	}
 
-  const escaped = newTitle.replace(/'/g, "''");
-  const ps = [
-    'Add-Type -Language CSharp @"\nusing System; using System.Runtime.InteropServices;\npublic class WinTitle { [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern bool SetWindowText(IntPtr hWnd, string lpString); }\n"@',
-    `[WinTitle]::SetWindowText([IntPtr]${Math.trunc(Number(windowHandle))}, '${escaped}')`,
-  ].join("\n");
+	const escaped = newTitle.replace(/'/g, "''");
+	const ps = [
+		'Add-Type -Language CSharp @"\nusing System; using System.Runtime.InteropServices;\npublic class WinTitle { [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern bool SetWindowText(IntPtr hWnd, string lpString); }\n"@',
+		`[WinTitle]::SetWindowText([IntPtr]${Math.trunc(Number(windowHandle))}, '${escaped}')`,
+	].join("\n");
 
-  return runFile("powershell", ["-NoProfile", "-Command", ps]);
+	return runFile("powershell", ["-NoProfile", "-Command", ps]);
 }
 
 // Allowlist: only keep characters safe for window title matching
 function sanitize(str) {
-  return str.replace(/[^a-zA-Z0-9\-_. ]/g, "");
+	return str.replace(/[^a-zA-Z0-9\-_. ]/g, "");
 }

@@ -12,320 +12,344 @@
  */
 
 const State = Object.freeze({
-  IDLE: "idle",
-  BUSY: "busy",
-  PENDING: "pending",
+	IDLE: "idle",
+	BUSY: "busy",
+	PENDING: "pending",
 });
 
 const STALE_SESSION_TIMEOUT_MS = 10 * 60 * 1000;
 
 function createSession(id, cwd) {
-  return {
-    id,
-    state: State.IDLE,
-    cwd,
-    displayName: extractDisplayName(cwd),
-    lastTool: null,
-    lastEvent: Date.now(),
-    stateChangedAt: Date.now(),
-    pendingMessage: null,
-    permissionRequest: null,
-    spawned: false,
-    terminalTitle: null,
-    windowHandle: null,
-    git: null,
-    subagentActivity: 0,
-    activeSubagents: 0,
-  };
+	return {
+		id,
+		state: State.IDLE,
+		cwd,
+		displayName: extractDisplayName(cwd),
+		lastTool: null,
+		lastEvent: Date.now(),
+		stateChangedAt: Date.now(),
+		pendingMessage: null,
+		permissionRequest: null,
+		spawned: false,
+		terminalTitle: null,
+		windowHandle: null,
+		git: null,
+		subagentActivity: 0,
+		activeSubagents: 0,
+	};
 }
 
 export function extractDisplayName(cwd) {
-  if (!cwd) return "unknown";
-  const normalized = cwd.replace(/\\/g, "/");
-  return normalized.split("/").filter(Boolean).pop() || "unknown";
+	if (!cwd) return "unknown";
+	const normalized = cwd.replace(/\\/g, "/");
+	return normalized.split("/").filter(Boolean).pop() || "unknown";
 }
 
-export function createSessionTracker({ onStateChange, getGitStatus, onPendingAlert, onIdleAlert } = {}) {
-  const sessions = new Map();
-  const spawnedInfo = new Map(); // cwd (normalized) → { terminalTitle, windowHandle }
-  let pruneInterval = null;
+export function createSessionTracker({
+	onStateChange,
+	getGitStatus,
+	onPendingAlert,
+	onIdleAlert,
+} = {}) {
+	const sessions = new Map();
+	const spawnedInfo = new Map(); // cwd (normalized) → { terminalTitle, windowHandle }
+	let pruneInterval = null;
 
-  function deduplicateDisplayName(baseName) {
-    const existing = new Set(
-      Array.from(sessions.values()).map((s) => s.displayName),
-    );
-    if (!existing.has(baseName)) return baseName;
-    let n = 2;
-    while (existing.has(`${baseName} (${n})`)) n++;
-    return `${baseName} (${n})`;
-  }
+	function deduplicateDisplayName(baseName) {
+		const existing = new Set(
+			Array.from(sessions.values()).map((s) => s.displayName),
+		);
+		if (!existing.has(baseName)) return baseName;
+		let n = 2;
+		while (existing.has(`${baseName} (${n})`)) n++;
+		return `${baseName} (${n})`;
+	}
 
-  function notify() {
-    if (onStateChange) {
-      onStateChange({
-        sessions: getSessions(),
-        aggregateState: getAggregateState(),
-      });
-    }
-  }
+	function notify() {
+		if (onStateChange) {
+			onStateChange({
+				sessions: getSessions(),
+				aggregateState: getAggregateState(),
+			});
+		}
+	}
 
-  const gitRefreshing = new Set();
+	const gitRefreshing = new Set();
 
-  async function refreshGit(session) {
-    if (!getGitStatus || !session.cwd) return;
-    if (gitRefreshing.has(session.id)) return;
-    gitRefreshing.add(session.id);
-    try {
-      session.git = await getGitStatus(session.cwd);
-    } catch {
-      session.git = null;
-    } finally {
-      gitRefreshing.delete(session.id);
-    }
-  }
+	async function refreshGit(session) {
+		if (!getGitStatus || !session.cwd) return;
+		if (gitRefreshing.has(session.id)) return;
+		gitRefreshing.add(session.id);
+		try {
+			session.git = await getGitStatus(session.cwd);
+		} catch {
+			session.git = null;
+		} finally {
+			gitRefreshing.delete(session.id);
+		}
+	}
 
-  function handleEvent(event) {
-    const { session: sessionId, state, tool, cwd, message, ts, hookType, permissionRequest } = event;
+	function handleEvent(event) {
+		const {
+			session: sessionId,
+			state,
+			tool,
+			cwd,
+			message,
+			ts,
+			hookType,
+			permissionRequest,
+		} = event;
 
-    if (!sessionId || !state) return;
+		if (!sessionId || !state) return;
 
-    if (state === "stopped") {
-      if (sessions.has(sessionId)) {
-        sessions.delete(sessionId);
-        notify();
-      }
-      return;
-    }
+		if (state === "stopped") {
+			if (sessions.has(sessionId)) {
+				sessions.delete(sessionId);
+				notify();
+			}
+			return;
+		}
 
-    const isNew = !sessions.has(sessionId);
+		const isNew = !sessions.has(sessionId);
 
-    // Don't create ghost sessions from late Notifications for ended sessions
-    if (isNew && state === "pending") return;
+		// Don't create ghost sessions from late Notifications for ended sessions
+		if (isNew && state === "pending") return;
 
-    if (isNew) {
-      const session = createSession(sessionId, cwd);
-      // Attach window handle if this cwd was spawned by Claudia
-      const normalizedCwd = cwd ? cwd.replace(/\\/g, "/") : null;
-      if (normalizedCwd && spawnedInfo.has(normalizedCwd)) {
-        const info = spawnedInfo.get(normalizedCwd);
-        session.spawned = true;
-        session.terminalTitle = info.terminalTitle;
-        session.windowHandle = info.windowHandle;
-        // Consume so next spawn of same cwd gets its own entry
-        spawnedInfo.delete(normalizedCwd);
-      }
-      session.displayName = deduplicateDisplayName(session.displayName);
-      sessions.set(sessionId, session);
-    }
+		if (isNew) {
+			const session = createSession(sessionId, cwd);
+			// Attach window handle if this cwd was spawned by Claudia
+			const normalizedCwd = cwd ? cwd.replace(/\\/g, "/") : null;
+			if (normalizedCwd && spawnedInfo.has(normalizedCwd)) {
+				const info = spawnedInfo.get(normalizedCwd);
+				session.spawned = true;
+				session.terminalTitle = info.terminalTitle;
+				session.windowHandle = info.windowHandle;
+				// Consume so next spawn of same cwd gets its own entry
+				spawnedInfo.delete(normalizedCwd);
+			}
+			session.displayName = deduplicateDisplayName(session.displayName);
+			sessions.set(sessionId, session);
+		}
 
-    const session = sessions.get(sessionId);
-    session.lastEvent = ts ? ts * 1000 : Date.now();
+		const session = sessions.get(sessionId);
+		session.lastEvent = ts ? ts * 1000 : Date.now();
 
-    const cwdChanged = cwd && cwd !== session.cwd;
-    if (cwdChanged) {
-      session.cwd = cwd;
-      session.displayName = deduplicateDisplayName(extractDisplayName(cwd));
-    }
+		const cwdChanged = cwd && cwd !== session.cwd;
+		if (cwdChanged) {
+			session.cwd = cwd;
+			session.displayName = deduplicateDisplayName(extractDisplayName(cwd));
+		}
 
-    const prevState = session.state;
+		const prevState = session.state;
 
-    // Track active subagents
-    if (hookType === "PreToolUse" && (tool === "Agent" || event.tool === "Agent")) {
-      session.activeSubagents = (session.activeSubagents || 0) + 1;
-    }
-    if (hookType === "SubagentStop") {
-      session.activeSubagents = Math.max(0, (session.activeSubagents || 0) - 1);
-    }
+		// Track active subagents
+		if (
+			hookType === "PreToolUse" &&
+			(tool === "Agent" || event.tool === "Agent")
+		) {
+			session.activeSubagents = (session.activeSubagents || 0) + 1;
+		}
+		if (hookType === "SubagentStop") {
+			session.activeSubagents = Math.max(0, (session.activeSubagents || 0) - 1);
+		}
 
-    switch (state) {
-      case "busy":
-        session.state = State.BUSY;
-        session.lastTool = tool || session.lastTool;
-        session.pendingMessage = null;
-        session.permissionRequest = null;
-        break;
+		switch (state) {
+			case "busy":
+				session.state = State.BUSY;
+				session.lastTool = tool || session.lastTool;
+				session.pendingMessage = null;
+				session.permissionRequest = null;
+				break;
 
-      case "idle":
-        // Don't transition to idle if subagents are still running
-        if (session.activeSubagents > 0) {
-          break;
-        }
-        session.state = State.IDLE;
-        session.lastTool = null;
-        session.pendingMessage = null;
-        session.permissionRequest = null;
-        session.subagentActivity = 0;
-        session.activeSubagents = 0;
-        if (prevState !== State.IDLE && session.terminalTitle && onIdleAlert) {
-          onIdleAlert(session);
-        }
-        break;
+			case "idle":
+				// Don't transition to idle if subagents are still running
+				if (session.activeSubagents > 0) {
+					break;
+				}
+				session.state = State.IDLE;
+				session.lastTool = null;
+				session.pendingMessage = null;
+				session.permissionRequest = null;
+				session.subagentActivity = 0;
+				session.activeSubagents = 0;
+				if (prevState !== State.IDLE && session.terminalTitle && onIdleAlert) {
+					onIdleAlert(session);
+				}
+				break;
 
-      case "pending": {
-        session.state = State.PENDING;
-        session.pendingMessage = message || null;
-        session.permissionRequest = permissionRequest || null;
-        if (prevState !== State.PENDING && session.terminalTitle && onPendingAlert) {
-          onPendingAlert(session);
-        }
-        break;
-      }
+			case "pending": {
+				session.state = State.PENDING;
+				session.pendingMessage = message || null;
+				session.permissionRequest = permissionRequest || null;
+				if (
+					prevState !== State.PENDING &&
+					session.terminalTitle &&
+					onPendingAlert
+				) {
+					onPendingAlert(session);
+				}
+				break;
+			}
 
-      default:
-        return;
-    }
+			default:
+				return;
+		}
 
-    if (hookType === "SubagentStop") session.subagentActivity++;
-    if (session.state !== prevState) {
-      session.stateChangedAt = Date.now();
-    }
+		if (hookType === "SubagentStop") session.subagentActivity++;
+		if (session.state !== prevState) {
+			session.stateChangedAt = Date.now();
+		}
 
-    // Always notify immediately so SFX/flash stay in sync with state changes
-    notify();
+		// Always notify immediately so SFX/flash stay in sync with state changes
+		notify();
 
-    // Refresh git status on new sessions, cwd changes, and idle (work complete)
-    const shouldRefreshGit = getGitStatus && (isNew || cwdChanged || state === "idle");
-    if (shouldRefreshGit) {
-      refreshGit(session).then(notify).catch(() => {});
-    }
-  }
+		// Refresh git status on new sessions, cwd changes, and idle (work complete)
+		const shouldRefreshGit =
+			getGitStatus && (isNew || cwdChanged || state === "idle");
+		if (shouldRefreshGit) {
+			refreshGit(session)
+				.then(notify)
+				.catch(() => {});
+		}
+	}
 
-  function getSessions() {
-    return Array.from(sessions.values()).map((s) => ({
-      id: s.id,
-      state: s.state,
-      displayName: s.displayName,
-      cwd: s.cwd,
-      lastTool: s.lastTool,
-      lastEvent: s.lastEvent,
-      stateChangedAt: s.stateChangedAt,
-      pendingMessage: s.pendingMessage,
-      permissionRequest: s.permissionRequest,
-      spawned: s.spawned,
-      terminalTitle: s.terminalTitle,
-      windowHandle: s.windowHandle,
-      git: s.git,
-      subagentActivity: s.subagentActivity,
-      activeSubagents: s.activeSubagents,
-    }));
-  }
+	function getSessions() {
+		return Array.from(sessions.values()).map((s) => ({
+			id: s.id,
+			state: s.state,
+			displayName: s.displayName,
+			cwd: s.cwd,
+			lastTool: s.lastTool,
+			lastEvent: s.lastEvent,
+			stateChangedAt: s.stateChangedAt,
+			pendingMessage: s.pendingMessage,
+			permissionRequest: s.permissionRequest,
+			spawned: s.spawned,
+			terminalTitle: s.terminalTitle,
+			windowHandle: s.windowHandle,
+			git: s.git,
+			subagentActivity: s.subagentActivity,
+			activeSubagents: s.activeSubagents,
+		}));
+	}
 
-  function getAggregateState() {
-    const states = Array.from(sessions.values()).map((s) => s.state);
-    if (states.includes(State.PENDING)) return State.PENDING;
-    if (states.includes(State.BUSY)) return State.BUSY;
-    return State.IDLE;
-  }
+	function getAggregateState() {
+		const states = Array.from(sessions.values()).map((s) => s.state);
+		if (states.includes(State.PENDING)) return State.PENDING;
+		if (states.includes(State.BUSY)) return State.BUSY;
+		return State.IDLE;
+	}
 
-  function pruneStale() {
-    const now = Date.now();
-    let pruned = false;
-    for (const [id, session] of sessions) {
-      if (now - session.lastEvent > STALE_SESSION_TIMEOUT_MS) {
-        sessions.delete(id);
-        pruned = true;
-      }
-    }
-    if (pruned) notify();
-  }
+	function pruneStale() {
+		const now = Date.now();
+		let pruned = false;
+		for (const [id, session] of sessions) {
+			if (now - session.lastEvent > STALE_SESSION_TIMEOUT_MS) {
+				sessions.delete(id);
+				pruned = true;
+			}
+		}
+		if (pruned) notify();
+	}
 
-  function getSessionDisplayName(cwd) {
-    return extractDisplayName(cwd);
-  }
+	function getSessionDisplayName(cwd) {
+		return extractDisplayName(cwd);
+	}
 
-  function start() {
-    pruneInterval = setInterval(pruneStale, 60_000);
-  }
+	function start() {
+		pruneInterval = setInterval(pruneStale, 60_000);
+	}
 
-  function stop() {
-    if (pruneInterval) {
-      clearInterval(pruneInterval);
-      pruneInterval = null;
-    }
-    sessions.clear();
-  }
+	function stop() {
+		if (pruneInterval) {
+			clearInterval(pruneInterval);
+			pruneInterval = null;
+		}
+		sessions.clear();
+	}
 
-  function storeSpawnedInfo(cwd, terminalTitle, windowHandle) {
-    const normalized = cwd.replace(/\\/g, "/");
-    spawnedInfo.set(normalized, { terminalTitle, windowHandle });
+	function storeSpawnedInfo(cwd, terminalTitle, windowHandle) {
+		const normalized = cwd.replace(/\\/g, "/");
+		spawnedInfo.set(normalized, { terminalTitle, windowHandle });
 
-    // Retroactively mark the most recent unlinked session with this cwd
-    // (handles race where SessionStart hook fires before spawn returns).
-    // Only match ONE session — others with the same cwd are independent instances.
-    let newest = null;
-    for (const session of sessions.values()) {
-      const sessionCwd = session.cwd ? session.cwd.replace(/\\/g, "/") : null;
-      if (sessionCwd === normalized && !session.spawned) {
-        if (!newest || session.lastEvent > newest.lastEvent) {
-          newest = session;
-        }
-      }
-    }
-    if (newest) {
-      newest.spawned = true;
-      newest.terminalTitle = terminalTitle;
-      newest.windowHandle = windowHandle;
-      // Consume — the entry was matched, don't let new-session path double-match
-      spawnedInfo.delete(normalized);
-      notify();
-    }
-  }
+		// Retroactively mark the most recent unlinked session with this cwd
+		// (handles race where SessionStart hook fires before spawn returns).
+		// Only match ONE session — others with the same cwd are independent instances.
+		let newest = null;
+		for (const session of sessions.values()) {
+			const sessionCwd = session.cwd ? session.cwd.replace(/\\/g, "/") : null;
+			if (sessionCwd === normalized && !session.spawned) {
+				if (!newest || session.lastEvent > newest.lastEvent) {
+					newest = session;
+				}
+			}
+		}
+		if (newest) {
+			newest.spawned = true;
+			newest.terminalTitle = terminalTitle;
+			newest.windowHandle = windowHandle;
+			// Consume — the entry was matched, don't let new-session path double-match
+			spawnedInfo.delete(normalized);
+			notify();
+		}
+	}
 
-  function linkSessionById(sessionId, terminalTitle, windowHandle) {
-    const session = sessions.get(sessionId);
-    if (!session) return false;
-    session.spawned = true;
-    session.terminalTitle = terminalTitle;
-    session.windowHandle = windowHandle;
-    notify();
-    return true;
-  }
+	function linkSessionById(sessionId, terminalTitle, windowHandle) {
+		const session = sessions.get(sessionId);
+		if (!session) return false;
+		session.spawned = true;
+		session.terminalTitle = terminalTitle;
+		session.windowHandle = windowHandle;
+		notify();
+		return true;
+	}
 
-  function getSession(id) {
-    const s = sessions.get(id);
-    if (!s) return null;
-    return {
-      id: s.id,
-      state: s.state,
-      displayName: s.displayName,
-      cwd: s.cwd,
-      lastTool: s.lastTool,
-      lastEvent: s.lastEvent,
-      stateChangedAt: s.stateChangedAt,
-      pendingMessage: s.pendingMessage,
-      permissionRequest: s.permissionRequest,
-      spawned: s.spawned,
-      terminalTitle: s.terminalTitle,
-      windowHandle: s.windowHandle,
-      git: s.git,
-      subagentActivity: s.subagentActivity,
-      activeSubagents: s.activeSubagents,
-    };
-  }
+	function getSession(id) {
+		const s = sessions.get(id);
+		if (!s) return null;
+		return {
+			id: s.id,
+			state: s.state,
+			displayName: s.displayName,
+			cwd: s.cwd,
+			lastTool: s.lastTool,
+			lastEvent: s.lastEvent,
+			stateChangedAt: s.stateChangedAt,
+			pendingMessage: s.pendingMessage,
+			permissionRequest: s.permissionRequest,
+			spawned: s.spawned,
+			terminalTitle: s.terminalTitle,
+			windowHandle: s.windowHandle,
+			git: s.git,
+			subagentActivity: s.subagentActivity,
+			activeSubagents: s.activeSubagents,
+		};
+	}
 
-  function getLinkedHandles() {
-    const handles = new Set();
-    for (const session of sessions.values()) {
-      if (session.windowHandle != null) {
-        handles.add(session.windowHandle);
-      }
-    }
-    return handles;
-  }
+	function getLinkedHandles() {
+		const handles = new Set();
+		for (const session of sessions.values()) {
+			if (session.windowHandle != null) {
+				handles.add(session.windowHandle);
+			}
+		}
+		return handles;
+	}
 
-  return {
-    handleEvent,
-    getSessions,
-    getSession,
-    getAggregateState,
-    getSessionDisplayName,
-    storeSpawnedInfo,
-    linkSessionById,
-    getLinkedHandles,
-    pruneStale,
-    start,
-    stop,
-  };
+	return {
+		handleEvent,
+		getSessions,
+		getSession,
+		getAggregateState,
+		getSessionDisplayName,
+		storeSpawnedInfo,
+		linkSessionById,
+		getLinkedHandles,
+		pruneStale,
+		start,
+		stop,
+	};
 }
 
-export { State, STALE_SESSION_TIMEOUT_MS };
+export { STALE_SESSION_TIMEOUT_MS, State };

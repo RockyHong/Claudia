@@ -1,15 +1,13 @@
 <script>
-  import { PanelLeft, List, Sun, Moon } from "lucide-svelte";
-
-  let {
-    filePath = "",
-    treeVisible = true,
-    tocVisible = true,
-    darkMode = false,
-    onToggleTree = () => {},
-    onToggleToc = () => {},
-    onToggleTheme = () => {},
-  } = $props();
+let {
+	filePath = "",
+	treeVisible = true,
+	tocVisible = true,
+	darkMode = false,
+	onToggleTree = () => {},
+	onToggleToc = () => {},
+	onToggleTheme = () => {},
+} = $props();
 </script>
 
 <div class="toolbar">

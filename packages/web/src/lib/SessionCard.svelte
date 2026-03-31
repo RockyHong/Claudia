@@ -1,194 +1,190 @@
 <script>
-  import { onMount } from "svelte";
-  import { GitBranch, Folder, Terminal, Ghost, BookOpen } from "lucide-svelte";
-  import Tooltip from "./Tooltip.svelte";
+import { onMount } from "svelte";
 
-  let { session } = $props();
+let { session } = $props();
 
-  const stateConfig = {
-    idle: { dot: "dot-idle", label: "Idle" },
-    busy: { dot: "dot-busy", label: "Working" },
-    pending: { dot: "dot-pending", label: "Pending" },
-    disconnected: { dot: "dot-disconnected", label: "Disconnected" },
-  };
+const stateConfig = {
+	idle: { dot: "dot-idle", label: "Idle" },
+	busy: { dot: "dot-busy", label: "Working" },
+	pending: { dot: "dot-pending", label: "Pending" },
+	disconnected: { dot: "dot-disconnected", label: "Disconnected" },
+};
 
-  let elapsed = $state("");
-  let showLinkDropdown = $state(false);
-  let terminalList = $state([]);
-  let linkLoading = $state(false);
-  let linkError = $state("");
-  let approveLoading = $state(false);
-  let flashClass = $state("");
-  let decisionMade = $state(false);
-  let toolContextExpanded = $state(false);
-  let flashTimer = null;
+let _elapsed = $state("");
+let showLinkDropdown = $state(false);
+let _terminalList = $state([]);
+let _linkLoading = $state(false);
+let _linkError = $state("");
+let _approveLoading = $state(false);
+let _flashClass = $state("");
+let _decisionMade = $state(false);
+let _toolContextExpanded = $state(false);
+let flashTimer = null;
 
-  async function handleDecision(decision) {
-    approveLoading = true;
-    flashClass = decision === "allow" ? "flash-approve" : "flash-deny";
-    try {
-      await fetch(`/api/permission/${session.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ decision }),
-      });
-    } catch {
-      // best-effort — if server is down, hook will timeout and fallback
-    }
-    if (flashTimer) clearTimeout(flashTimer);
-    flashTimer = setTimeout(() => {
-      flashClass = "";
-      approveLoading = false;
-      decisionMade = true;
-      flashTimer = null;
-    }, 300);
-  }
+async function _handleDecision(decision) {
+	_approveLoading = true;
+	_flashClass = decision === "allow" ? "flash-approve" : "flash-deny";
+	try {
+		await fetch(`/api/permission/${session.id}`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ decision }),
+		});
+	} catch {
+		// best-effort — if server is down, hook will timeout and fallback
+	}
+	if (flashTimer) clearTimeout(flashTimer);
+	flashTimer = setTimeout(() => {
+		_flashClass = "";
+		_approveLoading = false;
+		_decisionMade = true;
+		flashTimer = null;
+	}, 300);
+}
 
-  // Reset when a new permission request arrives for this session
-  $effect(() => {
-    if (session.permissionRequest) {
-      // Cancel any in-flight flash timer from a previous decision
-      if (flashTimer) {
-        clearTimeout(flashTimer);
-        flashTimer = null;
-      }
-      flashClass = "";
-      approveLoading = false;
-      decisionMade = false;
-    }
-  });
+// Reset when a new permission request arrives for this session
+$effect(() => {
+	if (session.permissionRequest) {
+		// Cancel any in-flight flash timer from a previous decision
+		if (flashTimer) {
+			clearTimeout(flashTimer);
+			flashTimer = null;
+		}
+		_flashClass = "";
+		_approveLoading = false;
+		_decisionMade = false;
+	}
+});
 
-  onMount(() => {
-    const handler = (e) => {
-      if (showLinkDropdown) showLinkDropdown = false;
-    };
-    document.addEventListener("click", handler);
-    return () => document.removeEventListener("click", handler);
-  });
+onMount(() => {
+	const handler = (_e) => {
+		if (showLinkDropdown) showLinkDropdown = false;
+	};
+	document.addEventListener("click", handler);
+	return () => document.removeEventListener("click", handler);
+});
 
-  $effect(() => {
-    const interval = setInterval(() => {
-      elapsed = formatElapsed(session.stateChangedAt);
-    }, 1000);
-    elapsed = formatElapsed(session.stateChangedAt);
-    return () => clearInterval(interval);
-  });
+$effect(() => {
+	const interval = setInterval(() => {
+		_elapsed = formatElapsed(session.stateChangedAt);
+	}, 1000);
+	_elapsed = formatElapsed(session.stateChangedAt);
+	return () => clearInterval(interval);
+});
 
-  function formatElapsed(timestamp) {
-    const seconds = Math.floor((Date.now() - timestamp) / 1000);
-    if (seconds < 60) return `${seconds}s`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    return `${hours}h ${minutes % 60}m`;
-  }
+function formatElapsed(timestamp) {
+	const seconds = Math.floor((Date.now() - timestamp) / 1000);
+	if (seconds < 60) return `${seconds}s`;
+	const minutes = Math.floor(seconds / 60);
+	if (minutes < 60) return `${minutes}m`;
+	const hours = Math.floor(minutes / 60);
+	return `${hours}h ${minutes % 60}m`;
+}
 
-  let config = $derived(stateConfig[session.state] || stateConfig.idle);
+let _config = $derived(stateConfig[session.state] || stateConfig.idle);
 
-  async function handleClick() {
-    if (!session.spawned) return;
-    try {
-      await fetch(`/focus/${session.id}`, { method: "POST" });
-    } catch {
-      // best-effort
-    }
-  }
+async function _handleClick() {
+	if (!session.spawned) return;
+	try {
+		await fetch(`/focus/${session.id}`, { method: "POST" });
+	} catch {
+		// best-effort
+	}
+}
 
-  async function openFolder(e) {
-    e.stopPropagation();
-    try {
-      await fetch("/api/open-folder", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cwd: session.cwd }),
-      });
-    } catch {
-      // best-effort
-    }
-  }
+async function _openFolder(e) {
+	e.stopPropagation();
+	try {
+		await fetch("/api/open-folder", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ cwd: session.cwd }),
+		});
+	} catch {
+		// best-effort
+	}
+}
 
-  async function openTerminal(e) {
-    e.stopPropagation();
-    try {
-      await fetch("/api/open-terminal", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cwd: session.cwd }),
-      });
-    } catch {
-      // best-effort
-    }
-  }
+async function _openTerminal(e) {
+	e.stopPropagation();
+	try {
+		await fetch("/api/open-terminal", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ cwd: session.cwd }),
+		});
+	} catch {
+		// best-effort
+	}
+}
 
-  async function spawnSession(e) {
-    e.stopPropagation();
-    try {
-      await fetch("/api/launch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cwd: session.cwd }),
-      });
-    } catch {
-      // best-effort
-    }
-  }
+async function _spawnSession(e) {
+	e.stopPropagation();
+	try {
+		await fetch("/api/launch", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ cwd: session.cwd }),
+		});
+	} catch {
+		// best-effort
+	}
+}
 
-  function openDocs(e) {
-    e.stopPropagation();
-    const url = `${window.location.origin}/md-viewer.html?cwd=${encodeURIComponent(session.cwd)}`;
-    fetch("/api/open-url", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
-    }).catch(() => {
-      window.open(url, "_blank");
-    });
-  }
+function _openDocs(e) {
+	e.stopPropagation();
+	const url = `${window.location.origin}/md-viewer.html?cwd=${encodeURIComponent(session.cwd)}`;
+	fetch("/api/open-url", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ url }),
+	}).catch(() => {
+		window.open(url, "_blank");
+	});
+}
 
-  async function openLinkDropdown(e) {
-    e.stopPropagation();
-    if (showLinkDropdown) {
-      showLinkDropdown = false;
-      return;
-    }
-    linkLoading = true;
-    linkError = "";
-    showLinkDropdown = true;
-    try {
-      const res = await fetch("/api/terminals");
-      const data = await res.json();
-      if (data.supported === false) {
-        terminalList = [];
-        linkError = "Linking not supported on this platform yet";
-      } else {
-        terminalList = data.terminals || [];
-      }
-    } catch {
-      terminalList = [];
-      linkError = "Failed to load terminals";
-    } finally {
-      linkLoading = false;
-    }
-  }
+async function _openLinkDropdown(e) {
+	e.stopPropagation();
+	if (showLinkDropdown) {
+		showLinkDropdown = false;
+		return;
+	}
+	_linkLoading = true;
+	_linkError = "";
+	showLinkDropdown = true;
+	try {
+		const res = await fetch("/api/terminals");
+		const data = await res.json();
+		if (data.supported === false) {
+			_terminalList = [];
+			_linkError = "Linking not supported on this platform yet";
+		} else {
+			_terminalList = data.terminals || [];
+		}
+	} catch {
+		_terminalList = [];
+		_linkError = "Failed to load terminals";
+	} finally {
+		_linkLoading = false;
+	}
+}
 
-  function flashTerminal(hwnd) {
-    fetch(`/api/flash/${hwnd}`, { method: "POST" }).catch(() => {});
-  }
+function _flashTerminal(hwnd) {
+	fetch(`/api/flash/${hwnd}`, { method: "POST" }).catch(() => {});
+}
 
-  async function linkTerminal(hwnd) {
-    try {
-      await fetch(`/api/link/${session.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ windowHandle: hwnd }),
-      });
-    } catch {
-      // best-effort
-    }
-    showLinkDropdown = false;
-  }
-
-
+async function _linkTerminal(hwnd) {
+	try {
+		await fetch(`/api/link/${session.id}`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ windowHandle: hwnd }),
+		});
+	} catch {
+		// best-effort
+	}
+	showLinkDropdown = false;
+}
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->

@@ -1,42 +1,43 @@
 <script>
-  import Tooltip from "./Tooltip.svelte";
+let { immersive = false } = $props();
 
-  let { immersive = false } = $props();
+let status = $state(null);
 
-  let status = $state(null);
+const STATUS_POLL_MS = 60_000;
+let pollTimer;
 
-  const STATUS_POLL_MS = 60_000;
-  let pollTimer;
+async function fetchStatus() {
+	try {
+		const res = await fetch("/api/claude-status");
+		if (res.status === 204) return;
+		status = await res.json();
+	} catch {
+		// Keep stale on failure
+	}
+}
 
-  async function fetchStatus() {
-    try {
-      const res = await fetch("/api/claude-status");
-      if (res.status === 204) return;
-      status = await res.json();
-    } catch {
-      // Keep stale on failure
-    }
-  }
+$effect(() => {
+	fetchStatus();
+	pollTimer = setInterval(fetchStatus, STATUS_POLL_MS);
+	return () => clearInterval(pollTimer);
+});
 
-  $effect(() => {
-    fetchStatus();
-    pollTimer = setInterval(fetchStatus, STATUS_POLL_MS);
-    return () => clearInterval(pollTimer);
-  });
+let _dotClass = $derived(
+	!status
+		? "dot-unknown"
+		: status.overall === "operational"
+			? "dot-ok"
+			: status.overall === "degraded_performance"
+				? "dot-degraded"
+				: "dot-outage",
+);
 
-  let dotClass = $derived(
-    !status ? "dot-unknown" :
-    status.overall === "operational" ? "dot-ok" :
-    status.overall === "degraded_performance" ? "dot-degraded" :
-    "dot-outage"
-  );
-
-  let tooltipText = $derived(() => {
-    if (!status) return "Claude status: checking…";
-    return status.components
-      .map((c) => `${c.name}: ${c.status.replace(/_/g, " ")}`)
-      .join("\n");
-  });
+let _tooltipText = $derived(() => {
+	if (!status) return "Claude status: checking…";
+	return status.components
+		.map((c) => `${c.name}: ${c.status.replace(/_/g, " ")}`)
+		.join("\n");
+});
 </script>
 
 {#if status}

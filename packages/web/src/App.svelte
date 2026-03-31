@@ -1,208 +1,200 @@
 <script>
-  import { createSSEClient } from "./lib/sse.js";
-  import { createSFXController } from "./lib/sfx.js";
-  import { createAmbienceController } from "./lib/ambience.js";
-  import { initTauriBridge } from "./lib/tauri-bridge.js";
-  import SessionList from "./lib/SessionList.svelte";
-  import StatusBar from "./lib/StatusBar.svelte";
-  import DisconnectCover from "./lib/DisconnectCover.svelte";
-  import AvatarPanel from "./lib/AvatarPanel.svelte";
-  import SettingsModal from "./lib/SettingsModal.svelte";
-  import AvatarModal from "./lib/AvatarModal.svelte";
-  import SpawnPopover from "./lib/SpawnPopover.svelte";
-  import HookGate from "./lib/HookGate.svelte";
-  import { Minimize2, Image, Settings } from "lucide-svelte";
-  import Tooltip from "./lib/Tooltip.svelte";
-  import ClaudeStatus from "./lib/ClaudeStatus.svelte";
+import { createAmbienceController } from "./lib/ambience.js";
+import { createSFXController } from "./lib/sfx.js";
+import { createSSEClient } from "./lib/sse.js";
+import { initTauriBridge } from "./lib/tauri-bridge.js";
 
-  let sessions = $state([]);
-  let aggregateState = $state("idle");
-  let statusMessage = $state("");
-  let bgMode = $state(false);
-  let showSettings = $state(false);
-  let showAvatarModal = $state(false);
-  let showSpawn = $state(false);
-  let usage = $state(null);
-  let avatarVersion = $state(0);
-  let sseConnected = $state(true);
-  let showDisconnect = $state(false);
-  let disconnectTimer = null;
-  let hooksPassed = $state(false);
-  let nightMode = $state(true);
-  let usageMonitoring = $state(false);
-  let autoFocus = $state(true);
-  let typingAmbience = $state(false);
+let _sessions = $state([]);
+let aggregateState = $state("idle");
+let _statusMessage = $state("");
+let _bgMode = $state(false);
+let _showSettings = $state(false);
+let _showAvatarModal = $state(false);
+let _showSpawn = $state(false);
+let _usage = $state(null);
+let _avatarVersion = $state(0);
+let _sseConnected = $state(true);
+let showDisconnect = $state(false);
+let disconnectTimer = null;
+let _hooksPassed = $state(false);
+let nightMode = $state(true);
+let usageMonitoring = $state(false);
+let _autoFocus = $state(true);
+let typingAmbience = $state(false);
 
-  const sfx = createSFXController();
-  const ambience = createAmbienceController();
+const sfx = createSFXController();
+const ambience = createAmbienceController();
 
-  async function loadPreferences() {
-    try {
-      const res = await fetch("/api/preferences");
-      const prefs = await res.json();
-      nightMode = prefs.theme !== "light";
-      bgMode = prefs.immersive;
-      sfx.muted = prefs.sfx.muted;
-      sfx.volume = prefs.sfx.volume;
-      applyTheme(nightMode, false);
-      usageMonitoring = prefs.usageMonitoring === true;
-      autoFocus = prefs.autoFocus !== false;
-      typingAmbience = prefs.typingAmbience === true;
-      if (usageMonitoring) startUsagePolling();
-    } catch {
-      // Fallback defaults already set
-    }
-  }
+async function loadPreferences() {
+	try {
+		const res = await fetch("/api/preferences");
+		const prefs = await res.json();
+		nightMode = prefs.theme !== "light";
+		_bgMode = prefs.immersive;
+		sfx.muted = prefs.sfx.muted;
+		sfx.volume = prefs.sfx.volume;
+		applyTheme(nightMode, false);
+		usageMonitoring = prefs.usageMonitoring === true;
+		_autoFocus = prefs.autoFocus !== false;
+		typingAmbience = prefs.typingAmbience === true;
+		if (usageMonitoring) startUsagePolling();
+	} catch {
+		// Fallback defaults already set
+	}
+}
 
-  function applyTheme(dark, persist = true) {
-    document.documentElement.classList.toggle("light", !dark);
-    if (persist) {
-      fetch("/api/preferences", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme: dark ? "dark" : "light" }),
-      }).catch(() => {});
-    }
-  }
+function applyTheme(dark, persist = true) {
+	document.documentElement.classList.toggle("light", !dark);
+	if (persist) {
+		fetch("/api/preferences", {
+			method: "PATCH",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ theme: dark ? "dark" : "light" }),
+		}).catch(() => {});
+	}
+}
 
-  function setUsageMonitoring(enabled) {
-    usageMonitoring = enabled;
-    if (enabled) {
-      startUsagePolling();
-    } else {
-      stopUsagePolling();
-      usage = null;
-    }
-    fetch("/api/preferences", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ usageMonitoring: enabled }),
-    }).catch(() => {});
-  }
+function _setUsageMonitoring(enabled) {
+	usageMonitoring = enabled;
+	if (enabled) {
+		startUsagePolling();
+	} else {
+		stopUsagePolling();
+		_usage = null;
+	}
+	fetch("/api/preferences", {
+		method: "PATCH",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ usageMonitoring: enabled }),
+	}).catch(() => {});
+}
 
-  function setAutoFocus(enabled) {
-    autoFocus = enabled;
-    fetch("/api/preferences", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ autoFocus: enabled }),
-    }).catch(() => {});
-  }
+function _setAutoFocus(enabled) {
+	_autoFocus = enabled;
+	fetch("/api/preferences", {
+		method: "PATCH",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ autoFocus: enabled }),
+	}).catch(() => {});
+}
 
-  function setTypingAmbience(enabled) {
-    typingAmbience = enabled;
-    fetch("/api/preferences", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ typingAmbience: enabled }),
-    }).catch(() => {});
-  }
+function _setTypingAmbience(enabled) {
+	typingAmbience = enabled;
+	fetch("/api/preferences", {
+		method: "PATCH",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ typingAmbience: enabled }),
+	}).catch(() => {});
+}
 
-  $effect(() => {
-    if (typingAmbience && aggregateState === "busy") {
-      ambience.start();
-    } else {
-      ambience.stop();
-    }
-  });
+$effect(() => {
+	if (typingAmbience && aggregateState === "busy") {
+		ambience.start();
+	} else {
+		ambience.stop();
+	}
+});
 
-  async function loadUsage() {
-    if (!usageMonitoring) {
-      usage = null;
-      return;
-    }
-    try {
-      const res = await fetch("/api/usage");
-      if (res.status === 204) return;
-      usage = await res.json();
-    } catch {
-      // Keep existing usage on failure
-    }
-  }
+async function loadUsage() {
+	if (!usageMonitoring) {
+		_usage = null;
+		return;
+	}
+	try {
+		const res = await fetch("/api/usage");
+		if (res.status === 204) return;
+		_usage = await res.json();
+	} catch {
+		// Keep existing usage on failure
+	}
+}
 
-  const USAGE_POLL_MS = 10 * 60 * 1000; // 10 minutes
-  let usagePollInterval = null;
+const USAGE_POLL_MS = 10 * 60 * 1000; // 10 minutes
+let usagePollInterval = null;
 
-  function startUsagePolling() {
-    stopUsagePolling();
-    loadUsage();
-    usagePollInterval = setInterval(loadUsage, USAGE_POLL_MS);
-  }
+function startUsagePolling() {
+	stopUsagePolling();
+	loadUsage();
+	usagePollInterval = setInterval(loadUsage, USAGE_POLL_MS);
+}
 
-  function stopUsagePolling() {
-    if (usagePollInterval) {
-      clearInterval(usagePollInterval);
-      usagePollInterval = null;
-    }
-  }
+function stopUsagePolling() {
+	if (usagePollInterval) {
+		clearInterval(usagePollInterval);
+		usagePollInterval = null;
+	}
+}
 
-  loadPreferences();
-  initTauriBridge();
+loadPreferences();
+initTauriBridge();
 
-  const sseClient = createSSEClient("/events", (update) => {
-    // SFX-only messages (e.g. "send" on UserPromptSubmit) have no sessions
-    if (update.sessions) {
-      sessions = update.sessions;
-      aggregateState = update.aggregateState;
-      statusMessage = update.statusMessage || "";
-      updateDocumentTitle(update.aggregateState, update.sessions);
-    }
+const _sseClient = createSSEClient(
+	"/events",
+	(update) => {
+		// SFX-only messages (e.g. "send" on UserPromptSubmit) have no sessions
+		if (update.sessions) {
+			_sessions = update.sessions;
+			aggregateState = update.aggregateState;
+			_statusMessage = update.statusMessage || "";
+			updateDocumentTitle(update.aggregateState, update.sessions);
+		}
 
-    // Play sounds pushed from server
-    if (update.sfx) {
-      for (const sound of update.sfx) {
-        sfx.play(sound);
-      }
-    }
-  }, (connected) => {
-    sseConnected = connected;
-    if (!connected) {
-      if (!disconnectTimer) {
-        disconnectTimer = setTimeout(() => showDisconnect = true, 8000);
-      }
-    } else {
-      clearTimeout(disconnectTimer);
-      disconnectTimer = null;
-      showDisconnect = false;
-    }
-  });
+		// Play sounds pushed from server
+		if (update.sfx) {
+			for (const sound of update.sfx) {
+				sfx.play(sound);
+			}
+		}
+	},
+	(connected) => {
+		_sseConnected = connected;
+		if (!connected) {
+			if (!disconnectTimer) {
+				disconnectTimer = setTimeout(() => (showDisconnect = true), 8000);
+			}
+		} else {
+			clearTimeout(disconnectTimer);
+			disconnectTimer = null;
+			showDisconnect = false;
+		}
+	},
+);
 
-  function updateDocumentTitle(state, sessions) {
-    const pendingCount = sessions.filter((s) => s.state === "pending").length;
-    if (pendingCount > 0) {
-      document.title = `(${pendingCount} pending) Claudia*`;
-    } else {
-      document.title = "Claudia*";
-    }
-    updateFavicon(state);
-  }
+function updateDocumentTitle(state, sessions) {
+	const pendingCount = sessions.filter((s) => s.state === "pending").length;
+	if (pendingCount > 0) {
+		document.title = `(${pendingCount} pending) Claudia*`;
+	} else {
+		document.title = "Claudia*";
+	}
+	updateFavicon(state);
+}
 
-  let lastFaviconState = "";
+let lastFaviconState = "";
 
-  function updateFavicon(state) {
-    if (state === lastFaviconState) return;
-    lastFaviconState = state;
+function updateFavicon(state) {
+	if (state === lastFaviconState) return;
+	lastFaviconState = state;
 
-    const style = getComputedStyle(document.documentElement);
-    const colorMap = {
-      idle: style.getPropertyValue("--green").trim(),
-      busy: style.getPropertyValue("--blue").trim(),
-      pending: style.getPropertyValue("--amber").trim(),
-    };
+	const style = getComputedStyle(document.documentElement);
+	const colorMap = {
+		idle: style.getPropertyValue("--green").trim(),
+		busy: style.getPropertyValue("--blue").trim(),
+		pending: style.getPropertyValue("--amber").trim(),
+	};
 
-    const color = colorMap[state] || colorMap.idle;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="${color}"/></svg>`;
-    const url = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+	const color = colorMap[state] || colorMap.idle;
+	const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="${color}"/></svg>`;
+	const url = `data:image/svg+xml,${encodeURIComponent(svg)}`;
 
-    let link = document.querySelector("link[rel='icon']");
-    if (!link) {
-      link = document.createElement("link");
-      link.rel = "icon";
-      document.head.appendChild(link);
-    }
-    link.href = url;
-  }
-
+	let link = document.querySelector("link[rel='icon']");
+	if (!link) {
+		link = document.createElement("link");
+		link.rel = "icon";
+		document.head.appendChild(link);
+	}
+	link.href = url;
+}
 </script>
 
 {#if showDisconnect}

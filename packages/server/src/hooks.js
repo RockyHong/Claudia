@@ -1,8 +1,8 @@
 // Claude Code hook config read/write/merge for ~/.claude/settings.json
 
 import fs from "node:fs/promises";
-import path from "node:path";
 import os from "node:os";
+import path from "node:path";
 
 const SETTINGS_PATH = path.join(os.homedir(), ".claude", "settings.json");
 const CLAUDIA_MARKER = "127.0.0.1:48901/hook";
@@ -10,107 +10,118 @@ const CLAUDIA_MARKER = "127.0.0.1:48901/hook";
 // Hook commands pipe raw stdin JSON to the server via curl.
 // The server does the field mapping (session_id → session, etc.) — no node cold start.
 function hookCommand(hookType) {
-  return `curl -sfS -X POST -H "Content-Type: application/json" -d @- http://127.0.0.1:48901/hook/${hookType} 2>/dev/null || true`;
+	return `curl -sfS -X POST -H "Content-Type: application/json" -d @- http://127.0.0.1:48901/hook/${hookType} 2>/dev/null || true`;
 }
 
 // Non-blocking variant: reads stdin eagerly, then POSTs in background.
 // Used for hooks where Claude Code shouldn't wait (Stop, SessionEnd).
 function hookCommandAsync(hookType) {
-  return `input=$(cat); (curl -sfS -X POST -H "Content-Type: application/json" -d "$input" http://127.0.0.1:48901/hook/${hookType} 2>/dev/null &) ; true`;
+	return `input=$(cat); (curl -sfS -X POST -H "Content-Type: application/json" -d "$input" http://127.0.0.1:48901/hook/${hookType} 2>/dev/null &) ; true`;
 }
 
 function hookEntry(hookType, matcher = ".*", background = false) {
-  return {
-    matcher,
-    hooks: [{ type: "command", command: background ? hookCommandAsync(hookType) : hookCommand(hookType) }],
-  };
+	return {
+		matcher,
+		hooks: [
+			{
+				type: "command",
+				command: background
+					? hookCommandAsync(hookType)
+					: hookCommand(hookType),
+			},
+		],
+	};
 }
 
 const CLAUDIA_HOOKS = {
-  SessionStart: [hookEntry("SessionStart")],
-  UserPromptSubmit: [hookEntry("UserPromptSubmit")],
-  PreToolUse: [hookEntry("PreToolUse")],
-  PostToolUse: [hookEntry("PostToolUse")],
-  PermissionRequest: [hookEntry("PermissionRequest")],
-  Stop: [hookEntry("Stop", ".*", true)],
-  SessionEnd: [hookEntry("SessionEnd", ".*", true)],
-  SubagentStop: [hookEntry("SubagentStop")],
-  PreCompact: [hookEntry("PreCompact")],
+	SessionStart: [hookEntry("SessionStart")],
+	UserPromptSubmit: [hookEntry("UserPromptSubmit")],
+	PreToolUse: [hookEntry("PreToolUse")],
+	PostToolUse: [hookEntry("PostToolUse")],
+	PermissionRequest: [hookEntry("PermissionRequest")],
+	Stop: [hookEntry("Stop", ".*", true)],
+	SessionEnd: [hookEntry("SessionEnd", ".*", true)],
+	SubagentStop: [hookEntry("SubagentStop")],
+	PreCompact: [hookEntry("PreCompact")],
 };
 
 function commandIsClaudia(cmd) {
-  return typeof cmd === "string" && cmd.includes(CLAUDIA_MARKER);
+	return typeof cmd === "string" && cmd.includes(CLAUDIA_MARKER);
 }
 
 function isClaudiaHook(hook) {
-  if (!hook) return false;
-  if (Array.isArray(hook.hooks)) {
-    return hook.hooks.some((h) => commandIsClaudia(h.command));
-  }
-  return commandIsClaudia(hook.command);
+	if (!hook) return false;
+	if (Array.isArray(hook.hooks)) {
+		return hook.hooks.some((h) => commandIsClaudia(h.command));
+	}
+	return commandIsClaudia(hook.command);
 }
 
 export async function readSettings() {
-  try {
-    const content = await fs.readFile(SETTINGS_PATH, "utf-8");
-    return JSON.parse(content);
-  } catch (err) {
-    if (err.code === "ENOENT") return {};
-    if (err instanceof SyntaxError) {
-      throw new Error(`Malformed JSON in ${SETTINGS_PATH}: ${err.message}`);
-    }
-    throw err;
-  }
+	try {
+		const content = await fs.readFile(SETTINGS_PATH, "utf-8");
+		return JSON.parse(content);
+	} catch (err) {
+		if (err.code === "ENOENT") return {};
+		if (err instanceof SyntaxError) {
+			throw new Error(`Malformed JSON in ${SETTINGS_PATH}: ${err.message}`);
+		}
+		throw err;
+	}
 }
 
 export async function writeSettings(settings) {
-  const dir = path.dirname(SETTINGS_PATH);
-  await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(SETTINGS_PATH, JSON.stringify(settings, null, 2) + "\n");
+	const dir = path.dirname(SETTINGS_PATH);
+	await fs.mkdir(dir, { recursive: true });
+	await fs.writeFile(SETTINGS_PATH, `${JSON.stringify(settings, null, 2)}\n`);
 }
 
 export function hasClaudiaHooks(settings) {
-  const hooks = settings.hooks;
-  if (!hooks) return false;
-  return Object.values(hooks).some(
-    (hookList) => Array.isArray(hookList) && hookList.some(isClaudiaHook),
-  );
+	const hooks = settings.hooks;
+	if (!hooks) return false;
+	return Object.values(hooks).some(
+		(hookList) => Array.isArray(hookList) && hookList.some(isClaudiaHook),
+	);
 }
 
 export function mergeHooks(settings) {
-  const merged = { ...settings };
-  merged.hooks = { ...merged.hooks };
+	const merged = { ...settings };
+	merged.hooks = { ...merged.hooks };
 
-  for (const [event, claudiaHooks] of Object.entries(CLAUDIA_HOOKS)) {
-    const existing = Array.isArray(merged.hooks[event]) ? merged.hooks[event] : [];
-    const withoutCloudia = existing.filter((h) => !isClaudiaHook(h));
-    merged.hooks[event] = [...withoutCloudia, ...claudiaHooks];
-  }
+	for (const [event, claudiaHooks] of Object.entries(CLAUDIA_HOOKS)) {
+		const existing = Array.isArray(merged.hooks[event])
+			? merged.hooks[event]
+			: [];
+		const withoutCloudia = existing.filter((h) => !isClaudiaHook(h));
+		merged.hooks[event] = [...withoutCloudia, ...claudiaHooks];
+	}
 
-  return merged;
+	return merged;
 }
 
 export function removeHooks(settings) {
-  const cleaned = { ...settings };
-  cleaned.hooks = { ...cleaned.hooks };
+	const cleaned = { ...settings };
+	cleaned.hooks = { ...cleaned.hooks };
 
-  for (const event of Object.keys(cleaned.hooks)) {
-    if (!Array.isArray(cleaned.hooks[event])) continue;
-    cleaned.hooks[event] = cleaned.hooks[event].filter((h) => !isClaudiaHook(h));
-    if (cleaned.hooks[event].length === 0) {
-      delete cleaned.hooks[event];
-    }
-  }
+	for (const event of Object.keys(cleaned.hooks)) {
+		if (!Array.isArray(cleaned.hooks[event])) continue;
+		cleaned.hooks[event] = cleaned.hooks[event].filter(
+			(h) => !isClaudiaHook(h),
+		);
+		if (cleaned.hooks[event].length === 0) {
+			delete cleaned.hooks[event];
+		}
+	}
 
-  if (Object.keys(cleaned.hooks).length === 0) {
-    delete cleaned.hooks;
-  }
+	if (Object.keys(cleaned.hooks).length === 0) {
+		delete cleaned.hooks;
+	}
 
-  return cleaned;
+	return cleaned;
 }
 
 export function getSettingsPath() {
-  return SETTINGS_PATH;
+	return SETTINGS_PATH;
 }
 
 export { CLAUDIA_HOOKS, CLAUDIA_MARKER };

@@ -1,114 +1,127 @@
 <script>
-  import { Maximize2 } from "lucide-svelte";
-  import Tooltip from "./Tooltip.svelte";
+let {
+	aggregateState = "idle",
+	background = false,
+	version = 0,
+	onavatarclick,
+	onimmersive,
+} = $props();
 
-  let { aggregateState = "idle", background = false, version = 0, onavatarclick, onimmersive } = $props();
+const STATES = ["idle", "busy", "pending"];
 
-  const STATES = ["idle", "busy", "pending"];
+let available = $state(null);
+let videoA = $state(null);
+let videoB = $state(null);
+let srcA = $state("");
+let srcB = $state("");
+let showA = $state(true);
+let cacheBust = $derived(version ? `?v=${version}` : "");
 
-  let available = $state(null);
-  let videoA = $state(null);
-  let videoB = $state(null);
-  let srcA = $state("");
-  let srcB = $state("");
-  let showA = $state(true);
-  let cacheBust = $derived(version ? `?v=${version}` : "");
+$effect(() => {
+	version;
+	checkAvailability();
+});
 
-  $effect(() => {
-    version;
-    checkAvailability();
-  });
+async function checkAvailability() {
+	const bust = cacheBust;
+	const probes = STATES.flatMap((state) => [
+		probe(`/avatar/${state}.webm${bust}`).then((ok) => ({
+			state,
+			fmt: "webm",
+			ok,
+		})),
+		probe(`/avatar/${state}.mp4${bust}`).then((ok) => ({
+			state,
+			fmt: "mp4",
+			ok,
+		})),
+	]);
+	const results = {};
+	const preloads = [];
 
-  async function checkAvailability() {
-    const bust = cacheBust;
-    const probes = STATES.flatMap((state) => [
-      probe(`/avatar/${state}.webm${bust}`).then((ok) => ({ state, fmt: "webm", ok })),
-      probe(`/avatar/${state}.mp4${bust}`).then((ok) => ({ state, fmt: "mp4", ok })),
-    ]);
-    const results = {};
-    const preloads = [];
+	for (const { state, fmt, ok } of await Promise.all(probes)) {
+		if (!ok) continue;
+		if (!results[state]) results[state] = { webm: false, mp4: false };
+		results[state][fmt] = true;
+	}
 
-    for (const { state, fmt, ok } of await Promise.all(probes)) {
-      if (!ok) continue;
-      if (!results[state]) results[state] = { webm: false, mp4: false };
-      results[state][fmt] = true;
-    }
+	for (const state of STATES) {
+		if (!results[state]) continue;
+		const src = results[state].webm
+			? `/avatar/${state}.webm${bust}`
+			: `/avatar/${state}.mp4${bust}`;
+		preloads.push(preload(src));
+	}
 
-    for (const state of STATES) {
-      if (!results[state]) continue;
-      const src = results[state].webm ? `/avatar/${state}.webm${bust}` : `/avatar/${state}.mp4${bust}`;
-      preloads.push(preload(src));
-    }
+	await Promise.all(preloads);
+	srcA = "";
+	srcB = "";
+	showA = true;
+	aspectRatio = "";
+	available = Object.keys(results).length > 0 ? results : null;
+}
 
-    await Promise.all(preloads);
-    srcA = "";
-    srcB = "";
-    showA = true;
-    aspectRatio = "";
-    available = Object.keys(results).length > 0 ? results : null;
-  }
+async function probe(url) {
+	try {
+		const res = await fetch(url, { method: "HEAD" });
+		return res.ok;
+	} catch {
+		return false;
+	}
+}
 
-  async function probe(url) {
-    try {
-      const res = await fetch(url, { method: "HEAD" });
-      return res.ok;
-    } catch {
-      return false;
-    }
-  }
+function preload(src) {
+	return new Promise((resolve) => {
+		const video = document.createElement("video");
+		video.preload = "auto";
+		video.muted = true;
+		video.src = src;
+		video.oncanplaythrough = () => resolve();
+		video.onerror = () => resolve();
+	});
+}
 
-  function preload(src) {
-    return new Promise((resolve) => {
-      const video = document.createElement("video");
-      video.preload = "auto";
-      video.muted = true;
-      video.src = src;
-      video.oncanplaythrough = () => resolve();
-      video.onerror = () => resolve();
-    });
-  }
+function getSrc(state) {
+	if (!available?.[state]) return null;
+	const formats = available[state];
+	if (formats.webm) return `/avatar/${state}.webm${cacheBust}`;
+	if (formats.mp4) return `/avatar/${state}.mp4${cacheBust}`;
+	return null;
+}
 
-  function getSrc(state) {
-    if (!available || !available[state]) return null;
-    const formats = available[state];
-    if (formats.webm) return `/avatar/${state}.webm${cacheBust}`;
-    if (formats.mp4) return `/avatar/${state}.mp4${cacheBust}`;
-    return null;
-  }
+let aspectRatio = $state("");
 
-  let aspectRatio = $state("");
+function captureAspect(el) {
+	if (!el || aspectRatio) return;
+	const w = el.videoWidth;
+	const h = el.videoHeight;
+	if (w && h) aspectRatio = `${w} / ${h}`;
+}
 
-  function captureAspect(el) {
-    if (!el || aspectRatio) return;
-    const w = el.videoWidth;
-    const h = el.videoHeight;
-    if (w && h) aspectRatio = `${w} / ${h}`;
-  }
+$effect(() => {
+	const src = getSrc(aggregateState);
+	if (!src) return;
 
-  $effect(() => {
-    const src = getSrc(aggregateState);
-    if (!src) return;
+	const currentSrc = showA ? srcA : srcB;
+	if (src === currentSrc) return;
 
-    const currentSrc = showA ? srcA : srcB;
-    if (src === currentSrc) return;
-
-    // Load new source into the hidden slot and flip
-    if (showA) {
-      srcB = src;
-      requestAnimationFrame(() => {
-        videoB?.play().catch(() => {});
-        captureAspect(videoB);
-        showA = false;
-      });
-    } else {
-      srcA = src;
-      requestAnimationFrame(() => {
-        videoA?.play().catch(() => {});
-        captureAspect(videoA);
-        showA = true;
-      });
-    }
-  });
+	// Load new source into the hidden slot and flip
+	if (showA) {
+		srcB = src;
+		requestAnimationFrame(() => {
+			videoB?.play().catch(() => {});
+			captureAspect(videoB);
+			showA = false;
+		});
+	} else {
+		srcA = src;
+		requestAnimationFrame(() => {
+			videoA?.play().catch(() => {});
+			captureAspect(videoA);
+			showA = true;
+		});
+	}
+});
 </script>
 
 {#if available}

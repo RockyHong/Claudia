@@ -1,8 +1,17 @@
 <script>
-  import Modal from "./Modal.svelte";
-  import ConfigTab from "./ConfigTab.svelte";
-
-  let { onclose, sfx, nightMode = true, onnightmodechange, typingAmbience = false, ontypingambiencechange, usageMonitoring = false, onusagemonitoringchange, autoFocus = true, onautofocuschange, onhooksremoved } = $props();
+let {
+	onclose,
+	sfx,
+	nightMode = true,
+	onnightmodechange,
+	typingAmbience = false,
+	ontypingambiencechange,
+	usageMonitoring = false,
+	onusagemonitoringchange,
+	autoFocus = true,
+	onautofocuschange,
+	onhooksremoved,
+} = $props();
 </script>
 
 <Modal title="Settings" {onclose}>

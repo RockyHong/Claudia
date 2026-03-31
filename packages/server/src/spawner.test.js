@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // These mocks must be declared before any imports of the module under test.
 // vi.mock() calls are hoisted to the top of the file by Vitest.
@@ -7,12 +7,12 @@ const mockExecFile = vi.fn();
 const mockPlatform = vi.fn();
 
 vi.mock("node:child_process", () => ({
-  spawn: mockSpawn,
-  execFile: mockExecFile,
+	spawn: mockSpawn,
+	execFile: mockExecFile,
 }));
 
 vi.mock("node:os", () => ({
-  platform: mockPlatform,
+	platform: mockPlatform,
 }));
 
 // ---------------------------------------------------------------------------
@@ -20,14 +20,14 @@ vi.mock("node:os", () => ({
 // ---------------------------------------------------------------------------
 
 function createMockChild() {
-  const listeners = {};
-  return {
-    unref: vi.fn(),
-    on: vi.fn((event, cb) => {
-      listeners[event] = cb;
-    }),
-    _listeners: listeners,
-  };
+	const listeners = {};
+	return {
+		unref: vi.fn(),
+		on: vi.fn((event, cb) => {
+			listeners[event] = cb;
+		}),
+		_listeners: listeners,
+	};
 }
 
 /**
@@ -39,27 +39,31 @@ function createMockChild() {
  *
  * Everything else gets a simple success response.
  */
-function makeExecFileMock({ hwnd = "12345", folderPath = "/some/folder", empty = false } = {}) {
-  let callCount = 0;
-  return vi.fn((cmd, args, opts, cb) => {
-    // execFile(cmd, args, cb) — opts is optional
-    if (typeof opts === "function") {
-      cb = opts;
-    }
-    callCount++;
-    if (typeof cb === "function") {
-      if (empty) {
-        cb(null, "", "");
-      } else {
-        // First call for win32 spawnSession = runPowerShell (no stdout needed)
-        // Second call = findWindowByTitle (return hwnd)
-        // browse calls = return folderPath
-        const isHwndCall = callCount === 2 && hwnd !== undefined;
-        const stdout = isHwndCall ? `${hwnd}\n` : `${folderPath}\n`;
-        cb(null, stdout, "");
-      }
-    }
-  });
+function makeExecFileMock({
+	hwnd = "12345",
+	folderPath = "/some/folder",
+	empty = false,
+} = {}) {
+	let callCount = 0;
+	return vi.fn((_cmd, _args, opts, cb) => {
+		// execFile(cmd, args, cb) — opts is optional
+		if (typeof opts === "function") {
+			cb = opts;
+		}
+		callCount++;
+		if (typeof cb === "function") {
+			if (empty) {
+				cb(null, "", "");
+			} else {
+				// First call for win32 spawnSession = runPowerShell (no stdout needed)
+				// Second call = findWindowByTitle (return hwnd)
+				// browse calls = return folderPath
+				const isHwndCall = callCount === 2 && hwnd !== undefined;
+				const stdout = isHwndCall ? `${hwnd}\n` : `${folderPath}\n`;
+				cb(null, stdout, "");
+			}
+		}
+	});
 }
 
 // ---------------------------------------------------------------------------
@@ -67,19 +71,21 @@ function makeExecFileMock({ hwnd = "12345", folderPath = "/some/folder", empty =
 // ---------------------------------------------------------------------------
 
 describe("spawnSession — unsupported platform", () => {
-  let spawnSession;
+	let spawnSession;
 
-  beforeEach(async () => {
-    vi.resetModules();
-    vi.clearAllMocks();
-    mockPlatform.mockReturnValue("freebsd");
-    const mod = await import("./spawner.js");
-    spawnSession = mod.spawnSession;
-  });
+	beforeEach(async () => {
+		vi.resetModules();
+		vi.clearAllMocks();
+		mockPlatform.mockReturnValue("freebsd");
+		const mod = await import("./spawner.js");
+		spawnSession = mod.spawnSession;
+	});
 
-  it("throws an error mentioning the platform name", async () => {
-    await expect(spawnSession("/some/path")).rejects.toThrow("Unsupported platform");
-  });
+	it("throws an error mentioning the platform name", async () => {
+		await expect(spawnSession("/some/path")).rejects.toThrow(
+			"Unsupported platform",
+		);
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -87,52 +93,52 @@ describe("spawnSession — unsupported platform", () => {
 // ---------------------------------------------------------------------------
 
 describe("spawnSession — win32", () => {
-  let spawnSession;
+	let spawnSession;
 
-  beforeEach(async () => {
-    vi.resetModules();
-    vi.clearAllMocks();
-    mockPlatform.mockReturnValue("win32");
-    mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "12345" }));
-    const mod = await import("./spawner.js");
-    spawnSession = mod.spawnSession;
-  });
+	beforeEach(async () => {
+		vi.resetModules();
+		vi.clearAllMocks();
+		mockPlatform.mockReturnValue("win32");
+		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "12345" }));
+		const mod = await import("./spawner.js");
+		spawnSession = mod.spawnSession;
+	});
 
-  it("calls execFile with powershell for Start-Process wt", async () => {
-    await spawnSession("C:\\Users\\user\\project");
-    expect(mockExecFile).toHaveBeenCalled();
-    const firstCall = mockExecFile.mock.calls[0];
-    expect(firstCall[0]).toBe("powershell");
-    expect(firstCall[1]).toContain("-Command");
-    const command = firstCall[1].join(" ");
-    expect(command).toMatch(/Start-Process wt/);
-  });
+	it("calls execFile with powershell for Start-Process wt", async () => {
+		await spawnSession("C:\\Users\\user\\project");
+		expect(mockExecFile).toHaveBeenCalled();
+		const firstCall = mockExecFile.mock.calls[0];
+		expect(firstCall[0]).toBe("powershell");
+		expect(firstCall[1]).toContain("-Command");
+		const command = firstCall[1].join(" ");
+		expect(command).toMatch(/Start-Process wt/);
+	});
 
-  it("calls execFile a second time for findWindowByTitle", async () => {
-    await spawnSession("C:\\Users\\user\\project");
-    expect(mockExecFile).toHaveBeenCalledTimes(2);
-    const secondCall = mockExecFile.mock.calls[1];
-    expect(secondCall[0]).toBe("powershell");
-  });
+	it("calls execFile a second time for findWindowByTitle", async () => {
+		await spawnSession("C:\\Users\\user\\project");
+		expect(mockExecFile).toHaveBeenCalledTimes(2);
+		const secondCall = mockExecFile.mock.calls[1];
+		expect(secondCall[0]).toBe("powershell");
+	});
 
-  it("returns terminalTitle and windowHandle", async () => {
-    const result = await spawnSession("C:\\Users\\user\\myproject");
-    expect(result).toHaveProperty("terminalTitle");
-    expect(result).toHaveProperty("windowHandle");
-    expect(typeof result.terminalTitle).toBe("string");
-  });
+	it("returns terminalTitle and windowHandle", async () => {
+		const result = await spawnSession("C:\\Users\\user\\myproject");
+		expect(result).toHaveProperty("terminalTitle");
+		expect(result).toHaveProperty("windowHandle");
+		expect(typeof result.terminalTitle).toBe("string");
+	});
 
-  it("returns null windowHandle when findWindowByTitle returns empty", async () => {
-    mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "0" }));
-    const result = await spawnSession("C:\\Users\\user\\myproject");
-    expect(result.windowHandle).toBeNull();
-  });
+	it("returns null windowHandle when findWindowByTitle returns empty", async () => {
+		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "0" }));
+		const result = await spawnSession("C:\\Users\\user\\myproject");
+		expect(result.windowHandle).toBeNull();
+	});
 
-  it("returns numeric windowHandle when a valid HWND is found", async () => {
-    mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "99999" }));
-    const result = await spawnSession("C:\\Users\\user\\myproject");
-    expect(result.windowHandle).toBe(99999);
-  });
+	it("returns numeric windowHandle when a valid HWND is found", async () => {
+		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "99999" }));
+		const result = await spawnSession("C:\\Users\\user\\myproject");
+		expect(result.windowHandle).toBe(99999);
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -140,34 +146,34 @@ describe("spawnSession — win32", () => {
 // ---------------------------------------------------------------------------
 
 describe("spawnSession — darwin", () => {
-  let spawnSession;
+	let spawnSession;
 
-  beforeEach(async () => {
-    vi.resetModules();
-    vi.clearAllMocks();
-    mockPlatform.mockReturnValue("darwin");
-    mockSpawn.mockReturnValue(createMockChild());
-    const mod = await import("./spawner.js");
-    spawnSession = mod.spawnSession;
-  });
+	beforeEach(async () => {
+		vi.resetModules();
+		vi.clearAllMocks();
+		mockPlatform.mockReturnValue("darwin");
+		mockSpawn.mockReturnValue(createMockChild());
+		const mod = await import("./spawner.js");
+		spawnSession = mod.spawnSession;
+	});
 
-  it("calls spawn with osascript", async () => {
-    await spawnSession("/Users/user/project");
-    expect(mockSpawn).toHaveBeenCalled();
-    expect(mockSpawn.mock.calls[0][0]).toBe("osascript");
-  });
+	it("calls spawn with osascript", async () => {
+		await spawnSession("/Users/user/project");
+		expect(mockSpawn).toHaveBeenCalled();
+		expect(mockSpawn.mock.calls[0][0]).toBe("osascript");
+	});
 
-  it("returns terminalTitle null and windowHandle null", async () => {
-    const result = await spawnSession("/Users/user/project");
-    expect(result).toEqual({ terminalTitle: null, windowHandle: null });
-  });
+	it("returns terminalTitle null and windowHandle null", async () => {
+		const result = await spawnSession("/Users/user/project");
+		expect(result).toEqual({ terminalTitle: null, windowHandle: null });
+	});
 
-  it("calls unref() on the spawned child", async () => {
-    const child = createMockChild();
-    mockSpawn.mockReturnValue(child);
-    await spawnSession("/Users/user/project");
-    expect(child.unref).toHaveBeenCalled();
-  });
+	it("calls unref() on the spawned child", async () => {
+		const child = createMockChild();
+		mockSpawn.mockReturnValue(child);
+		await spawnSession("/Users/user/project");
+		expect(child.unref).toHaveBeenCalled();
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -175,85 +181,89 @@ describe("spawnSession — darwin", () => {
 // ---------------------------------------------------------------------------
 
 describe("spawnSession — linux", () => {
-  let spawnSession;
+	let spawnSession;
 
-  beforeEach(async () => {
-    vi.resetModules();
-    vi.clearAllMocks();
-    vi.useFakeTimers();
-    mockPlatform.mockReturnValue("linux");
-    const mod = await import("./spawner.js");
-    spawnSession = mod.spawnSession;
-  });
+	beforeEach(async () => {
+		vi.resetModules();
+		vi.clearAllMocks();
+		vi.useFakeTimers();
+		mockPlatform.mockReturnValue("linux");
+		const mod = await import("./spawner.js");
+		spawnSession = mod.spawnSession;
+	});
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
+	afterEach(() => {
+		vi.useRealTimers();
+	});
 
-  it("calls spawn with a terminal emulator command", async () => {
-    const child = createMockChild();
-    mockSpawn.mockReturnValue(child);
+	it("calls spawn with a terminal emulator command", async () => {
+		const child = createMockChild();
+		mockSpawn.mockReturnValue(child);
 
-    const promise = spawnSession("/home/user/project");
-    // trySpawn resolves after 500ms setTimeout
-    await vi.advanceTimersByTimeAsync(500);
-    const result = await promise;
+		const promise = spawnSession("/home/user/project");
+		// trySpawn resolves after 500ms setTimeout
+		await vi.advanceTimersByTimeAsync(500);
+		const _result = await promise;
 
-    expect(mockSpawn).toHaveBeenCalled();
-    const cmd = mockSpawn.mock.calls[0][0];
-    expect(["gnome-terminal", "xterm", "x-terminal-emulator"]).toContain(cmd);
-  });
+		expect(mockSpawn).toHaveBeenCalled();
+		const cmd = mockSpawn.mock.calls[0][0];
+		expect(["gnome-terminal", "xterm", "x-terminal-emulator"]).toContain(cmd);
+	});
 
-  it("returns terminalTitle null and windowHandle null", async () => {
-    const child = createMockChild();
-    mockSpawn.mockReturnValue(child);
+	it("returns terminalTitle null and windowHandle null", async () => {
+		const child = createMockChild();
+		mockSpawn.mockReturnValue(child);
 
-    const promise = spawnSession("/home/user/project");
-    await vi.advanceTimersByTimeAsync(500);
-    const result = await promise;
+		const promise = spawnSession("/home/user/project");
+		await vi.advanceTimersByTimeAsync(500);
+		const result = await promise;
 
-    expect(result).toEqual({ terminalTitle: null, windowHandle: null });
-  });
+		expect(result).toEqual({ terminalTitle: null, windowHandle: null });
+	});
 
-  it("falls back to the next terminal if the first emits an error", async () => {
-    let callIndex = 0;
-    mockSpawn.mockImplementation(() => {
-      const child = createMockChild();
-      const idx = callIndex++;
-      // First terminal emulator: fire error synchronously so trySpawn resolves null
-      // before the 500ms timeout. The second spawn succeeds after the timeout.
-      if (idx === 0) {
-        // Trigger error synchronously after on() is registered via Promise microtask
-        Promise.resolve().then(() => {
-          if (child._listeners.error) child._listeners.error(new Error("not found"));
-        });
-      }
-      return child;
-    });
+	it("falls back to the next terminal if the first emits an error", async () => {
+		let callIndex = 0;
+		mockSpawn.mockImplementation(() => {
+			const child = createMockChild();
+			const idx = callIndex++;
+			// First terminal emulator: fire error synchronously so trySpawn resolves null
+			// before the 500ms timeout. The second spawn succeeds after the timeout.
+			if (idx === 0) {
+				// Trigger error synchronously after on() is registered via Promise microtask
+				Promise.resolve().then(() => {
+					if (child._listeners.error)
+						child._listeners.error(new Error("not found"));
+				});
+			}
+			return child;
+		});
 
-    const promise = spawnSession("/home/user/project");
-    // Let microtasks settle (error fires), then advance through the successful spawn's timeout
-    await vi.advanceTimersByTimeAsync(500);
-    await promise;
+		const promise = spawnSession("/home/user/project");
+		// Let microtasks settle (error fires), then advance through the successful spawn's timeout
+		await vi.advanceTimersByTimeAsync(500);
+		await promise;
 
-    // Should have tried at least two terminal emulators
-    expect(mockSpawn.mock.calls.length).toBeGreaterThanOrEqual(2);
-  });
+		// Should have tried at least two terminal emulators
+		expect(mockSpawn.mock.calls.length).toBeGreaterThanOrEqual(2);
+	});
 
-  it("throws when no terminal emulator is found", async () => {
-    mockSpawn.mockImplementation(() => {
-      const child = createMockChild();
-      // Fire error synchronously via microtask so trySpawn resolves null
-      // without needing the 500ms timeout at all.
-      Promise.resolve().then(() => {
-        if (child._listeners.error) child._listeners.error(new Error("not found"));
-      });
-      return child;
-    });
+	it("throws when no terminal emulator is found", async () => {
+		mockSpawn.mockImplementation(() => {
+			const child = createMockChild();
+			// Fire error synchronously via microtask so trySpawn resolves null
+			// without needing the 500ms timeout at all.
+			Promise.resolve().then(() => {
+				if (child._listeners.error)
+					child._listeners.error(new Error("not found"));
+			});
+			return child;
+		});
 
-    // The errors fire via microtasks — no timer advancement needed.
-    await expect(spawnSession("/home/user/project")).rejects.toThrow("No terminal emulator found");
-  });
+		// The errors fire via microtasks — no timer advancement needed.
+		await expect(spawnSession("/home/user/project")).rejects.toThrow(
+			"No terminal emulator found",
+		);
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -261,49 +271,49 @@ describe("spawnSession — linux", () => {
 // ---------------------------------------------------------------------------
 
 describe("generateTerminalTitle", () => {
-  // Use win32 so spawnSession returns the terminalTitle in its result.
-  beforeEach(async () => {
-    vi.resetModules();
-    vi.clearAllMocks();
-    mockPlatform.mockReturnValue("win32");
-  });
+	// Use win32 so spawnSession returns the terminalTitle in its result.
+	beforeEach(async () => {
+		vi.resetModules();
+		vi.clearAllMocks();
+		mockPlatform.mockReturnValue("win32");
+	});
 
-  it("includes the last path segment as the project name", async () => {
-    mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
-    const { spawnSession } = await import("./spawner.js");
-    const { terminalTitle } = await spawnSession("/home/user/myproject");
-    expect(terminalTitle).toContain("myproject");
-  });
+	it("includes the last path segment as the project name", async () => {
+		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
+		const { spawnSession } = await import("./spawner.js");
+		const { terminalTitle } = await spawnSession("/home/user/myproject");
+		expect(terminalTitle).toContain("myproject");
+	});
 
-  it("normalises Windows backslashes before extracting the name", async () => {
-    mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
-    const { spawnSession } = await import("./spawner.js");
-    const { terminalTitle } = await spawnSession("C:\\Users\\user\\winproject");
-    expect(terminalTitle).toContain("winproject");
-  });
+	it("normalises Windows backslashes before extracting the name", async () => {
+		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
+		const { spawnSession } = await import("./spawner.js");
+		const { terminalTitle } = await spawnSession("C:\\Users\\user\\winproject");
+		expect(terminalTitle).toContain("winproject");
+	});
 
-  it("produces different titles on consecutive calls (incrementing counter)", async () => {
-    mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
-    const { spawnSession } = await import("./spawner.js");
-    const { terminalTitle: t1 } = await spawnSession("/home/user/proj");
-    mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "2" }));
-    const { terminalTitle: t2 } = await spawnSession("/home/user/proj");
-    expect(t1).not.toBe(t2);
-  });
+	it("produces different titles on consecutive calls (incrementing counter)", async () => {
+		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
+		const { spawnSession } = await import("./spawner.js");
+		const { terminalTitle: t1 } = await spawnSession("/home/user/proj");
+		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "2" }));
+		const { terminalTitle: t2 } = await spawnSession("/home/user/proj");
+		expect(t1).not.toBe(t2);
+	});
 
-  it("title format is '<name>-<uid>'", async () => {
-    mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
-    const { spawnSession } = await import("./spawner.js");
-    const { terminalTitle } = await spawnSession("/home/user/myapp");
-    expect(terminalTitle).toMatch(/^.+-[0-9a-z]{2,}$/);
-  });
+	it("title format is '<name>-<uid>'", async () => {
+		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
+		const { spawnSession } = await import("./spawner.js");
+		const { terminalTitle } = await spawnSession("/home/user/myapp");
+		expect(terminalTitle).toMatch(/^.+-[0-9a-z]{2,}$/);
+	});
 
-  it("uses 'session' as name fallback when cwd is empty string", async () => {
-    mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
-    const { spawnSession } = await import("./spawner.js");
-    const { terminalTitle } = await spawnSession("");
-    expect(terminalTitle).toContain("session");
-  });
+	it("uses 'session' as name fallback when cwd is empty string", async () => {
+		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
+		const { spawnSession } = await import("./spawner.js");
+		const { terminalTitle } = await spawnSession("");
+		expect(terminalTitle).toContain("session");
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -311,19 +321,19 @@ describe("generateTerminalTitle", () => {
 // ---------------------------------------------------------------------------
 
 describe("browseFolder — unsupported platform", () => {
-  let browseFolder;
+	let browseFolder;
 
-  beforeEach(async () => {
-    vi.resetModules();
-    vi.clearAllMocks();
-    mockPlatform.mockReturnValue("freebsd");
-    const mod = await import("./spawner.js");
-    browseFolder = mod.browseFolder;
-  });
+	beforeEach(async () => {
+		vi.resetModules();
+		vi.clearAllMocks();
+		mockPlatform.mockReturnValue("freebsd");
+		const mod = await import("./spawner.js");
+		browseFolder = mod.browseFolder;
+	});
 
-  it("throws an error mentioning the platform name", async () => {
-    await expect(browseFolder()).rejects.toThrow("Unsupported platform");
-  });
+	it("throws an error mentioning the platform name", async () => {
+		await expect(browseFolder()).rejects.toThrow("Unsupported platform");
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -331,73 +341,77 @@ describe("browseFolder — unsupported platform", () => {
 // ---------------------------------------------------------------------------
 
 describe("browseFolder — win32", () => {
-  let browseFolder;
+	let browseFolder;
 
-  beforeEach(async () => {
-    vi.resetModules();
-    vi.clearAllMocks();
-    mockPlatform.mockReturnValue("win32");
-    const mod = await import("./spawner.js");
-    browseFolder = mod.browseFolder;
-  });
+	beforeEach(async () => {
+		vi.resetModules();
+		vi.clearAllMocks();
+		mockPlatform.mockReturnValue("win32");
+		const mod = await import("./spawner.js");
+		browseFolder = mod.browseFolder;
+	});
 
-  it("calls execFile with powershell", async () => {
-    mockExecFile.mockImplementation((cmd, args, opts, cb) => {
-      if (typeof opts === "function") cb = opts;
-      cb(null, "C:\\Users\\user\\project\n", "");
-    });
-    await browseFolder();
-    expect(mockExecFile).toHaveBeenCalled();
-    expect(mockExecFile.mock.calls[0][0]).toBe("powershell");
-  });
+	it("calls execFile with powershell", async () => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
+			if (typeof opts === "function") cb = opts;
+			cb(null, "C:\\Users\\user\\project\n", "");
+		});
+		await browseFolder();
+		expect(mockExecFile).toHaveBeenCalled();
+		expect(mockExecFile.mock.calls[0][0]).toBe("powershell");
+	});
 
-  it("returns the selected path when a folder is chosen", async () => {
-    mockExecFile.mockImplementation((cmd, args, opts, cb) => {
-      if (typeof opts === "function") cb = opts;
-      cb(null, "C:\\Users\\user\\project\n", "");
-    });
-    const result = await browseFolder();
-    expect(result).toBe("C:\\Users\\user\\project");
-  });
+	it("returns the selected path when a folder is chosen", async () => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
+			if (typeof opts === "function") cb = opts;
+			cb(null, "C:\\Users\\user\\project\n", "");
+		});
+		const result = await browseFolder();
+		expect(result).toBe("C:\\Users\\user\\project");
+	});
 
-  it("returns null when the dialog is cancelled (empty stdout)", async () => {
-    mockExecFile.mockImplementation((cmd, args, opts, cb) => {
-      if (typeof opts === "function") cb = opts;
-      cb(null, "", "");
-    });
-    const result = await browseFolder();
-    expect(result).toBeNull();
-  });
+	it("returns null when the dialog is cancelled (empty stdout)", async () => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
+			if (typeof opts === "function") cb = opts;
+			cb(null, "", "");
+		});
+		const result = await browseFolder();
+		expect(result).toBeNull();
+	});
 
-  it("returns null when execFile errors", async () => {
-    mockExecFile.mockImplementation((cmd, args, opts, cb) => {
-      if (typeof opts === "function") cb = opts;
-      cb(new Error("powershell not found"), "", "");
-    });
-    const result = await browseFolder();
-    expect(result).toBeNull();
-  });
+	it("returns null when execFile errors", async () => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
+			if (typeof opts === "function") cb = opts;
+			cb(new Error("powershell not found"), "", "");
+		});
+		const result = await browseFolder();
+		expect(result).toBeNull();
+	});
 
-  it("passes GetForegroundWindow as owner HWND in the C# code", async () => {
-    mockExecFile.mockImplementation((cmd, args, cb) => {
-      cb(null, "C:\\project\n", "");
-    });
-    await browseFolder();
-    const psCommand = mockExecFile.mock.calls[0][1];
-    const commandStr = Array.isArray(psCommand) ? psCommand.join(" ") : String(psCommand);
-    expect(commandStr).toContain("GetForegroundWindow");
-  });
+	it("passes GetForegroundWindow as owner HWND in the C# code", async () => {
+		mockExecFile.mockImplementation((_cmd, _args, cb) => {
+			cb(null, "C:\\project\n", "");
+		});
+		await browseFolder();
+		const psCommand = mockExecFile.mock.calls[0][1];
+		const commandStr = Array.isArray(psCommand)
+			? psCommand.join(" ")
+			: String(psCommand);
+		expect(commandStr).toContain("GetForegroundWindow");
+	});
 
-  it("uses try/finally for COM cleanup in the C# code", async () => {
-    mockExecFile.mockImplementation((cmd, args, cb) => {
-      cb(null, "C:\\project\n", "");
-    });
-    await browseFolder();
-    const psCommand = mockExecFile.mock.calls[0][1];
-    const commandStr = Array.isArray(psCommand) ? psCommand.join(" ") : String(psCommand);
-    expect(commandStr).toContain("finally");
-    expect(commandStr).toContain("ReleaseComObject");
-  });
+	it("uses try/finally for COM cleanup in the C# code", async () => {
+		mockExecFile.mockImplementation((_cmd, _args, cb) => {
+			cb(null, "C:\\project\n", "");
+		});
+		await browseFolder();
+		const psCommand = mockExecFile.mock.calls[0][1];
+		const commandStr = Array.isArray(psCommand)
+			? psCommand.join(" ")
+			: String(psCommand);
+		expect(commandStr).toContain("finally");
+		expect(commandStr).toContain("ReleaseComObject");
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -405,42 +419,42 @@ describe("browseFolder — win32", () => {
 // ---------------------------------------------------------------------------
 
 describe("browseFolder — darwin", () => {
-  let browseFolder;
+	let browseFolder;
 
-  beforeEach(async () => {
-    vi.resetModules();
-    vi.clearAllMocks();
-    mockPlatform.mockReturnValue("darwin");
-    const mod = await import("./spawner.js");
-    browseFolder = mod.browseFolder;
-  });
+	beforeEach(async () => {
+		vi.resetModules();
+		vi.clearAllMocks();
+		mockPlatform.mockReturnValue("darwin");
+		const mod = await import("./spawner.js");
+		browseFolder = mod.browseFolder;
+	});
 
-  it("calls execFile with osascript", async () => {
-    mockExecFile.mockImplementation((cmd, args, opts, cb) => {
-      if (typeof opts === "function") cb = opts;
-      cb(null, "/Users/user/project\n", "");
-    });
-    await browseFolder();
-    expect(mockExecFile.mock.calls[0][0]).toBe("osascript");
-  });
+	it("calls execFile with osascript", async () => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
+			if (typeof opts === "function") cb = opts;
+			cb(null, "/Users/user/project\n", "");
+		});
+		await browseFolder();
+		expect(mockExecFile.mock.calls[0][0]).toBe("osascript");
+	});
 
-  it("returns the selected path", async () => {
-    mockExecFile.mockImplementation((cmd, args, opts, cb) => {
-      if (typeof opts === "function") cb = opts;
-      cb(null, "/Users/user/project\n", "");
-    });
-    const result = await browseFolder();
-    expect(result).toBe("/Users/user/project");
-  });
+	it("returns the selected path", async () => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
+			if (typeof opts === "function") cb = opts;
+			cb(null, "/Users/user/project\n", "");
+		});
+		const result = await browseFolder();
+		expect(result).toBe("/Users/user/project");
+	});
 
-  it("returns null when the dialog is cancelled", async () => {
-    mockExecFile.mockImplementation((cmd, args, opts, cb) => {
-      if (typeof opts === "function") cb = opts;
-      cb(null, "\n", "");
-    });
-    const result = await browseFolder();
-    expect(result).toBeNull();
-  });
+	it("returns null when the dialog is cancelled", async () => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
+			if (typeof opts === "function") cb = opts;
+			cb(null, "\n", "");
+		});
+		const result = await browseFolder();
+		expect(result).toBeNull();
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -448,54 +462,54 @@ describe("browseFolder — darwin", () => {
 // ---------------------------------------------------------------------------
 
 describe("browseFolder — linux", () => {
-  let browseFolder;
+	let browseFolder;
 
-  beforeEach(async () => {
-    vi.resetModules();
-    vi.clearAllMocks();
-    mockPlatform.mockReturnValue("linux");
-    const mod = await import("./spawner.js");
-    browseFolder = mod.browseFolder;
-  });
+	beforeEach(async () => {
+		vi.resetModules();
+		vi.clearAllMocks();
+		mockPlatform.mockReturnValue("linux");
+		const mod = await import("./spawner.js");
+		browseFolder = mod.browseFolder;
+	});
 
-  it("calls execFile with zenity", async () => {
-    mockExecFile.mockImplementation((cmd, args, opts, cb) => {
-      if (typeof opts === "function") cb = opts;
-      cb(null, "/home/user/project\n", "");
-    });
-    await browseFolder();
-    expect(mockExecFile.mock.calls[0][0]).toBe("zenity");
-  });
+	it("calls execFile with zenity", async () => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
+			if (typeof opts === "function") cb = opts;
+			cb(null, "/home/user/project\n", "");
+		});
+		await browseFolder();
+		expect(mockExecFile.mock.calls[0][0]).toBe("zenity");
+	});
 
-  it("passes --file-selection and --directory flags", async () => {
-    mockExecFile.mockImplementation((cmd, args, opts, cb) => {
-      if (typeof opts === "function") cb = opts;
-      cb(null, "/home/user/project\n", "");
-    });
-    await browseFolder();
-    const args = mockExecFile.mock.calls[0][1];
-    expect(args).toContain("--file-selection");
-    expect(args).toContain("--directory");
-  });
+	it("passes --file-selection and --directory flags", async () => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
+			if (typeof opts === "function") cb = opts;
+			cb(null, "/home/user/project\n", "");
+		});
+		await browseFolder();
+		const args = mockExecFile.mock.calls[0][1];
+		expect(args).toContain("--file-selection");
+		expect(args).toContain("--directory");
+	});
 
-  it("returns the selected path", async () => {
-    mockExecFile.mockImplementation((cmd, args, opts, cb) => {
-      if (typeof opts === "function") cb = opts;
-      cb(null, "/home/user/project\n", "");
-    });
-    const result = await browseFolder();
-    expect(result).toBe("/home/user/project");
-  });
+	it("returns the selected path", async () => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
+			if (typeof opts === "function") cb = opts;
+			cb(null, "/home/user/project\n", "");
+		});
+		const result = await browseFolder();
+		expect(result).toBe("/home/user/project");
+	});
 
-  it("returns null when zenity is cancelled", async () => {
-    mockExecFile.mockImplementation((cmd, args, opts, cb) => {
-      if (typeof opts === "function") cb = opts;
-      // zenity exits with code 1 when cancelled
-      cb(new Error("exit code 1"), "", "");
-    });
-    const result = await browseFolder();
-    expect(result).toBeNull();
-  });
+	it("returns null when zenity is cancelled", async () => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
+			if (typeof opts === "function") cb = opts;
+			// zenity exits with code 1 when cancelled
+			cb(new Error("exit code 1"), "", "");
+		});
+		const result = await browseFolder();
+		expect(result).toBeNull();
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -503,72 +517,71 @@ describe("browseFolder — linux", () => {
 // ---------------------------------------------------------------------------
 
 describe("openFolder — win32", () => {
-  let openFolder;
+	let openFolder;
 
-  beforeEach(async () => {
-    vi.resetModules();
-    vi.clearAllMocks();
-    mockPlatform.mockReturnValue("win32");
-    const mod = await import("./spawner.js");
-    openFolder = mod.openFolder;
-  });
+	beforeEach(async () => {
+		vi.resetModules();
+		vi.resetAllMocks();
+		mockPlatform.mockReturnValue("win32");
+		const mod = await import("./spawner.js");
+		openFolder = mod.openFolder;
+	});
 
-  it("spawns explorer.exe with the given path", () => {
-    const child = createMockChild();
-    mockSpawn.mockReturnValue(child);
-    openFolder("C:\\Users\\user\\project");
-    expect(mockSpawn).toHaveBeenCalledWith(
-      "explorer.exe",
-      ["C:\\Users\\user\\project"],
-      { detached: true, stdio: "ignore" },
-    );
-  });
+	it("spawns powershell with Shell.Application to open folder", () => {
+		openFolder("C:\\Users\\user\\project");
+		expect(mockExecFile).toHaveBeenCalledWith(
+			"powershell",
+			["-NoProfile", "-Command", expect.stringContaining("Shell.Application")],
+			{ timeout: 10000 },
+		);
+	});
 
-  it("calls unref on the child process", () => {
-    const child = createMockChild();
-    mockSpawn.mockReturnValue(child);
-    openFolder("C:\\Users\\user\\project");
-    expect(child.unref).toHaveBeenCalled();
-  });
+	it("escapes single quotes in the path", () => {
+		openFolder("C:\\Users\\user\\it's a folder");
+		expect(mockExecFile).toHaveBeenCalledWith(
+			"powershell",
+			["-NoProfile", "-Command", expect.stringContaining("it''s a folder")],
+			{ timeout: 10000 },
+		);
+	});
 });
 
 describe("openFolder — darwin", () => {
-  let openFolder;
+	let openFolder;
 
-  beforeEach(async () => {
-    vi.resetModules();
-    vi.clearAllMocks();
-    mockPlatform.mockReturnValue("darwin");
-    const mod = await import("./spawner.js");
-    openFolder = mod.openFolder;
-  });
+	beforeEach(async () => {
+		vi.resetModules();
+		vi.clearAllMocks();
+		mockPlatform.mockReturnValue("darwin");
+		const mod = await import("./spawner.js");
+		openFolder = mod.openFolder;
+	});
 
-  it("spawns open with the given path", () => {
-    const child = createMockChild();
-    mockSpawn.mockReturnValue(child);
-    openFolder("/Users/user/project");
-    expect(mockSpawn).toHaveBeenCalledWith(
-      "open",
-      ["/Users/user/project"],
-      { detached: true, stdio: "ignore" },
-    );
-  });
+	it("spawns open with the given path", () => {
+		const child = createMockChild();
+		mockSpawn.mockReturnValue(child);
+		openFolder("/Users/user/project");
+		expect(mockSpawn).toHaveBeenCalledWith("open", ["/Users/user/project"], {
+			detached: true,
+			stdio: "ignore",
+		});
+	});
 });
 
 describe("openFolder — unsupported platform", () => {
-  let openFolder;
+	let openFolder;
 
-  beforeEach(async () => {
-    vi.resetModules();
-    vi.clearAllMocks();
-    mockPlatform.mockReturnValue("freebsd");
-    const mod = await import("./spawner.js");
-    openFolder = mod.openFolder;
-  });
+	beforeEach(async () => {
+		vi.resetModules();
+		vi.clearAllMocks();
+		mockPlatform.mockReturnValue("freebsd");
+		const mod = await import("./spawner.js");
+		openFolder = mod.openFolder;
+	});
 
-  it("throws for unsupported platform", () => {
-    expect(() => openFolder("/some/path")).toThrow("Unsupported platform");
-  });
+	it("throws for unsupported platform", () => {
+		expect(() => openFolder("/some/path")).toThrow("Unsupported platform");
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -576,23 +589,23 @@ describe("openFolder — unsupported platform", () => {
 // ---------------------------------------------------------------------------
 
 describe("managed mode", () => {
-  it("exports setManaged function", async () => {
-    vi.resetModules();
-    const { setManaged } = await import("./spawner.js");
-    expect(typeof setManaged).toBe("function");
-  });
+	it("exports setManaged function", async () => {
+		vi.resetModules();
+		const { setManaged } = await import("./spawner.js");
+		expect(typeof setManaged).toBe("function");
+	});
 
-  it("exports getManaged function", async () => {
-    vi.resetModules();
-    const { getManaged } = await import("./spawner.js");
-    expect(typeof getManaged).toBe("function");
-  });
+	it("exports getManaged function", async () => {
+		vi.resetModules();
+		const { getManaged } = await import("./spawner.js");
+		expect(typeof getManaged).toBe("function");
+	});
 
-  it("defaults to non-managed mode", async () => {
-    vi.resetModules();
-    const { getManaged } = await import("./spawner.js");
-    expect(getManaged()).toBe(false);
-  });
+	it("defaults to non-managed mode", async () => {
+		vi.resetModules();
+		const { getManaged } = await import("./spawner.js");
+		expect(getManaged()).toBe(false);
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -600,38 +613,38 @@ describe("managed mode", () => {
 // ---------------------------------------------------------------------------
 
 describe("cancelBrowse", () => {
-  let browseFolder, cancelBrowse;
+	let browseFolder, cancelBrowse;
 
-  beforeEach(async () => {
-    vi.resetModules();
-    vi.clearAllMocks();
-    mockPlatform.mockReturnValue("win32");
-    const mod = await import("./spawner.js");
-    browseFolder = mod.browseFolder;
-    cancelBrowse = mod.cancelBrowse;
-  });
+	beforeEach(async () => {
+		vi.resetModules();
+		vi.clearAllMocks();
+		mockPlatform.mockReturnValue("win32");
+		const mod = await import("./spawner.js");
+		browseFolder = mod.browseFolder;
+		cancelBrowse = mod.cancelBrowse;
+	});
 
-  it("kills the active browse process", async () => {
-    const mockKill = vi.fn();
-    mockExecFile.mockImplementation((cmd, args, cb) => {
-      // Don't call cb — simulate a hanging dialog
-      return { kill: mockKill };
-    });
+	it("kills the active browse process", async () => {
+		const mockKill = vi.fn();
+		mockExecFile.mockImplementation((_cmd, _args, _cb) => {
+			// Don't call cb — simulate a hanging dialog
+			return { kill: mockKill };
+		});
 
-    // Start browse but don't await (it will hang)
-    const browsePromise = browseFolder();
+		// Start browse but don't await (it will hang)
+		const browsePromise = browseFolder();
 
-    cancelBrowse();
-    expect(mockKill).toHaveBeenCalled();
+		cancelBrowse();
+		expect(mockKill).toHaveBeenCalled();
 
-    // Clean up: the kill triggers the callback with an error
-    const cb = mockExecFile.mock.calls[0][2];
-    cb(new Error("killed"), "", "");
-    await browsePromise;
-  });
+		// Clean up: the kill triggers the callback with an error
+		const cb = mockExecFile.mock.calls[0][2];
+		cb(new Error("killed"), "", "");
+		await browsePromise;
+	});
 
-  it("does nothing when no browse is active", () => {
-    // Should not throw
-    cancelBrowse();
-  });
+	it("does nothing when no browse is active", () => {
+		// Should not throw
+		cancelBrowse();
+	});
 });

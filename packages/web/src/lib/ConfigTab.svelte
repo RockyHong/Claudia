@@ -1,85 +1,92 @@
 <script>
-  import ToggleSlider from "./ToggleSlider.svelte";
-  import ConfirmDialog from "./ConfirmDialog.svelte";
-  import ConsentModal from "./ConsentModal.svelte";
+let {
+	nightMode = true,
+	onnightmodechange,
+	typingAmbience = false,
+	ontypingambiencechange,
+	sfx,
+	usageMonitoring = false,
+	onusagemonitoringchange,
+	autoFocus = true,
+	onautofocuschange,
+	onhooksremoved,
+} = $props();
 
-  let { nightMode = true, onnightmodechange, typingAmbience = false, ontypingambiencechange, sfx, usageMonitoring = false, onusagemonitoringchange, autoFocus = true, onautofocuschange, onhooksremoved } = $props();
+let _showConsent = $state(false);
 
-  let showConsent = $state(false);
+let _sfxVolume = $state(0.5);
 
-  let sfxVolume = $state(0.5);
+$effect(() => {
+	if (sfx) {
+		_sfxVolume = sfx.muted ? 0 : sfx.volume;
+	}
+});
 
-  $effect(() => {
-    if (sfx) {
-      sfxVolume = sfx.muted ? 0 : sfx.volume;
-    }
-  });
+let _hooksInstalled = $state(null);
+let _hooksBusy = $state(false);
+let _hookResult = $state("");
+let _confirmAction = $state(null);
 
-  let hooksInstalled = $state(null);
-  let hooksBusy = $state(false);
-  let hookResult = $state("");
-  let confirmAction = $state(null);
+async function checkHookStatus() {
+	try {
+		const res = await fetch("/api/hooks/status");
+		const data = await res.json();
+		_hooksInstalled = data.installed;
+	} catch {
+		_hooksInstalled = null;
+	}
+}
 
-  async function checkHookStatus() {
-    try {
-      const res = await fetch("/api/hooks/status");
-      const data = await res.json();
-      hooksInstalled = data.installed;
-    } catch {
-      hooksInstalled = null;
-    }
-  }
+function _requestInstall() {
+	_confirmAction = "install";
+}
 
-  function requestInstall() {
-    confirmAction = "install";
-  }
+function _requestRemove() {
+	_confirmAction = "remove";
+}
 
-  function requestRemove() {
-    confirmAction = "remove";
-  }
+async function _installHooks() {
+	_confirmAction = null;
+	_hooksBusy = true;
+	_hookResult = "";
+	try {
+		const res = await fetch("/api/hooks/install", { method: "POST" });
+		const data = await res.json();
+		if (data.success) {
+			_hooksInstalled = true;
+			_hookResult = "installed";
+		} else {
+			_hookResult = data.error || "Failed";
+		}
+	} catch {
+		_hookResult = "Could not reach server";
+	} finally {
+		_hooksBusy = false;
+	}
+}
 
-  async function installHooks() {
-    confirmAction = null;
-    hooksBusy = true;
-    hookResult = "";
-    try {
-      const res = await fetch("/api/hooks/install", { method: "POST" });
-      const data = await res.json();
-      if (data.success) {
-        hooksInstalled = true;
-        hookResult = "installed";
-      } else {
-        hookResult = data.error || "Failed";
-      }
-    } catch {
-      hookResult = "Could not reach server";
-    } finally {
-      hooksBusy = false;
-    }
-  }
+async function _removeHooks() {
+	_confirmAction = null;
+	_hooksBusy = true;
+	_hookResult = "";
+	try {
+		const res = await fetch("/api/hooks/remove", { method: "POST" });
+		const data = await res.json();
+		if (data.success) {
+			_hooksInstalled = false;
+			_hookResult = "removed";
+			onhooksremoved?.();
+		} else {
+			_hookResult = data.error || "Failed";
+		}
+	} catch {
+		_hookResult = "Could not reach server";
+	} finally {
+		_hooksBusy = false;
+	}
+}
 
-  async function removeHooks() {
-    confirmAction = null;
-    hooksBusy = true;
-    hookResult = "";
-    try {
-      const res = await fetch("/api/hooks/remove", { method: "POST" });
-      const data = await res.json();
-      if (data.success) {
-        hooksInstalled = false;
-        hookResult = "removed";
-        onhooksremoved?.();
-      } else {
-        hookResult = data.error || "Failed";
-      }
-    } catch {
-      hookResult = "Could not reach server";
-    } finally {
-      hooksBusy = false;
-    }
-  }
-
-  checkHookStatus();
+checkHookStatus();
 </script>
 
 <section>

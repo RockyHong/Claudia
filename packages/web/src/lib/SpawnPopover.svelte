@@ -1,86 +1,83 @@
 <script>
-  import Modal from "./Modal.svelte";
-  import { Folder } from "lucide-svelte";
+let { onclose } = $props();
 
-  let { onclose } = $props();
+let projects = $state([]);
+let _loading = $state(true);
+let _launching = $state(null);
 
-  let projects = $state([]);
-  let loading = $state(true);
-  let launching = $state(null);
+$effect(() => {
+	fetchProjects();
+});
 
-  $effect(() => {
-    fetchProjects();
-  });
+async function fetchProjects() {
+	try {
+		const res = await fetch("/api/projects");
+		const data = await res.json();
+		projects = data.projects || [];
+	} catch {
+		projects = [];
+	}
+	_loading = false;
+}
 
-  async function fetchProjects() {
-    try {
-      const res = await fetch("/api/projects");
-      const data = await res.json();
-      projects = data.projects || [];
-    } catch {
-      projects = [];
-    }
-    loading = false;
-  }
+let _browsing = $state(false);
 
-  let browsing = $state(false);
+async function _removeProject(projectPath) {
+	try {
+		await fetch("/api/projects", {
+			method: "DELETE",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ path: projectPath }),
+		});
+		projects = projects.filter((p) => p.path !== projectPath);
+	} catch {
+		// ignore
+	}
+}
 
-  async function removeProject(projectPath) {
-    try {
-      await fetch("/api/projects", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: projectPath }),
-      });
-      projects = projects.filter((p) => p.path !== projectPath);
-    } catch {
-      // ignore
-    }
-  }
+async function launch(projectPath) {
+	_launching = projectPath;
+	try {
+		const res = await fetch("/api/launch", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ cwd: projectPath }),
+		});
+		if (res.ok) {
+			onclose();
+		} else {
+			_launching = null;
+		}
+	} catch {
+		_launching = null;
+	}
+}
 
-  async function launch(projectPath) {
-    launching = projectPath;
-    try {
-      const res = await fetch("/api/launch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cwd: projectPath }),
-      });
-      if (res.ok) {
-        onclose();
-      } else {
-        launching = null;
-      }
-    } catch {
-      launching = null;
-    }
-  }
+let browseController = null;
 
-  let browseController = null;
+async function _browse() {
+	_browsing = true;
+	browseController = new AbortController();
+	try {
+		const res = await fetch("/api/browse", {
+			method: "POST",
+			signal: browseController.signal,
+		});
+		const data = await res.json();
+		if (data.path) {
+			await launch(data.path);
+		}
+	} catch {
+		// cancelled, aborted, or error
+	}
+	browseController = null;
+	_browsing = false;
+}
 
-  async function browse() {
-    browsing = true;
-    browseController = new AbortController();
-    try {
-      const res = await fetch("/api/browse", {
-        method: "POST",
-        signal: browseController.signal,
-      });
-      const data = await res.json();
-      if (data.path) {
-        await launch(data.path);
-      }
-    } catch {
-      // cancelled, aborted, or error
-    }
-    browseController = null;
-    browsing = false;
-  }
-
-  function cancelBrowse() {
-    if (browseController) browseController.abort();
-    fetch("/api/browse/cancel", { method: "POST" });
-  }
+function _cancelBrowse() {
+	if (browseController) browseController.abort();
+	fetch("/api/browse/cancel", { method: "POST" });
+}
 </script>
 
 <Modal title="New CLI session" {onclose}>

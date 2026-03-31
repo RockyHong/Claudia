@@ -1,16 +1,22 @@
 <script>
-  let { message, confirmLabel = "Delete", variant = "danger", onconfirm, oncancel } = $props();
+let {
+	message,
+	confirmLabel = "Delete",
+	variant = "danger",
+	onconfirm,
+	oncancel,
+} = $props();
 
-  function handleBackdrop(e) {
-    if (e.target === e.currentTarget) oncancel();
-  }
+function _handleBackdrop(e) {
+	if (e.target === e.currentTarget) oncancel();
+}
 
-  function handleKeydown(e) {
-    if (e.key === "Escape") {
-      e.stopPropagation();
-      oncancel();
-    }
-  }
+function _handleKeydown(e) {
+	if (e.key === "Escape") {
+		e.stopPropagation();
+		oncancel();
+	}
+}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />

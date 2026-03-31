@@ -1,49 +1,49 @@
 <script>
-  let { label, file = null, previewUrl = null, onfile } = $props();
+let { label, file = null, previewUrl = null, onfile } = $props();
 
-  let dragging = $state(false);
-  let inputEl;
+let _dragging = $state(false);
+let inputEl;
 
-  function handleDrop(e) {
-    e.preventDefault();
-    dragging = false;
-    const dropped = e.dataTransfer?.files[0];
-    if (dropped && isVideoFile(dropped)) onfile?.(dropped);
-  }
+function _handleDrop(e) {
+	e.preventDefault();
+	_dragging = false;
+	const dropped = e.dataTransfer?.files[0];
+	if (dropped && isVideoFile(dropped)) onfile?.(dropped);
+}
 
-  function handleDragOver(e) {
-    e.preventDefault();
-    dragging = true;
-  }
+function _handleDragOver(e) {
+	e.preventDefault();
+	_dragging = true;
+}
 
-  function handleDragLeave() {
-    dragging = false;
-  }
+function _handleDragLeave() {
+	_dragging = false;
+}
 
-  function handleFileInput(e) {
-    const selected = e.target.files[0];
-    if (selected) onfile?.(selected);
-    e.target.value = "";
-  }
+function _handleFileInput(e) {
+	const selected = e.target.files[0];
+	if (selected) onfile?.(selected);
+	e.target.value = "";
+}
 
-  function isVideoFile(f) {
-    return f.name.endsWith(".webm") || f.name.endsWith(".mp4");
-  }
+function isVideoFile(f) {
+	return f.name.endsWith(".webm") || f.name.endsWith(".mp4");
+}
 
-  function handleClick() {
-    inputEl?.click();
-  }
+function _handleClick() {
+	inputEl?.click();
+}
 
-  let prevBlobUrl = null;
+let prevBlobUrl = null;
 
-  let blobUrl = $derived.by(() => {
-    if (prevBlobUrl) URL.revokeObjectURL(prevBlobUrl);
-    const url = file ? URL.createObjectURL(file) : null;
-    prevBlobUrl = url;
-    return url;
-  });
+let blobUrl = $derived.by(() => {
+	if (prevBlobUrl) URL.revokeObjectURL(prevBlobUrl);
+	const url = file ? URL.createObjectURL(file) : null;
+	prevBlobUrl = url;
+	return url;
+});
 
-  let displayUrl = $derived(blobUrl || previewUrl);
+let _displayUrl = $derived(blobUrl || previewUrl);
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->

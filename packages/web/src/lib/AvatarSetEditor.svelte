@@ -1,107 +1,119 @@
 <script>
-  import DropZone from "./DropZone.svelte";
-  import Modal from "./Modal.svelte";
-  import Tooltip from "./Tooltip.svelte";
-  import { Upload } from "lucide-svelte";
+let {
+	mode = "create",
+	set = null,
+	onclose,
+	onsave,
+	onimport,
+	importing = false,
+} = $props();
 
-  let { mode = "create", set = null, onclose, onsave, onimport, importing = false } = $props();
+let name = $state(mode === "edit" ? (set?.name ?? "") : "");
+let fileIdle = $state(null);
+let fileBusy = $state(null);
+let filePending = $state(null);
+let _error = $state("");
+let saving = $state(false);
 
-  let name = $state(mode === "edit" ? set?.name ?? "" : "");
-  let fileIdle = $state(null);
-  let fileBusy = $state(null);
-  let filePending = $state(null);
-  let error = $state("");
-  let saving = $state(false);
+// In edit mode, build preview URLs from existing set files
+function _existingUrl(state) {
+	if (mode !== "edit" || !set) return null;
+	const file = set.files.find((f) => f.startsWith(state));
+	if (!file) return null;
+	return `/api/avatars/sets/${encodeURIComponent(set.name)}/file/${file}`;
+}
 
-  // In edit mode, build preview URLs from existing set files
-  function existingUrl(state) {
-    if (mode !== "edit" || !set) return null;
-    const file = set.files.find((f) => f.startsWith(state));
-    if (!file) return null;
-    return `/api/avatars/sets/${encodeURIComponent(set.name)}/file/${file}`;
-  }
+let canSave = $derived(
+	mode === "create"
+		? name.trim() && fileIdle && fileBusy && filePending
+		: name.trim() &&
+				(name.trim() !== set?.name || fileIdle || fileBusy || filePending),
+);
 
-  let canSave = $derived(
-    mode === "create"
-      ? name.trim() && fileIdle && fileBusy && filePending
-      : name.trim() && (
-          name.trim() !== set?.name ||
-          fileIdle || fileBusy || filePending
-        )
-  );
+let _title = $derived(
+	mode === "edit" ? `Edit "${set?.name}"` : "New Avatar Set",
+);
 
-  let title = $derived(mode === "edit" ? `Edit "${set?.name}"` : "New Avatar Set");
+async function _handleSave() {
+	if (!canSave || saving) return;
+	saving = true;
+	_error = "";
 
-  async function handleSave() {
-    if (!canSave || saving) return;
-    saving = true;
-    error = "";
+	try {
+		if (mode === "create") {
+			const form = new FormData();
+			form.append("idle", fileIdle, `idle${ext(fileIdle)}`);
+			form.append("busy", fileBusy, `busy${ext(fileBusy)}`);
+			form.append("pending", filePending, `pending${ext(filePending)}`);
 
-    try {
-      if (mode === "create") {
-        const form = new FormData();
-        form.append("idle", fileIdle, `idle${ext(fileIdle)}`);
-        form.append("busy", fileBusy, `busy${ext(fileBusy)}`);
-        form.append("pending", filePending, `pending${ext(filePending)}`);
+			const res = await fetch(
+				`/api/avatars/sets/${encodeURIComponent(name.trim())}`,
+				{
+					method: "POST",
+					body: form,
+				},
+			);
+			if (!res.ok) {
+				const data = await res.json().catch(() => ({}));
+				throw new Error(data.error || "Upload failed");
+			}
+		} else {
+			// Edit mode — send only changes
+			const hasFiles = fileIdle || fileBusy || filePending;
+			const renamed = name.trim() !== set.name;
 
-        const res = await fetch(`/api/avatars/sets/${encodeURIComponent(name.trim())}`, {
-          method: "POST",
-          body: form,
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || "Upload failed");
-        }
-      } else {
-        // Edit mode — send only changes
-        const hasFiles = fileIdle || fileBusy || filePending;
-        const renamed = name.trim() !== set.name;
+			if (hasFiles) {
+				const form = new FormData();
+				if (fileIdle) form.append("idle", fileIdle, `idle${ext(fileIdle)}`);
+				if (fileBusy) form.append("busy", fileBusy, `busy${ext(fileBusy)}`);
+				if (filePending)
+					form.append("pending", filePending, `pending${ext(filePending)}`);
+				if (renamed) form.append("rename", name.trim());
 
-        if (hasFiles) {
-          const form = new FormData();
-          if (fileIdle) form.append("idle", fileIdle, `idle${ext(fileIdle)}`);
-          if (fileBusy) form.append("busy", fileBusy, `busy${ext(fileBusy)}`);
-          if (filePending) form.append("pending", filePending, `pending${ext(filePending)}`);
-          if (renamed) form.append("rename", name.trim());
+				const res = await fetch(
+					`/api/avatars/sets/${encodeURIComponent(set.name)}`,
+					{
+						method: "PUT",
+						body: form,
+					},
+				);
+				if (!res.ok) {
+					const data = await res.json().catch(() => ({}));
+					throw new Error(data.error || "Update failed");
+				}
+			} else if (renamed) {
+				const res = await fetch(
+					`/api/avatars/sets/${encodeURIComponent(set.name)}`,
+					{
+						method: "PUT",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ rename: name.trim() }),
+					},
+				);
+				if (!res.ok) {
+					const data = await res.json().catch(() => ({}));
+					throw new Error(data.error || "Rename failed");
+				}
+			}
+		}
 
-          const res = await fetch(`/api/avatars/sets/${encodeURIComponent(set.name)}`, {
-            method: "PUT",
-            body: form,
-          });
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            throw new Error(data.error || "Update failed");
-          }
-        } else if (renamed) {
-          const res = await fetch(`/api/avatars/sets/${encodeURIComponent(set.name)}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ rename: name.trim() }),
-          });
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            throw new Error(data.error || "Rename failed");
-          }
-        }
-      }
+		onsave?.(name.trim());
+	} catch (err) {
+		_error = err.message;
+	}
+	saving = false;
+}
 
-      onsave?.(name.trim());
-    } catch (err) {
-      error = err.message;
-    }
-    saving = false;
-  }
+function ext(file) {
+	return file.name.endsWith(".mp4") ? ".mp4" : ".webm";
+}
 
-  function ext(file) {
-    return file.name.endsWith(".mp4") ? ".mp4" : ".webm";
-  }
-
-  function handleKeydown(e) {
-    if (e.key === "Escape") {
-      e.stopPropagation();
-      onclose();
-    }
-  }
+function _handleKeydown(e) {
+	if (e.key === "Escape") {
+		e.stopPropagation();
+		onclose();
+	}
+}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />

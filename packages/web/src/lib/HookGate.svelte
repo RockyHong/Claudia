@@ -1,46 +1,44 @@
 <script>
-  import { Link } from "lucide-svelte";
+let { oninstalled } = $props();
 
-  let { oninstalled } = $props();
+let _checking = $state(true);
+let installed = $state(false);
+let _installing = $state(false);
+let _error = $state("");
 
-  let checking = $state(true);
-  let installed = $state(false);
-  let installing = $state(false);
-  let error = $state("");
+async function checkStatus() {
+	try {
+		const res = await fetch("/api/hooks/status");
+		const data = await res.json();
+		installed = data.installed;
+		if (installed) oninstalled?.();
+	} catch {
+		installed = false;
+	} finally {
+		_checking = false;
+	}
+}
 
-  async function checkStatus() {
-    try {
-      const res = await fetch("/api/hooks/status");
-      const data = await res.json();
-      installed = data.installed;
-      if (installed) oninstalled?.();
-    } catch {
-      installed = false;
-    } finally {
-      checking = false;
-    }
-  }
+async function _installHooks() {
+	_installing = true;
+	_error = "";
+	try {
+		const res = await fetch("/api/hooks/install", { method: "POST" });
+		const data = await res.json();
+		if (data.success) {
+			installed = true;
+			oninstalled?.();
+		} else {
+			_error = data.error || "Installation failed";
+		}
+	} catch (_err) {
+		_error = "Could not reach server";
+	} finally {
+		_installing = false;
+	}
+}
 
-  async function installHooks() {
-    installing = true;
-    error = "";
-    try {
-      const res = await fetch("/api/hooks/install", { method: "POST" });
-      const data = await res.json();
-      if (data.success) {
-        installed = true;
-        oninstalled?.();
-      } else {
-        error = data.error || "Installation failed";
-      }
-    } catch (err) {
-      error = "Could not reach server";
-    } finally {
-      installing = false;
-    }
-  }
-
-  checkStatus();
+checkStatus();
 </script>
 
 {#if !checking && !installed}

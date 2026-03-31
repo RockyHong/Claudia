@@ -1,43 +1,41 @@
 <script>
-  import { onMount } from "svelte";
+import { onMount } from "svelte";
 
-  let {
-    headings = [],
-  } = $props();
+let { headings = [] } = $props();
 
-  let activeId = $state("");
+let _activeId = $state("");
 
-  onMount(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            activeId = entry.target.id;
-          }
-        }
-      },
-      { rootMargin: "-80px 0px -60% 0px" },
-    );
+onMount(() => {
+	const observer = new IntersectionObserver(
+		(entries) => {
+			for (const entry of entries) {
+				if (entry.isIntersecting) {
+					_activeId = entry.target.id;
+				}
+			}
+		},
+		{ rootMargin: "-80px 0px -60% 0px" },
+	);
 
-    function observe() {
-      observer.disconnect();
-      for (const h of headings) {
-        const el = document.getElementById(h.id);
-        if (el) observer.observe(el);
-      }
-    }
+	function observe() {
+		observer.disconnect();
+		for (const h of headings) {
+			const el = document.getElementById(h.id);
+			if (el) observer.observe(el);
+		}
+	}
 
-    $effect(() => {
-      if (headings.length > 0) observe();
-    });
+	$effect(() => {
+		if (headings.length > 0) observe();
+	});
 
-    return () => observer.disconnect();
-  });
+	return () => observer.disconnect();
+});
 
-  function scrollTo(id) {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
+function _scrollTo(id) {
+	const el = document.getElementById(id);
+	if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 </script>
 
 <nav class="toc" aria-label="Table of contents">

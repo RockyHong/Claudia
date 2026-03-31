@@ -1,15 +1,18 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs/promises";
-import path from "node:path";
 import os from "node:os";
+import path from "node:path";
 import AdmZip from "adm-zip";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createAvatarStorage, isValidSetName } from "./avatar-storage.js";
 
 let tmpDir;
 let storage;
 
 beforeEach(async () => {
-	tmpDir = path.join(os.tmpdir(), `claudia-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+	tmpDir = path.join(
+		os.tmpdir(),
+		`claudia-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+	);
 	await fs.mkdir(tmpDir, { recursive: true });
 	storage = createAvatarStorage(tmpDir);
 });
@@ -71,7 +74,11 @@ describe("getActiveSet", () => {
 	});
 
 	it("returns configured active set", async () => {
-		await storage.createSet("pixel-art", [fakeFile("idle.webm"), fakeFile("busy.webm"), fakeFile("pending.webm")]);
+		await storage.createSet("pixel-art", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
 		await storage.setActiveSet("pixel-art");
 		expect(await storage.getActiveSet()).toBe("pixel-art");
 	});
@@ -85,8 +92,16 @@ describe("listSets", () => {
 	});
 
 	it("lists sets with files and active flag", async () => {
-		await storage.createSet("one", [fakeFile("idle.webm"), fakeFile("busy.webm"), fakeFile("pending.webm")]);
-		await storage.createSet("two", [fakeFile("idle.mp4"), fakeFile("busy.mp4"), fakeFile("pending.mp4")]);
+		await storage.createSet("one", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
+		await storage.createSet("two", [
+			fakeFile("idle.mp4"),
+			fakeFile("busy.mp4"),
+			fakeFile("pending.mp4"),
+		]);
 		await storage.setActiveSet("one");
 
 		const sets = await storage.listSets();
@@ -119,13 +134,23 @@ describe("createSet", () => {
 	});
 
 	it("rejects invalid set names", async () => {
-		await expect(storage.createSet("../bad", [fakeFile("idle.webm")])).rejects.toThrow("Invalid set name");
+		await expect(
+			storage.createSet("../bad", [fakeFile("idle.webm")]),
+		).rejects.toThrow("Invalid set name");
 	});
 
 	it("rejects duplicate set names", async () => {
-		await storage.createSet("dupe", [fakeFile("idle.webm"), fakeFile("busy.webm"), fakeFile("pending.webm")]);
+		await storage.createSet("dupe", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
 		await expect(
-			storage.createSet("dupe", [fakeFile("idle.webm"), fakeFile("busy.webm"), fakeFile("pending.webm")])
+			storage.createSet("dupe", [
+				fakeFile("idle.webm"),
+				fakeFile("busy.webm"),
+				fakeFile("pending.webm"),
+			]),
 		).rejects.toThrow("Set already exists");
 	});
 
@@ -135,33 +160,47 @@ describe("createSet", () => {
 				fakeFile("idle.webm"),
 				fakeFile("busy.webm"),
 				{ name: "pending.exe", data: Buffer.alloc(10) },
-			])
+			]),
 		).rejects.toThrow("Invalid filename");
 	});
 
 	it("rejects files with wrong magic bytes", async () => {
 		const badContent = { name: "pending.webm", data: Buffer.alloc(100, 0x00) };
 		await expect(
-			storage.createSet("bad-magic", [fakeFile("idle.webm"), fakeFile("busy.webm"), badContent])
+			storage.createSet("bad-magic", [
+				fakeFile("idle.webm"),
+				fakeFile("busy.webm"),
+				badContent,
+			]),
 		).rejects.toThrow("Invalid file content");
 	});
 
 	it("rejects files over size limit", async () => {
-		const bigFile = { name: "pending.webm", data: Buffer.alloc(6 * 1024 * 1024) };
+		const bigFile = {
+			name: "pending.webm",
+			data: Buffer.alloc(6 * 1024 * 1024),
+		};
 		await expect(
-			storage.createSet("big", [fakeFile("idle.webm"), fakeFile("busy.webm"), bigFile])
+			storage.createSet("big", [
+				fakeFile("idle.webm"),
+				fakeFile("busy.webm"),
+				bigFile,
+			]),
 		).rejects.toThrow("File too large");
 	});
 
 	it("rejects sets with fewer than 3 state videos", async () => {
 		await expect(
-			storage.createSet("partial", [fakeFile("idle.webm"), fakeFile("busy.webm")])
+			storage.createSet("partial", [
+				fakeFile("idle.webm"),
+				fakeFile("busy.webm"),
+			]),
 		).rejects.toThrow("All three videos required: idle, busy, pending");
 	});
 
 	it("rejects sets with only one video", async () => {
 		await expect(
-			storage.createSet("solo", [fakeFile("idle.webm")])
+			storage.createSet("solo", [fakeFile("idle.webm")]),
 		).rejects.toThrow("All three videos required: idle, busy, pending");
 	});
 
@@ -188,8 +227,16 @@ describe("createSet", () => {
 
 describe("deleteSet", () => {
 	it("deletes a non-active set", async () => {
-		await storage.createSet("to-delete", [fakeFile("idle.webm"), fakeFile("busy.webm"), fakeFile("pending.webm")]);
-		await storage.createSet("keeper", [fakeFile("idle.webm"), fakeFile("busy.webm"), fakeFile("pending.webm")]);
+		await storage.createSet("to-delete", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
+		await storage.createSet("keeper", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
 		await storage.setActiveSet("keeper");
 
 		await storage.deleteSet("to-delete");
@@ -199,7 +246,11 @@ describe("deleteSet", () => {
 
 	it("falls back to default when deleting the active set", async () => {
 		await storage.ensureDefaults();
-		await storage.createSet("active-one", [fakeFile("idle.webm"), fakeFile("busy.webm"), fakeFile("pending.webm")]);
+		await storage.createSet("active-one", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
 		await storage.setActiveSet("active-one");
 
 		await storage.deleteSet("active-one");
@@ -210,14 +261,24 @@ describe("deleteSet", () => {
 
 	it("refuses to delete the default set", async () => {
 		await storage.ensureDefaults();
-		await expect(storage.deleteSet("default")).rejects.toThrow("Cannot delete the default set");
+		await expect(storage.deleteSet("default")).rejects.toThrow(
+			"Cannot delete the default set",
+		);
 	});
 });
 
 describe("setActiveSet", () => {
 	it("switches the active set", async () => {
-		await storage.createSet("a", [fakeFile("idle.webm"), fakeFile("busy.webm"), fakeFile("pending.webm")]);
-		await storage.createSet("b", [fakeFile("idle.webm"), fakeFile("busy.webm"), fakeFile("pending.webm")]);
+		await storage.createSet("a", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
+		await storage.createSet("b", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
 		await storage.setActiveSet("a");
 		expect(await storage.getActiveSet()).toBe("a");
 		await storage.setActiveSet("b");
@@ -225,133 +286,137 @@ describe("setActiveSet", () => {
 	});
 
 	it("rejects non-existent set", async () => {
-		await expect(storage.setActiveSet("ghost")).rejects.toThrow("Set not found");
+		await expect(storage.setActiveSet("ghost")).rejects.toThrow(
+			"Set not found",
+		);
 	});
 });
 
 describe("updateSet", () => {
-  it("replaces a single file in an existing set", async () => {
-    await storage.createSet("updatable", [
-      fakeFile("idle.webm"),
-      fakeFile("busy.webm"),
-      fakeFile("pending.webm"),
-    ]);
+	it("replaces a single file in an existing set", async () => {
+		await storage.createSet("updatable", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
 
-    const newIdle = fakeFile("idle.webm", 200);
-    await storage.updateSet("updatable", { files: [newIdle] });
+		const newIdle = fakeFile("idle.webm", 200);
+		await storage.updateSet("updatable", { files: [newIdle] });
 
-    const setPath = storage.getSetPath("updatable");
-    const stat = await fs.stat(path.join(setPath, "idle.webm"));
-    expect(stat.size).toBe(200);
-  });
+		const setPath = storage.getSetPath("updatable");
+		const stat = await fs.stat(path.join(setPath, "idle.webm"));
+		expect(stat.size).toBe(200);
+	});
 
-  it("renames a set", async () => {
-    await storage.createSet("old-name", [
-      fakeFile("idle.webm"),
-      fakeFile("busy.webm"),
-      fakeFile("pending.webm"),
-    ]);
+	it("renames a set", async () => {
+		await storage.createSet("old-name", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
 
-    await storage.updateSet("old-name", { rename: "new-name" });
+		await storage.updateSet("old-name", { rename: "new-name" });
 
-    const sets = await storage.listSets();
-    expect(sets.find((s) => s.name === "old-name")).toBeUndefined();
-    expect(sets.find((s) => s.name === "new-name")).toBeTruthy();
-  });
+		const sets = await storage.listSets();
+		expect(sets.find((s) => s.name === "old-name")).toBeUndefined();
+		expect(sets.find((s) => s.name === "new-name")).toBeTruthy();
+	});
 
-  it("renames and replaces files simultaneously", async () => {
-    await storage.createSet("combo", [
-      fakeFile("idle.webm"),
-      fakeFile("busy.webm"),
-      fakeFile("pending.webm"),
-    ]);
+	it("renames and replaces files simultaneously", async () => {
+		await storage.createSet("combo", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
 
-    await storage.updateSet("combo", {
-      rename: "combo-v2",
-      files: [fakeFile("busy.mp4", 300)],
-    });
+		await storage.updateSet("combo", {
+			rename: "combo-v2",
+			files: [fakeFile("busy.mp4", 300)],
+		});
 
-    const sets = await storage.listSets();
-    const set = sets.find((s) => s.name === "combo-v2");
-    expect(set).toBeTruthy();
-    expect(set.files).toContain("busy.mp4");
-  });
+		const sets = await storage.listSets();
+		const set = sets.find((s) => s.name === "combo-v2");
+		expect(set).toBeTruthy();
+		expect(set.files).toContain("busy.mp4");
+	});
 
-  it("throws for non-existent set", async () => {
-    await expect(
-      storage.updateSet("ghost", { files: [fakeFile("idle.webm")] })
-    ).rejects.toThrow("Set not found");
-  });
+	it("throws for non-existent set", async () => {
+		await expect(
+			storage.updateSet("ghost", { files: [fakeFile("idle.webm")] }),
+		).rejects.toThrow("Set not found");
+	});
 
-  it("throws for invalid rename target", async () => {
-    await storage.createSet("valid", [
-      fakeFile("idle.webm"),
-      fakeFile("busy.webm"),
-      fakeFile("pending.webm"),
-    ]);
+	it("throws for invalid rename target", async () => {
+		await storage.createSet("valid", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
 
-    await expect(
-      storage.updateSet("valid", { rename: "../escape" })
-    ).rejects.toThrow("Invalid set name");
-  });
+		await expect(
+			storage.updateSet("valid", { rename: "../escape" }),
+		).rejects.toThrow("Invalid set name");
+	});
 
-  it("throws if rename target already exists", async () => {
-    await storage.createSet("src", [
-      fakeFile("idle.webm"),
-      fakeFile("busy.webm"),
-      fakeFile("pending.webm"),
-    ]);
-    await storage.createSet("dst", [
-      fakeFile("idle.webm"),
-      fakeFile("busy.webm"),
-      fakeFile("pending.webm"),
-    ]);
+	it("throws if rename target already exists", async () => {
+		await storage.createSet("src", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
+		await storage.createSet("dst", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
 
-    await expect(
-      storage.updateSet("src", { rename: "dst" })
-    ).rejects.toThrow("Set already exists");
-  });
+		await expect(storage.updateSet("src", { rename: "dst" })).rejects.toThrow(
+			"Set already exists",
+		);
+	});
 
-  it("updates active set config when renaming the active set", async () => {
-    await storage.createSet("active-rename", [
-      fakeFile("idle.webm"),
-      fakeFile("busy.webm"),
-      fakeFile("pending.webm"),
-    ]);
-    await storage.setActiveSet("active-rename");
+	it("updates active set config when renaming the active set", async () => {
+		await storage.createSet("active-rename", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
+		await storage.setActiveSet("active-rename");
 
-    await storage.updateSet("active-rename", { rename: "renamed-active" });
+		await storage.updateSet("active-rename", { rename: "renamed-active" });
 
-    expect(await storage.getActiveSet()).toBe("renamed-active");
-  });
+		expect(await storage.getActiveSet()).toBe("renamed-active");
+	});
 
-  it("validates replacement files (magic bytes, size)", async () => {
-    await storage.createSet("validate-me", [
-      fakeFile("idle.webm"),
-      fakeFile("busy.webm"),
-      fakeFile("pending.webm"),
-    ]);
+	it("validates replacement files (magic bytes, size)", async () => {
+		await storage.createSet("validate-me", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
 
-    const badContent = { name: "idle.webm", data: Buffer.alloc(100, 0x00) };
-    await expect(
-      storage.updateSet("validate-me", { files: [badContent] })
-    ).rejects.toThrow("Invalid file content");
-  });
+		const badContent = { name: "idle.webm", data: Buffer.alloc(100, 0x00) };
+		await expect(
+			storage.updateSet("validate-me", { files: [badContent] }),
+		).rejects.toThrow("Invalid file content");
+	});
 
-  it("removes old format file when replacing with different format", async () => {
-    await storage.createSet("format-swap", [
-      fakeFile("idle.webm"),
-      fakeFile("busy.webm"),
-      fakeFile("pending.webm"),
-    ]);
+	it("removes old format file when replacing with different format", async () => {
+		await storage.createSet("format-swap", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
 
-    await storage.updateSet("format-swap", { files: [fakeFile("idle.mp4", 150)] });
+		await storage.updateSet("format-swap", {
+			files: [fakeFile("idle.mp4", 150)],
+		});
 
-    const setPath = storage.getSetPath("format-swap");
-    const files = await fs.readdir(setPath);
-    expect(files).toContain("idle.mp4");
-    expect(files).not.toContain("idle.webm");
-  });
+		const setPath = storage.getSetPath("format-swap");
+		const files = await fs.readdir(setPath);
+		expect(files).toContain("idle.mp4");
+		expect(files).not.toContain("idle.webm");
+	});
 });
 
 describe("ensureDefaults", () => {
@@ -364,7 +429,11 @@ describe("ensureDefaults", () => {
 	});
 
 	it("does nothing when sets already exist", async () => {
-		await storage.createSet("existing", [fakeFile("idle.webm"), fakeFile("busy.webm"), fakeFile("pending.webm")]);
+		await storage.createSet("existing", [
+			fakeFile("idle.webm"),
+			fakeFile("busy.webm"),
+			fakeFile("pending.webm"),
+		]);
 		await storage.setActiveSet("existing");
 		await storage.ensureDefaults();
 		expect(await storage.getActiveSet()).toBe("existing");
@@ -474,7 +543,7 @@ describe("importSet", () => {
 		]);
 
 		await expect(storage.importSet("bad", zipBuf)).rejects.toThrow(
-			"Avatar pack must contain exactly 3 files: idle, busy, and pending"
+			"Avatar pack must contain exactly 3 files: idle, busy, and pending",
 		);
 	});
 
@@ -487,7 +556,7 @@ describe("importSet", () => {
 		]);
 
 		await expect(storage.importSet("dup-state", zipBuf)).rejects.toThrow(
-			"Avatar pack must contain exactly 3 files: idle, busy, and pending"
+			"Avatar pack must contain exactly 3 files: idle, busy, and pending",
 		);
 	});
 
@@ -497,8 +566,10 @@ describe("importSet", () => {
 		zip.addFile("busy.webm", fakeFile("busy.webm").data);
 		zip.addFile("malware.exe", Buffer.alloc(100));
 
-		await expect(storage.importSet("bad-files", zip.toBuffer())).rejects.toThrow(
-			"Avatar pack must contain exactly 3 files: idle, busy, and pending"
+		await expect(
+			storage.importSet("bad-files", zip.toBuffer()),
+		).rejects.toThrow(
+			"Avatar pack must contain exactly 3 files: idle, busy, and pending",
 		);
 	});
 
@@ -511,7 +582,7 @@ describe("importSet", () => {
 		]);
 
 		await expect(storage.importSet("too-big", zipBuf)).rejects.toThrow(
-			"One or more files exceed the 5MB limit"
+			"One or more files exceed the 5MB limit",
 		);
 	});
 
@@ -521,9 +592,9 @@ describe("importSet", () => {
 		zip.addFile("busy.webm", fakeFile("busy.webm").data);
 		zip.addFile("pending.webm", Buffer.alloc(100, 0x00));
 
-		await expect(storage.importSet("bad-magic", zip.toBuffer())).rejects.toThrow(
-			"One or more files aren't valid video files"
-		);
+		await expect(
+			storage.importSet("bad-magic", zip.toBuffer()),
+		).rejects.toThrow("One or more files aren't valid video files");
 	});
 
 	it("imports mixed format sets", async () => {
@@ -550,7 +621,7 @@ describe("importSet", () => {
 		zip.addFile("subfolder/pending.webm", fakeFile("pending.webm").data);
 
 		await expect(storage.importSet("paths", zip.toBuffer())).rejects.toThrow(
-			"Avatar pack must contain exactly 3 files: idle, busy, and pending"
+			"Avatar pack must contain exactly 3 files: idle, busy, and pending",
 		);
 	});
 
@@ -562,7 +633,7 @@ describe("importSet", () => {
 		]);
 
 		await expect(storage.importSet("../escape", zipBuf)).rejects.toThrow(
-			"Filename isn't a valid avatar set name"
+			"Filename isn't a valid avatar set name",
 		);
 	});
 });

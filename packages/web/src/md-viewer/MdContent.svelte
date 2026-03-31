@@ -1,128 +1,138 @@
 <script>
-  import { onMount, untrack } from "svelte";
-  import "./hljs-theme.css";
-  import { marked } from "marked";
-  import hljs from "highlight.js/lib/core";
-  import javascript from "highlight.js/lib/languages/javascript";
-  import json from "highlight.js/lib/languages/json";
-  import bash from "highlight.js/lib/languages/bash";
-  import typescript from "highlight.js/lib/languages/typescript";
-  import css from "highlight.js/lib/languages/css";
-  import xml from "highlight.js/lib/languages/xml";
-  import markdown from "highlight.js/lib/languages/markdown";
-  import yaml from "highlight.js/lib/languages/yaml";
+import { onMount, untrack } from "svelte";
+import "./hljs-theme.css";
+import hljs from "highlight.js/lib/core";
+import bash from "highlight.js/lib/languages/bash";
+import css from "highlight.js/lib/languages/css";
+import javascript from "highlight.js/lib/languages/javascript";
+import json from "highlight.js/lib/languages/json";
+import markdown from "highlight.js/lib/languages/markdown";
+import typescript from "highlight.js/lib/languages/typescript";
+import xml from "highlight.js/lib/languages/xml";
+import yaml from "highlight.js/lib/languages/yaml";
+import { marked } from "marked";
 
-  hljs.registerLanguage("javascript", javascript);
-  hljs.registerLanguage("js", javascript);
-  hljs.registerLanguage("json", json);
-  hljs.registerLanguage("bash", bash);
-  hljs.registerLanguage("sh", bash);
-  hljs.registerLanguage("typescript", typescript);
-  hljs.registerLanguage("ts", typescript);
-  hljs.registerLanguage("css", css);
-  hljs.registerLanguage("html", xml);
-  hljs.registerLanguage("xml", xml);
-  hljs.registerLanguage("markdown", markdown);
-  hljs.registerLanguage("md", markdown);
-  hljs.registerLanguage("yaml", yaml);
-  hljs.registerLanguage("yml", yaml);
+hljs.registerLanguage("javascript", javascript);
+hljs.registerLanguage("js", javascript);
+hljs.registerLanguage("json", json);
+hljs.registerLanguage("bash", bash);
+hljs.registerLanguage("sh", bash);
+hljs.registerLanguage("typescript", typescript);
+hljs.registerLanguage("ts", typescript);
+hljs.registerLanguage("css", css);
+hljs.registerLanguage("html", xml);
+hljs.registerLanguage("xml", xml);
+hljs.registerLanguage("markdown", markdown);
+hljs.registerLanguage("md", markdown);
+hljs.registerLanguage("yaml", yaml);
+hljs.registerLanguage("yml", yaml);
 
-  const renderer = new marked.Renderer();
-  renderer.heading = function ({ text, depth }) {
-    const id = text.toLowerCase().replace(/[^\w]+/g, "-").replace(/(^-|-$)/g, "");
-    return `<h${depth} id="${id}">${text}</h${depth}>`;
-  };
+const renderer = new marked.Renderer();
+renderer.heading = ({ text, depth }) => {
+	const id = text
+		.toLowerCase()
+		.replace(/[^\w]+/g, "-")
+		.replace(/(^-|-$)/g, "");
+	return `<h${depth} id="${id}">${text}</h${depth}>`;
+};
 
-  marked.use({ renderer });
+marked.use({ renderer });
 
-  marked.setOptions({
-    gfm: true,
-    breaks: false,
-    highlight(code, lang) {
-      if (lang && hljs.getLanguage(lang)) {
-        return hljs.highlight(code, { language: lang }).value;
-      }
-      return code;
-    },
-  });
+marked.setOptions({
+	gfm: true,
+	breaks: false,
+	highlight(code, lang) {
+		if (lang && hljs.getLanguage(lang)) {
+			return hljs.highlight(code, { language: lang }).value;
+		}
+		return code;
+	},
+});
 
-  let {
-    cwd = "",
-    filePath = "",
-    isClaudeFile = false,
-    onHeadings = () => {},
-  } = $props();
+let {
+	cwd = "",
+	filePath = "",
+	isClaudeFile = false,
+	onHeadings = () => {},
+} = $props();
 
-  let html = $state("");
-  let lineCount = $state(0);
-  let lastMtime = $state(0);
-  let loading = $state(false);
-  let error = $state("");
+let html = $state("");
+let lineCount = $state(0);
+let lastMtime = $state(0);
+let _loading = $state(false);
+let _error = $state("");
 
-  let dotColor = $derived(
-    !isClaudeFile ? "" :
-    lineCount < 100 ? "var(--line-dot-green)" :
-    lineCount <= 200 ? "var(--line-dot-amber)" :
-    "var(--line-dot-orange)"
-  );
+let _dotColor = $derived(
+	!isClaudeFile
+		? ""
+		: lineCount < 100
+			? "var(--line-dot-green)"
+			: lineCount <= 200
+				? "var(--line-dot-amber)"
+				: "var(--line-dot-orange)",
+);
 
-  let dotTip = $derived(
-    lineCount <= 200
-      ? "CLAUDE.md is read every conversation — shorter means faster starts"
-      : "Over 200 lines — consider trimming for faster conversation starts"
-  );
+let _dotTip = $derived(
+	lineCount <= 200
+		? "CLAUDE.md is read every conversation — shorter means faster starts"
+		: "Over 200 lines — consider trimming for faster conversation starts",
+);
 
-  async function fetchContent() {
-    if (!cwd || !filePath) return;
-    try {
-      loading = !html;
-      const res = await fetch(`/api/md/file?cwd=${encodeURIComponent(cwd)}&path=${encodeURIComponent(filePath)}`);
-      if (!res.ok) {
-        error = res.status === 404 ? "File not found" : "Failed to load";
-        return;
-      }
-      const data = await res.json();
-      if (data.mtime === lastMtime) return;
-      lastMtime = data.mtime;
-      lineCount = data.content.split("\n").length;
-      html = marked.parse(data.content);
-      error = "";
-      extractHeadings();
-    } catch {
-      error = "Failed to load file";
-    } finally {
-      loading = false;
-    }
-  }
+async function fetchContent() {
+	if (!cwd || !filePath) return;
+	try {
+		_loading = !html;
+		const res = await fetch(
+			`/api/md/file?cwd=${encodeURIComponent(cwd)}&path=${encodeURIComponent(filePath)}`,
+		);
+		if (!res.ok) {
+			_error = res.status === 404 ? "File not found" : "Failed to load";
+			return;
+		}
+		const data = await res.json();
+		if (data.mtime === lastMtime) return;
+		lastMtime = data.mtime;
+		lineCount = data.content.split("\n").length;
+		html = marked.parse(data.content);
+		_error = "";
+		extractHeadings();
+	} catch {
+		_error = "Failed to load file";
+	} finally {
+		_loading = false;
+	}
+}
 
-  function extractHeadings() {
-    requestAnimationFrame(() => {
-      const el = document.querySelector(".md-body");
-      if (!el) return;
-      const headings = Array.from(el.querySelectorAll("h1, h2, h3, h4, h5, h6")).map((h) => ({
-        id: h.id,
-        text: h.textContent,
-        level: parseInt(h.tagName[1]),
-      }));
-      onHeadings(headings);
-    });
-  }
+function extractHeadings() {
+	requestAnimationFrame(() => {
+		const el = document.querySelector(".md-body");
+		if (!el) return;
+		const headings = Array.from(
+			el.querySelectorAll("h1, h2, h3, h4, h5, h6"),
+		).map((h) => ({
+			id: h.id,
+			text: h.textContent,
+			level: parseInt(h.tagName[1], 10),
+		}));
+		onHeadings(headings);
+	});
+}
 
-  $effect(() => {
-    if (filePath) {
-      lastMtime = 0;
-      lineCount = 0;
-      html = "";
-      untrack(() => fetchContent());
-    }
-  });
+$effect(() => {
+	if (filePath) {
+		lastMtime = 0;
+		lineCount = 0;
+		html = "";
+		untrack(() => fetchContent());
+	}
+});
 
-  onMount(() => {
-    const interval = setInterval(() => {
-      if (filePath) fetchContent();
-    }, 3000);
-    return () => clearInterval(interval);
-  });
+onMount(() => {
+	const interval = setInterval(() => {
+		if (filePath) fetchContent();
+	}, 3000);
+	return () => clearInterval(interval);
+});
 </script>
 
 <article class="md-content">

@@ -66,28 +66,33 @@ public class JobObject {
 }`;
 
 function runPS(command) {
-  return execFileSync("powershell", [
-    "-NoProfile", "-Command",
-    `Add-Type -Language CSharp @"\n${JOB_OBJECT_CS}\n"@; ${command}`,
-  ], { timeout: 10000, encoding: "utf-8" });
+	return execFileSync(
+		"powershell",
+		[
+			"-NoProfile",
+			"-Command",
+			`Add-Type -Language CSharp @"\n${JOB_OBJECT_CS}\n"@; ${command}`,
+		],
+		{ timeout: 10000, encoding: "utf-8" },
+	);
 }
 
 export function createJobObject() {
-  if (!isSupported) return null;
-  const result = runPS("[JobObject]::Create()");
-  return result.trim();
+	if (!isSupported) return null;
+	const result = runPS("[JobObject]::Create()");
+	return result.trim();
 }
 
 export function assignToJob(jobHandle, pid) {
-  if (!isSupported || !jobHandle) return;
-  runPS(`[JobObject]::Assign('${jobHandle}', ${pid})`);
+	if (!isSupported || !jobHandle) return;
+	runPS(`[JobObject]::Assign('${jobHandle}', ${pid})`);
 }
 
 export function closeJobObject(jobHandle) {
-  if (!isSupported || !jobHandle) return;
-  try {
-    runPS(`[JobObject]::Close('${jobHandle}')`);
-  } catch {
-    // Best-effort — process may already be dead
-  }
+	if (!isSupported || !jobHandle) return;
+	try {
+		runPS(`[JobObject]::Close('${jobHandle}')`);
+	} catch {
+		// Best-effort — process may already be dead
+	}
 }

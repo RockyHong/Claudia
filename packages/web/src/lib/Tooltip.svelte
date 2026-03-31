@@ -1,43 +1,44 @@
 <script>
-  import { onDestroy } from "svelte";
+import { onDestroy } from "svelte";
 
-  let { text = "", children } = $props();
-  let anchorEl = $state(null);
+let { text = "", children } = $props();
+let anchorEl = $state(null);
 
-  let bubble = null;
+let bubble = null;
 
-  function show() {
-    if (!text || !anchorEl || bubble) return;
+function _show() {
+	if (!text || !anchorEl || bubble) return;
 
-    bubble = document.createElement("span");
-    bubble.className = "tooltip-bubble";
-    bubble.textContent = text;
-    // Render off-screen to measure
-    bubble.style.cssText = "position:fixed;visibility:hidden;top:0;left:0";
-    document.body.appendChild(bubble);
+	bubble = document.createElement("span");
+	bubble.className = "tooltip-bubble";
+	bubble.textContent = text;
+	// Render off-screen to measure
+	bubble.style.cssText = "position:fixed;visibility:hidden;top:0;left:0";
+	document.body.appendChild(bubble);
 
-    const ar = anchorEl.getBoundingClientRect();
-    const br = bubble.getBoundingClientRect();
-    const gap = 6;
+	const ar = anchorEl.getBoundingClientRect();
+	const br = bubble.getBoundingClientRect();
+	const gap = 6;
 
-    let top = ar.top - br.height - gap;
-    let left = ar.left + ar.width / 2 - br.width / 2;
+	let top = ar.top - br.height - gap;
+	let left = ar.left + ar.width / 2 - br.width / 2;
 
-    if (top < 4) top = ar.bottom + gap;
-    if (left < 4) left = 4;
-    if (left + br.width > window.innerWidth - 4) left = window.innerWidth - br.width - 4;
+	if (top < 4) top = ar.bottom + gap;
+	if (left < 4) left = 4;
+	if (left + br.width > window.innerWidth - 4)
+		left = window.innerWidth - br.width - 4;
 
-    bubble.style.cssText = `position:fixed;top:${top}px;left:${left}px`;
-  }
+	bubble.style.cssText = `position:fixed;top:${top}px;left:${left}px`;
+}
 
-  function hide() {
-    if (bubble) {
-      bubble.remove();
-      bubble = null;
-    }
-  }
+function hide() {
+	if (bubble) {
+		bubble.remove();
+		bubble = null;
+	}
+}
 
-  onDestroy(hide);
+onDestroy(hide);
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->

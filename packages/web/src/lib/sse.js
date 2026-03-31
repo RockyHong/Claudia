@@ -4,56 +4,56 @@
  */
 
 export function createSSEClient(url, onUpdate, onStatusChange) {
-  let source = null;
-  let connected = false;
+	let source = null;
+	let connected = false;
 
-  function setConnected(value) {
-    if (value !== connected) {
-      connected = value;
-      if (onStatusChange) onStatusChange(connected);
-    }
-  }
+	function setConnected(value) {
+		if (value !== connected) {
+			connected = value;
+			if (onStatusChange) onStatusChange(connected);
+		}
+	}
 
-  function connect() {
-    source = new EventSource(url);
+	function connect() {
+		source = new EventSource(url);
 
-    source.onopen = () => setConnected(true);
+		source.onopen = () => setConnected(true);
 
-    source.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        setConnected(true);
-        onUpdate(data);
-      } catch {
-        // Ignore malformed messages
-      }
-    };
+		source.onmessage = (event) => {
+			try {
+				const data = JSON.parse(event.data);
+				setConnected(true);
+				onUpdate(data);
+			} catch {
+				// Ignore malformed messages
+			}
+		};
 
-    source.onerror = () => {
-      setConnected(false);
-      if (source.readyState === EventSource.CLOSED) {
-        setTimeout(connect, 3000);
-      }
-    };
-  }
+		source.onerror = () => {
+			setConnected(false);
+			if (source.readyState === EventSource.CLOSED) {
+				setTimeout(connect, 3000);
+			}
+		};
+	}
 
-  function disconnect() {
-    if (source) {
-      source.close();
-      source = null;
-      setConnected(false);
-    }
-  }
+	function disconnect() {
+		if (source) {
+			source.close();
+			source = null;
+			setConnected(false);
+		}
+	}
 
-  connect();
+	connect();
 
-  function reconnect() {
-    if (source) {
-      source.close();
-      source = null;
-    }
-    connect();
-  }
+	function reconnect() {
+		if (source) {
+			source.close();
+			source = null;
+		}
+		connect();
+	}
 
-  return { disconnect, reconnect };
+	return { disconnect, reconnect };
 }

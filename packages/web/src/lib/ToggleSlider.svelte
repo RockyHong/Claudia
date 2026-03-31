@@ -1,5 +1,5 @@
 <script>
-  let { checked = false, label = "", onchange } = $props();
+let { checked = false, label = "", onchange } = $props();
 </script>
 
 <label class="toggle">

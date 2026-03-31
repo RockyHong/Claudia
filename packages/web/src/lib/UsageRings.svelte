@@ -1,70 +1,76 @@
 <script>
-  import Tooltip from "./Tooltip.svelte";
+let { usage = null } = $props();
 
-  let { usage = null } = $props();
+const CIRCUMFERENCE = 2 * Math.PI * 9;
+const STALE_MS = 30 * 60 * 1000;
+const WINDOW_5H = 5 * 60 * 60 * 1000;
+const WINDOW_7D = 7 * 24 * 60 * 60 * 1000;
 
-  const CIRCUMFERENCE = 2 * Math.PI * 9;
-  const STALE_MS = 30 * 60 * 1000;
-  const WINDOW_5H = 5 * 60 * 60 * 1000;
-  const WINDOW_7D = 7 * 24 * 60 * 60 * 1000;
+function timeElapsedPct(resetsAt, windowMs) {
+	if (!resetsAt) return 0;
+	const msLeft = Math.max(0, new Date(resetsAt).getTime() - Date.now());
+	return (1 - msLeft / windowMs) * 100;
+}
 
-  function timeElapsedPct(resetsAt, windowMs) {
-    if (!resetsAt) return 0;
-    const msLeft = Math.max(0, new Date(resetsAt).getTime() - Date.now());
-    return (1 - msLeft / windowMs) * 100;
-  }
+function isOutpacing(utilization, resetsAt, windowMs) {
+	if (!utilization || utilization < 50) return false;
+	return utilization > timeElapsedPct(resetsAt, windowMs);
+}
 
-  function isOutpacing(utilization, resetsAt, windowMs) {
-    if (!utilization || utilization < 50) return false;
-    return utilization > timeElapsedPct(resetsAt, windowMs);
-  }
+function _tooltipText(utilization, countdown, outpacing) {
+	let line = `${Math.round(utilization ?? 0)}% used`;
+	if (countdown) line += ` · resets in ${countdown}`;
+	if (outpacing) line += `\nMay run out before reset at current pace`;
+	return line;
+}
 
-  function tooltipText(utilization, countdown, outpacing) {
-    let line = `${Math.round(utilization ?? 0)}% used`;
-    if (countdown) line += ` · resets in ${countdown}`;
-    if (outpacing) line += `\nMay run out before reset at current pace`;
-    return line;
-  }
+let _countdownText5h = $state("");
+let _countdownText7d = $state("");
+let _stale = $state(false);
+let _fiveHourOutpacing = $state(false);
+let _sevenDayOutpacing = $state(false);
 
-  let countdownText5h = $state("");
-  let countdownText7d = $state("");
-  let stale = $state(false);
-  let fiveHourOutpacing = $state(false);
-  let sevenDayOutpacing = $state(false);
+function _dashOffset(utilization) {
+	return CIRCUMFERENCE * (1 - (utilization || 0) / 100);
+}
 
-  function dashOffset(utilization) {
-    return CIRCUMFERENCE * (1 - (utilization || 0) / 100);
-  }
+function formatCountdown(resetsAt) {
+	if (!resetsAt) return "";
+	const ms = new Date(resetsAt).getTime() - Date.now();
+	if (ms <= 0) return "";
+	const totalMin = Math.floor(ms / 60000);
+	if (totalMin < 60) return `${totalMin}m`;
+	const hours = Math.floor(totalMin / 60);
+	const mins = totalMin % 60;
+	if (hours < 24) return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+	const days = Math.floor(hours / 24);
+	const remHours = hours % 24;
+	return remHours > 0 ? `${days}d ${remHours}h` : `${days}d`;
+}
 
-  function formatCountdown(resetsAt) {
-    if (!resetsAt) return "";
-    const ms = new Date(resetsAt).getTime() - Date.now();
-    if (ms <= 0) return "";
-    const totalMin = Math.floor(ms / 60000);
-    if (totalMin < 60) return `${totalMin}m`;
-    const hours = Math.floor(totalMin / 60);
-    const mins = totalMin % 60;
-    if (hours < 24) return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-    const days = Math.floor(hours / 24);
-    const remHours = hours % 24;
-    return remHours > 0 ? `${days}d ${remHours}h` : `${days}d`;
-  }
+function refreshState() {
+	if (!usage) return;
+	_countdownText5h = formatCountdown(usage.fiveHour?.resetsAt);
+	_countdownText7d = formatCountdown(usage.sevenDay?.resetsAt);
+	_stale = usage.fetchedAt && Date.now() - usage.fetchedAt > STALE_MS;
+	_fiveHourOutpacing = isOutpacing(
+		usage.fiveHour?.utilization,
+		usage.fiveHour?.resetsAt,
+		WINDOW_5H,
+	);
+	_sevenDayOutpacing = isOutpacing(
+		usage.sevenDay?.utilization,
+		usage.sevenDay?.resetsAt,
+		WINDOW_7D,
+	);
+}
 
-  function refreshState() {
-    if (!usage) return;
-    countdownText5h = formatCountdown(usage.fiveHour?.resetsAt);
-    countdownText7d = formatCountdown(usage.sevenDay?.resetsAt);
-    stale = usage.fetchedAt && (Date.now() - usage.fetchedAt > STALE_MS);
-    fiveHourOutpacing = isOutpacing(usage.fiveHour?.utilization, usage.fiveHour?.resetsAt, WINDOW_5H);
-    sevenDayOutpacing = isOutpacing(usage.sevenDay?.utilization, usage.sevenDay?.resetsAt, WINDOW_7D);
-  }
-
-  $effect(() => {
-    usage;
-    refreshState();
-    const interval = setInterval(refreshState, 60_000);
-    return () => clearInterval(interval);
-  });
+$effect(() => {
+	usage;
+	refreshState();
+	const interval = setInterval(refreshState, 60_000);
+	return () => clearInterval(interval);
+});
 </script>
 
 <div class="usage-rings" class:stale class:skeleton={!usage}>

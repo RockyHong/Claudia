@@ -1,161 +1,161 @@
 <script>
-  import AvatarSetEditor from "./AvatarSetEditor.svelte";
-  import ConfirmDialog from "./ConfirmDialog.svelte";
-  import Tooltip from "./Tooltip.svelte";
-  import { Trash2, Download, Pencil, Check } from "lucide-svelte";
+let { onavatarchange } = $props();
 
-  let { onavatarchange } = $props();
+let sets = $state([]);
+let _loading = $state(true);
+let _error = $state("");
+let confirmDelete = $state(null);
+let _editorMode = $state(null);
+let _editorSet = $state(null);
 
-  let sets = $state([]);
-  let loading = $state(true);
-  let error = $state("");
-  let confirmDelete = $state(null);
-  let editorMode = $state(null);
-  let editorSet = $state(null);
+$effect(() => {
+	fetchSets();
+});
 
-  $effect(() => {
-    fetchSets();
-  });
+async function fetchSets() {
+	_loading = true;
+	_error = "";
+	try {
+		const res = await fetch("/api/avatars/sets");
+		const data = await res.json();
+		sets = data.sets;
+	} catch {
+		_error = "Failed to load avatar sets";
+	}
+	_loading = false;
+}
 
-  async function fetchSets() {
-    loading = true;
-    error = "";
-    try {
-      const res = await fetch("/api/avatars/sets");
-      const data = await res.json();
-      sets = data.sets;
-    } catch {
-      error = "Failed to load avatar sets";
-    }
-    loading = false;
-  }
+async function switchSet(name) {
+	try {
+		const res = await fetch("/api/avatars/active", {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ set: name }),
+		});
+		if (!res.ok) {
+			if (res.status === 404) {
+				_error = `"${name}" can't be found — refreshing list`;
+				await fetchSets();
+				return;
+			}
+			throw new Error("Failed to switch");
+		}
+		sets = sets.map((s) => ({ ...s, active: s.name === name }));
+		onavatarchange?.();
+	} catch {
+		_error = "Failed to switch avatar set";
+	}
+}
 
-  async function switchSet(name) {
-    try {
-      const res = await fetch("/api/avatars/active", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ set: name }),
-      });
-      if (!res.ok) {
-        if (res.status === 404) {
-          error = `"${name}" can't be found — refreshing list`;
-          await fetchSets();
-          return;
-        }
-        throw new Error("Failed to switch");
-      }
-      sets = sets.map((s) => ({ ...s, active: s.name === name }));
-      onavatarchange?.();
-    } catch {
-      error = "Failed to switch avatar set";
-    }
-  }
+async function _confirmDeleteSet() {
+	const name = confirmDelete;
+	confirmDelete = null;
+	try {
+		const res = await fetch(`/api/avatars/sets/${encodeURIComponent(name)}`, {
+			method: "DELETE",
+		});
+		if (!res.ok) {
+			if (res.status === 404) {
+				_error = `"${name}" can't be found — refreshing list`;
+				await fetchSets();
+				return;
+			}
+			const data = await res.json().catch(() => ({}));
+			throw new Error(data.error || "Failed to delete");
+		}
+		await fetchSets();
+		onavatarchange?.();
+	} catch (err) {
+		_error = err.message;
+	}
+}
 
-  async function confirmDeleteSet() {
-    const name = confirmDelete;
-    confirmDelete = null;
-    try {
-      const res = await fetch(`/api/avatars/sets/${encodeURIComponent(name)}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        if (res.status === 404) {
-          error = `"${name}" can't be found — refreshing list`;
-          await fetchSets();
-          return;
-        }
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to delete");
-      }
-      await fetchSets();
-      onavatarchange?.();
-    } catch (err) {
-      error = err.message;
-    }
-  }
+function _thumbnailUrl(set) {
+	const idleFile = set.files.find((f) => f.startsWith("idle"));
+	if (!idleFile) return null;
+	return `/api/avatars/sets/${encodeURIComponent(set.name)}/file/${idleFile}`;
+}
 
-  function thumbnailUrl(set) {
-    const idleFile = set.files.find((f) => f.startsWith("idle"));
-    if (!idleFile) return null;
-    return `/api/avatars/sets/${encodeURIComponent(set.name)}/file/${idleFile}`;
-  }
+let _importing = $state(false);
 
-  let importing = $state(false);
+async function _handleImport() {
+	const input = document.createElement("input");
+	input.type = "file";
+	input.accept = ".claudia";
 
-  async function handleImport() {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".claudia";
+	input.onchange = async () => {
+		const file = input.files?.[0];
+		if (!file) return;
 
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
+		_importing = true;
+		_error = "";
 
-      importing = true;
-      error = "";
+		try {
+			const setName = file.name.replace(/\.claudia$/i, "");
+			const res = await fetch(
+				`/api/avatars/import?name=${encodeURIComponent(setName)}`,
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/zip" },
+					body: file,
+				},
+			);
+			const data = await res.json();
+			if (!res.ok) throw new Error(data.error || "Import failed");
+			await switchSet(data.name);
+			await fetchSets();
+			closeEditor();
+		} catch (err) {
+			_error = err.message;
+		}
+		_importing = false;
+	};
 
-      try {
-        const setName = file.name.replace(/\.claudia$/i, "");
-        const res = await fetch(`/api/avatars/import?name=${encodeURIComponent(setName)}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/zip" },
-          body: file,
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Import failed");
-        await switchSet(data.name);
-        await fetchSets();
-        closeEditor();
-      } catch (err) {
-        error = err.message;
-      }
-      importing = false;
-    };
+	input.click();
+}
 
-    input.click();
-  }
+async function _openAvatarsFolder() {
+	try {
+		await fetch("/api/avatars/open-folder", { method: "POST" });
+	} catch {
+		_error = "Failed to open folder";
+	}
+}
 
-  async function openAvatarsFolder() {
-    try {
-      await fetch("/api/avatars/open-folder", { method: "POST" });
-    } catch {
-      error = "Failed to open folder";
-    }
-  }
+function _exportSet(name) {
+	const url = `/api/avatars/sets/${encodeURIComponent(name)}/export`;
+	const a = document.createElement("a");
+	a.href = url;
+	a.download = `${name}.claudia`;
+	document.body.appendChild(a);
+	a.click();
+	a.remove();
+}
 
-  function exportSet(name) {
-    const url = `/api/avatars/sets/${encodeURIComponent(name)}/export`;
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${name}.claudia`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  }
+function _openEditor(mode, set = null) {
+	_editorMode = mode;
+	_editorSet = set;
+}
 
-  function openEditor(mode, set = null) {
-    editorMode = mode;
-    editorSet = set;
-  }
+function closeEditor() {
+	_editorMode = null;
+	_editorSet = null;
+}
 
-  function closeEditor() {
-    editorMode = null;
-    editorSet = null;
-  }
+async function _handleEditorSave(setName) {
+	closeEditor();
+	await fetchSets();
+	if (setName) await switchSet(setName);
+}
 
-  async function handleEditorSave(setName) {
-    closeEditor();
-    await fetchSets();
-    if (setName) await switchSet(setName);
-  }
-
-  // Sort: default always last
-  let sortedSets = $derived([...sets].sort((a, b) => {
-    if (a.name === "default") return 1;
-    if (b.name === "default") return -1;
-    return 0;
-  }));
+// Sort: default always last
+let _sortedSets = $derived(
+	[...sets].sort((a, b) => {
+		if (a.name === "default") return 1;
+		if (b.name === "default") return -1;
+		return 0;
+	}),
+);
 </script>
 
 {#if error}

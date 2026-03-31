@@ -6,8 +6,8 @@ function truncate(str, max = 100) {
 }
 
 const HOOK_TYPE_MAP = {
-	SessionStart: (input) => ({ state: "idle" }),
-	UserPromptSubmit: (input) => ({ state: "busy" }),
+	SessionStart: (_input) => ({ state: "idle" }),
+	UserPromptSubmit: (_input) => ({ state: "busy" }),
 	PreToolUse: (input) => ({ state: "busy", tool: truncate(input.tool_name) }),
 	PostToolUse: (input) => ({ state: "busy", tool: truncate(input.tool_name) }),
 	PermissionRequest: (input) => ({
@@ -20,10 +20,10 @@ const HOOK_TYPE_MAP = {
 				: null,
 		},
 	}),
-	Stop: (input) => ({ state: "idle" }),
-	SessionEnd: (input) => ({ state: "stopped" }),
-	SubagentStop: (input) => ({ state: "busy" }),
-	PreCompact: (input) => ({ state: "busy" }),
+	Stop: (_input) => ({ state: "idle" }),
+	SessionEnd: (_input) => ({ state: "stopped" }),
+	SubagentStop: (_input) => ({ state: "busy" }),
+	PreCompact: (_input) => ({ state: "busy" }),
 };
 
 export function transformHookPayload(hookType, stdinPayload) {

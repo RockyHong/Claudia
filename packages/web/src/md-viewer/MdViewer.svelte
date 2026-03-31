@@ -1,60 +1,60 @@
 <script>
-  import { onMount } from "svelte";
-  import ViewerToolbar from "./ViewerToolbar.svelte";
-  import FileTree from "./FileTree.svelte";
-  import MdContent from "./MdContent.svelte";
-  import TableOfContents from "./TableOfContents.svelte";
+import { onMount } from "svelte";
 
-  let { cwd = "" } = $props();
+let { cwd = "" } = $props();
 
-  const CLAUDE_NAMES = new Set(["CLAUDE.md", ".claude"]);
+const CLAUDE_NAMES = new Set(["CLAUDE.md", ".claude"]);
 
-  let tree = $state([]);
-  let selectedPath = $state("");
-  let headings = $state([]);
-  let treeVisible = $state(true);
-  let tocVisible = $state(true);
-  let darkMode = $state(false);
+let tree = $state([]);
+let selectedPath = $state("");
+let _headings = $state([]);
+let _treeVisible = $state(true);
+let _tocVisible = $state(true);
+let darkMode = $state(false);
 
-  let claudeTree = $derived(tree.filter((n) => CLAUDE_NAMES.has(n.name)));
-  let projectTree = $derived(tree.filter((n) => !CLAUDE_NAMES.has(n.name)));
+let _claudeTree = $derived(tree.filter((n) => CLAUDE_NAMES.has(n.name)));
+let _projectTree = $derived(tree.filter((n) => !CLAUDE_NAMES.has(n.name)));
 
-  onMount(() => {
-    const saved = localStorage.getItem("md-viewer-theme");
-    if (saved === "dark") darkMode = true;
-  });
+onMount(() => {
+	const saved = localStorage.getItem("md-viewer-theme");
+	if (saved === "dark") darkMode = true;
+});
 
-  async function loadTree() {
-    if (!cwd) return;
-    try {
-      const res = await fetch(`/api/md/tree?cwd=${encodeURIComponent(cwd)}`);
-      const data = await res.json();
-      tree = data.tree || [];
+async function loadTree() {
+	if (!cwd) return;
+	try {
+		const res = await fetch(`/api/md/tree?cwd=${encodeURIComponent(cwd)}`);
+		const data = await res.json();
+		tree = data.tree || [];
 
-      // Auto-select root README.md if present
-      if (!selectedPath) {
-        const readme = tree.find((n) => !n.children && n.name.toLowerCase() === "readme.md");
-        if (readme) selectedPath = readme.path;
-      }
-    } catch {
-      tree = [];
-    }
-  }
+		// Auto-select root README.md if present
+		if (!selectedPath) {
+			const readme = tree.find(
+				(n) => !n.children && n.name.toLowerCase() === "readme.md",
+			);
+			if (readme) selectedPath = readme.path;
+		}
+	} catch {
+		tree = [];
+	}
+}
 
-  onMount(() => { loadTree(); });
+onMount(() => {
+	loadTree();
+});
 
-  function selectFile(filePath) {
-    selectedPath = filePath;
-  }
+function _selectFile(filePath) {
+	selectedPath = filePath;
+}
 
-  let isClaudeFile = $derived(
-    selectedPath.endsWith("/CLAUDE.md") || selectedPath === "CLAUDE.md"
-  );
+let _isClaudeFile = $derived(
+	selectedPath.endsWith("/CLAUDE.md") || selectedPath === "CLAUDE.md",
+);
 
-  function toggleTheme() {
-    darkMode = !darkMode;
-    localStorage.setItem("md-viewer-theme", darkMode ? "dark" : "light");
-  }
+function _toggleTheme() {
+	darkMode = !darkMode;
+	localStorage.setItem("md-viewer-theme", darkMode ? "dark" : "light");
+}
 </script>
 
 <div class="viewer" class:dark={darkMode}>

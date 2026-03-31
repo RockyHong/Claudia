@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { transformHookPayload, VALID_HOOK_TYPES } from "./hook-transform.js";
 
 const BASE_INPUT = {
@@ -90,7 +90,17 @@ describe("transformHookPayload", () => {
 	});
 
 	it("includes hookType in every transform result", () => {
-		for (const hookType of ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Stop", "SessionEnd", "SubagentStop", "PreCompact"]) {
+		for (const hookType of [
+			"SessionStart",
+			"UserPromptSubmit",
+			"PreToolUse",
+			"PostToolUse",
+			"PermissionRequest",
+			"Stop",
+			"SessionEnd",
+			"SubagentStop",
+			"PreCompact",
+		]) {
 			const result = transformHookPayload(hookType, BASE_INPUT);
 			expect(result.hookType).toBe(hookType);
 		}
@@ -116,7 +126,17 @@ describe("transformHookPayload", () => {
 describe("VALID_HOOK_TYPES", () => {
 	it("contains all 9 hook types", () => {
 		expect(VALID_HOOK_TYPES.size).toBe(9);
-		for (const type of ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Stop", "SessionEnd", "SubagentStop", "PreCompact"]) {
+		for (const type of [
+			"SessionStart",
+			"UserPromptSubmit",
+			"PreToolUse",
+			"PostToolUse",
+			"PermissionRequest",
+			"Stop",
+			"SessionEnd",
+			"SubagentStop",
+			"PreCompact",
+		]) {
 			expect(VALID_HOOK_TYPES.has(type)).toBe(true);
 		}
 	});
