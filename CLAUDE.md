@@ -4,16 +4,28 @@ A personal receptionist app that monitors all active Claude Code sessions, displ
 
 ## Development Workflow
 
-**Superpowers is the default workflow for all development work.** Every feature, bugfix, or refactor follows this pipeline:
+Before starting any work, **assess the task size and propose a route for the user to confirm.** Present it like:
 
-1. **Brainstorm** — `superpowers:brainstorming` before any creative/implementation work
-2. **Plan** — `superpowers:writing-plans` to create bite-sized implementation plans
-3. **Execute** — `superpowers:subagent-driven-development` (preferred) or `superpowers:executing-plans`
-4. **Review** — `superpowers:requesting-code-review` between tasks and at completion
-5. **Finish** — `superpowers:finishing-a-development-branch` to merge/PR
-6. **Cleanup** — After user confirms the work is good and it's committed, delete the spec and plan files from `docs/superpowers/`
+```
+This looks [small/medium/large] because [reason].
+Route: [steps]
+Impact: [what changes, how many files, risk level]
+OK to proceed?
+```
 
-Specs go to `docs/superpowers/specs/`, plans go to `docs/superpowers/plans/`. These are temporal — they exist only during active development.
+### Routes
+
+**Small** — Single file, clear intent, no design decisions (typo fix, config tweak, style adjustment)
+→ Just do it → `/commit`
+
+**Medium** — Multi-file, some design choices, completable in one session (new component, bug fix with investigation, refactor)
+→ Brainstorm (quick, inline — no spec file) → implement → `/commit`
+
+**Large** — Multi-session, architectural, unclear scope, or user explicitly requests it
+→ Full superpowers pipeline: brainstorm → spec → plan → execute → review → finish
+→ Specs go to `docs/superpowers/specs/`, plans to `docs/superpowers/plans/` (temporal — delete after merge)
+
+The user always picks the route. If they say "just do it" on something you sized as large, do it. If they want the full pipeline for something small, run it.
 
 **User instructions override Superpowers defaults** — if something below contradicts a skill, follow what's written here.
 
