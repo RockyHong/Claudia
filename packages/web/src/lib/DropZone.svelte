@@ -84,7 +84,7 @@
     </div>
   {/if}
 
-  <span class="label">{label}</span>
+  <span class="label-banner">{label}</span>
 </div>
 
 <style>
@@ -139,10 +139,10 @@
     align-items: center;
     justify-content: center;
     background: rgba(0, 0, 0, 0.6);
-    color: var(--text);
+    color: var(--text-muted);
     font-size: var(--text-xs);
     font-weight: 500;
-    border-radius: 7px;
+    border-radius: var(--radius-md);
     opacity: 0;
     transition: opacity var(--duration-normal) var(--ease-in-out);
   }
@@ -152,7 +152,8 @@
   }
 
   .empty {
-    flex: 1;
+    position: absolute;
+    inset: 0 0 18px 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -164,21 +165,18 @@
     line-height: 1;
   }
 
-  .label {
-    font-size: var(--text-xs);
+  .label-banner {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 10px;
     font-weight: 500;
     color: var(--text-muted);
-    text-transform: uppercase;
     letter-spacing: 0.03em;
-    position: relative;
+    padding: 2px 0;
+    background: rgba(0, 0, 0, 0.55);
     z-index: 1;
-  }
-
-  .dropzone.filled .label {
-    position: absolute;
-    bottom: var(--space-2);
-    background: rgba(0, 0, 0, 0.6);
-    padding: 2px var(--space-2);
-    border-radius: var(--radius-xs);
   }
 </style>

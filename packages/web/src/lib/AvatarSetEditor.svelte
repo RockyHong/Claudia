@@ -1,6 +1,7 @@
 <script>
   import DropZone from "./DropZone.svelte";
   import Modal from "./Modal.svelte";
+  import Tooltip from "./Tooltip.svelte";
   import { Upload } from "lucide-svelte";
 
   let { mode = "create", set = null, onclose, onsave, onimport, importing = false } = $props();
@@ -111,26 +112,34 @@
       <div class="error-bar">{error}</div>
     {/if}
 
-    <input
-      class="name-input"
-      type="text"
-      bind:value={name}
-      placeholder="Set name"
-      maxlength="50"
-    />
+    <fieldset class="field-group">
+      <legend class="field-label">Name</legend>
+      <input
+        class="name-input"
+        type="text"
+        bind:value={name}
+        placeholder="Your avatar name"
+        maxlength="50"
+      />
+    </fieldset>
 
-    <div class="drop-grid">
-      <DropZone label="Idle" file={fileIdle} previewUrl={existingUrl("idle")} onfile={(f) => fileIdle = f} />
-      <DropZone label="Busy" file={fileBusy} previewUrl={existingUrl("busy")} onfile={(f) => fileBusy = f} />
-      <DropZone label="Pending" file={filePending} previewUrl={existingUrl("pending")} onfile={(f) => filePending = f} />
-    </div>
+    <fieldset class="field-group">
+      <legend class="field-label">Videos</legend>
+      <div class="drop-grid">
+        <DropZone label="Idle" file={fileIdle} previewUrl={existingUrl("idle")} onfile={(f) => fileIdle = f} />
+        <DropZone label="Working" file={fileBusy} previewUrl={existingUrl("busy")} onfile={(f) => fileBusy = f} />
+        <DropZone label="Waiting" file={filePending} previewUrl={existingUrl("pending")} onfile={(f) => filePending = f} />
+      </div>
+    </fieldset>
 
     <div class="actions">
       {#if mode === "create" && onimport}
-        <button class="import-btn" onclick={onimport} disabled={importing}>
-          <Upload size={14} strokeWidth={1.5} />
-          {importing ? "Importing..." : "Import"}
-        </button>
+        <Tooltip text="Import from .claudia file">
+          <button class="import-btn" onclick={onimport} disabled={importing}>
+            <Upload size={14} strokeWidth={1.5} />
+            {importing ? "Importing..." : "Import"}
+          </button>
+        </Tooltip>
       {/if}
       <div class="actions-right">
         <button class="cancel-btn" onclick={onclose}>Cancel</button>
@@ -143,6 +152,23 @@
 </Modal>
 
 <style>
+  .field-group {
+    border: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .field-label {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    font-family: var(--font-heading);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    margin-bottom: var(--space-2);
+    padding: 0;
+  }
+
   .error-bar {
     background: rgba(217, 85, 85, 0.12);
     border: 1px solid rgba(217, 85, 85, 0.3);
