@@ -424,7 +424,7 @@
   .card-actions {
     position: absolute;
     top: var(--space-1);
-    right: var(--space-1);
+    left: var(--space-1);
     display: flex;
     flex-direction: column;
     gap: 2px;
