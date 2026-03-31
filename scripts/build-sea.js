@@ -20,8 +20,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 
 const args = process.argv.slice(2);
-const archFlag = args.includes("--arch") ? args[args.indexOf("--arch") + 1] : "x64";
-const arch = archFlag === "x86" ? "x86" : "x64";
+const archFlag = args.includes("--arch") ? args[args.indexOf("--arch") + 1] : process.arch;
+const arch = archFlag === "x86" || archFlag === "ia32" ? "x86" : archFlag === "arm64" ? "arm64" : "x64";
 
 console.log(`Building Claudia SEA (${arch})...\n`);
 
@@ -66,7 +66,8 @@ execSync("node --experimental-sea-config sea-config.json", {
 
 // Step 6: Copy node.exe and inject blob
 console.log("[6/6] Injecting blob into executable...");
-const outputName = arch === "x86" ? "claudia-server-x86.exe" : "claudia-server-x64.exe";
+const ext = process.platform === "win32" ? ".exe" : "";
+const outputName = `claudia-server-${arch}${ext}`;
 const outputPath = path.join(root, "dist", outputName);
 
 const nodeExe = process.env.NODE_EXE || process.execPath;
@@ -90,17 +91,29 @@ execSync([
 
 console.log(`\nSEA built: ${outputPath}`);
 
-// Auto-copy to Tauri directories (build-time + runtime)
-const tauriDirs = [
-  path.join(root, "src-tauri/binaries"),                      // build-time (externalBin)
-  path.join(root, "src-tauri/target/release/binaries"),        // runtime (dev builds)
-];
-for (const dir of tauriDirs) {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.copyFileSync(outputPath, path.join(dir, "claudia-server-x86_64-pc-windows-msvc.exe"));
-  fs.copyFileSync(outputPath, path.join(dir, "claudia-server.exe"));
+// Auto-copy to Tauri sidecar directories with correct target triple
+const tripleMap = {
+  "win32-x64": "x86_64-pc-windows-msvc",
+  "darwin-x64": "x86_64-apple-darwin",
+  "darwin-arm64": "aarch64-apple-darwin",
+  "linux-x64": "x86_64-unknown-linux-gnu",
+};
+const triple = tripleMap[`${process.platform}-${process.arch}`];
+if (!triple) {
+  console.warn(`Unknown platform/arch: ${process.platform}-${process.arch}, skipping Tauri sidecar copy`);
+} else {
+  const sidecarName = `claudia-server-${triple}${ext}`;
+  const tauriDirs = [
+    path.join(root, "src-tauri/binaries"),
+    path.join(root, "src-tauri/target/release/binaries"),
+  ];
+  for (const dir of tauriDirs) {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.copyFileSync(outputPath, path.join(dir, sidecarName));
+    fs.copyFileSync(outputPath, path.join(dir, `claudia-server${ext}`));
+  }
+  console.log(`Copied to Tauri sidecar directories as ${sidecarName}`);
 }
-console.log("Copied to Tauri sidecar directories");
 
 // Recursive tar packer — preserves relative paths (e.g. assets/index.js)
 function packTar(srcDir, destPath) {
