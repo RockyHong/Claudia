@@ -38,6 +38,11 @@ claudia/
     server/src/                  Express event server, session tracking, hooks
     web/src/                     Svelte 5 browser dashboard
   docs/
+    overview.md                  Product context, data flow, module index
+    techstack.md                 Tech choices, architecture rules
+    building.md                  Build instructions (npx, Tauri)
+    privacy.md                   What Claudia accesses, removal options
+    design-system.html           Canonical visual reference
     superpowers/
       specs/                     Design specs (from brainstorming)
       plans/                     Implementation plans
@@ -56,7 +61,7 @@ Monorepo using npm workspaces. `packages/server` is the backend, `packages/web` 
 
 Production has two dependencies: `express` and `adm-zip`. This is intentional — hand-roll before reaching for a library.
 
-See `techstack.md` for full reasoning behind each choice.
+See `docs/techstack.md` for full reasoning behind each choice.
 
 ## Design Principles
 
@@ -65,6 +70,8 @@ These are non-negotiable. Every line of code should reflect them.
 ### Visual Design System
 
 `docs/design-system.html` is the canonical visual reference for all UI components. It defines the element catalog (buttons, inputs, toggles), modal system (shell, confirm, gate), and layout principles (spacing rhythm, border-radius scale, visual hierarchy). Every UI component must follow its patterns — when in doubt, open the demo.
+
+**Tooltips:** Add only to icon-only elements whose meaning isn't obvious from context or interaction. Use `<Tooltip text="...">` (not HTML `title`). Text is specific and concise (<30 chars) — name the target, not just the verb ("Open project folder" not "Open folder"). If one icon in a group gets a tooltip, all siblings should too.
 
 ### First Principles Thinking
 
@@ -109,7 +116,7 @@ Names are documentation. `getSessionDisplayName(cwd)` not `getName(s)`. Booleans
 ### Ownership and Boundaries
 
 - Each package owns its dependencies — no reaching into internals
-- Server↔Web contract is the SSE event protocol (see `overview.md`)
+- Server↔Web contract is the SSE event protocol (see `docs/overview.md`)
 - Claude Code↔Claudia contract is `POST /hook/:type` (primary) and `POST /event` (legacy)
 - Platform-specific code lives exclusively in `focus.js`
 
@@ -156,7 +163,7 @@ POST /event         (legacy — pre-formatted {session, state, tool, cwd, messag
 
 Hook types: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PermissionRequest`, `Stop`, `SessionEnd`, `SubagentStop`, `PreCompact`
 
-SSE stream at `GET /events` pushes state updates to the browser. See `overview.md` for the full protocol.
+SSE stream at `GET /events` pushes state updates to the browser. See `docs/overview.md` for the full protocol.
 
 ## Shell Notes
 
@@ -170,8 +177,8 @@ SSE stream at `GET /events` pushes state updates to the browser. See `overview.m
 
 ## Planning
 
-- `overview.md` — Product context, data flow, event protocol, module index
-- `techstack.md` — Tech choices, architecture rules, coding patterns, storage locations
+- `docs/overview.md` — Product context, data flow, event protocol, module index
+- `docs/techstack.md` — Tech choices, architecture rules, coding patterns, storage locations
 - `docs/building.md` — Build instructions for both distributions (npx, Tauri)
 - `docs/superpowers/specs/` — Design specs from brainstorming sessions
 - `docs/superpowers/plans/` — Implementation plans for execution

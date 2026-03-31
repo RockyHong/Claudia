@@ -190,8 +190,9 @@ claudia/
 │   └── web/src/             # 25 files (see table)
 ├── src-tauri/               # Tauri shell
 ├── scripts/                 # Build scripts
-├── docs/building.md
+├── docs/
+│   ├── building.md          # Build instructions
+│   ├── overview.md          # This file
+│   └── techstack.md         # Tech choices & patterns
 ├── CLAUDE.md                # Dev instructions (read first)
-├── overview.md              # This file
-└── techstack.md             # Tech choices & patterns
 ```
