@@ -7,12 +7,17 @@
 
   let { cwd = "" } = $props();
 
+  const CLAUDE_NAMES = new Set(["CLAUDE.md", ".claude"]);
+
   let tree = $state([]);
   let selectedPath = $state("");
   let headings = $state([]);
   let treeVisible = $state(true);
   let tocVisible = $state(true);
   let darkMode = $state(false);
+
+  let claudeTree = $derived(tree.filter((n) => CLAUDE_NAMES.has(n.name)));
+  let projectTree = $derived(tree.filter((n) => !CLAUDE_NAMES.has(n.name)));
 
   onMount(() => {
     const saved = localStorage.getItem("md-viewer-theme");
@@ -62,7 +67,17 @@
   <div class="viewer-body">
     {#if treeVisible}
       <aside class="panel panel-tree">
-        <FileTree {tree} {selectedPath} onSelectFile={selectFile} />
+        {#if claudeTree.length > 0}
+          <div class="tree-section-title">Claude</div>
+          <FileTree tree={claudeTree} {selectedPath} onSelectFile={selectFile} />
+        {/if}
+        {#if projectTree.length > 0}
+          {#if claudeTree.length > 0}
+            <div class="tree-section-divider"></div>
+          {/if}
+          <div class="tree-section-title">Project</div>
+          <FileTree tree={projectTree} {selectedPath} onSelectFile={selectFile} />
+        {/if}
       </aside>
     {/if}
 
@@ -150,6 +165,21 @@
     right: 0;
     width: 220px;
     border-left: 1px solid var(--viewer-border);
+  }
+
+  .tree-section-title {
+    padding: 10px 16px 2px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--viewer-text-faint);
+  }
+
+  .tree-section-divider {
+    height: 1px;
+    margin: 6px 16px;
+    background: var(--viewer-border);
   }
 
   :global(body) {

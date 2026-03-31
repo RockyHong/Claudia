@@ -51,7 +51,7 @@
 
 <style>
   .file-tree {
-    padding: 12px 0;
+    padding: 4px 0;
     overflow-y: auto;
     font-size: 0.8125rem;
   }
