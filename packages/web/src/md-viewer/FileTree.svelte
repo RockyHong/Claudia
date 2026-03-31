@@ -1,5 +1,6 @@
 <script>
   import { ChevronRight, FileText } from "lucide-svelte";
+  import FileTree from "./FileTree.svelte";
 
   let {
     tree = [],
@@ -27,7 +28,7 @@
         </button>
         {#if expanded[node.name]}
           <div class="tree-children">
-            <svelte:self
+            <FileTree
               tree={node.children}
               {selectedPath}
               {onSelectFile}
