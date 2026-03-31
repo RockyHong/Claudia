@@ -2,7 +2,7 @@
   import AvatarSetEditor from "./AvatarSetEditor.svelte";
   import ConfirmDialog from "./ConfirmDialog.svelte";
   import Tooltip from "./Tooltip.svelte";
-  import { Trash2, Download, Pencil } from "lucide-svelte";
+  import { Trash2, Download, Pencil, Check } from "lucide-svelte";
 
   let { onavatarchange } = $props();
 
@@ -215,12 +215,11 @@
             {:else}
               <div class="no-thumb"></div>
             {/if}
+            {#if set.active}
+              <div class="active-check"><Check size={12} strokeWidth={3} /></div>
+            {/if}
           </div>
           <span class="set-name">{set.name}</span>
-          {#if set.active}
-            <span class="active-badge">Active</span>
-          {/if}
-
           {#if !isDefault}
             <div class="card-actions">
               <Tooltip text="Delete">
@@ -346,16 +345,39 @@
   }
 
   .set-card.active {
+    border-width: 2px;
     border-color: var(--brand);
-    box-shadow: 0 0 0 1px rgba(193, 95, 60, 0.15);
+    padding: calc(var(--space-2) - 1px);
+    animation: active-pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes active-pulse {
+    0%, 100% { border-color: rgba(193, 95, 60, 0.4); }
+    50% { border-color: rgba(193, 95, 60, 1); }
   }
 
   .set-thumb {
+    position: relative;
     width: 100%;
     aspect-ratio: 1;
     border-radius: var(--radius-xs);
     overflow: hidden;
     background: var(--border);
+  }
+
+  .active-check {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    background: var(--brand);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   }
 
   .set-thumb video {
@@ -380,13 +402,6 @@
     max-width: 100%;
   }
 
-  .active-badge {
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--blue);
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-  }
 
   .add-card {
     border-style: dashed;

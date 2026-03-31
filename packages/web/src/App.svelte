@@ -387,6 +387,29 @@
     overflow-x: hidden;
   }
 
+  :global(*) {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  :global(*::-webkit-scrollbar) {
+    width: 6px;
+    height: 6px;
+  }
+
+  :global(*::-webkit-scrollbar-track) {
+    background: transparent;
+  }
+
+  :global(*::-webkit-scrollbar-thumb) {
+    background: var(--border);
+    border-radius: 3px;
+  }
+
+  :global(*::-webkit-scrollbar-thumb:hover) {
+    background: var(--text-muted);
+  }
+
   .app {
     max-width: 640px;
     margin: 0 auto;
