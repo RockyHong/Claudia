@@ -1,4 +1,10 @@
 <script>
+import { Ghost, Info } from "lucide-svelte";
+import ConsentModal from "./ConsentModal.svelte";
+import SessionCard from "./SessionCard.svelte";
+import Tooltip from "./Tooltip.svelte";
+import UsageRings from "./UsageRings.svelte";
+
 let {
 	sessions = [],
 	showSpawn = false,
@@ -11,9 +17,9 @@ let {
 
 const statePriority = { pending: 0, idle: 1, busy: 2 };
 
-let _showConsent = $state(false);
+let showConsent = $state(false);
 
-let _sorted = $derived(
+let sorted = $derived(
 	[...sessions].sort((a, b) => {
 		const pa = statePriority[a.state] ?? 3;
 		const pb = statePriority[b.state] ?? 3;

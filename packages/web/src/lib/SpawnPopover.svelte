@@ -1,9 +1,12 @@
 <script>
+import { Folder } from "lucide-svelte";
+import Modal from "./Modal.svelte";
+
 let { onclose } = $props();
 
 let projects = $state([]);
-let _loading = $state(true);
-let _launching = $state(null);
+let loading = $state(true);
+let launching = $state(null);
 
 $effect(() => {
 	fetchProjects();
@@ -17,12 +20,12 @@ async function fetchProjects() {
 	} catch {
 		projects = [];
 	}
-	_loading = false;
+	loading = false;
 }
 
-let _browsing = $state(false);
+let browsing = $state(false);
 
-async function _removeProject(projectPath) {
+async function removeProject(projectPath) {
 	try {
 		await fetch("/api/projects", {
 			method: "DELETE",
@@ -36,7 +39,7 @@ async function _removeProject(projectPath) {
 }
 
 async function launch(projectPath) {
-	_launching = projectPath;
+	launching = projectPath;
 	try {
 		const res = await fetch("/api/launch", {
 			method: "POST",
@@ -46,17 +49,17 @@ async function launch(projectPath) {
 		if (res.ok) {
 			onclose();
 		} else {
-			_launching = null;
+			launching = null;
 		}
 	} catch {
-		_launching = null;
+		launching = null;
 	}
 }
 
 let browseController = null;
 
-async function _browse() {
-	_browsing = true;
+async function browse() {
+	browsing = true;
 	browseController = new AbortController();
 	try {
 		const res = await fetch("/api/browse", {
@@ -71,10 +74,10 @@ async function _browse() {
 		// cancelled, aborted, or error
 	}
 	browseController = null;
-	_browsing = false;
+	browsing = false;
 }
 
-function _cancelBrowse() {
+function cancelBrowse() {
 	if (browseController) browseController.abort();
 	fetch("/api/browse/cancel", { method: "POST" });
 }

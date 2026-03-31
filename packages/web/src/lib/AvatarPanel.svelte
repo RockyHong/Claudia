@@ -1,4 +1,7 @@
 <script>
+import { Maximize2 } from "lucide-svelte";
+import Tooltip from "./Tooltip.svelte";
+
 let {
 	aggregateState = "idle",
 	background = false,
@@ -82,7 +85,7 @@ function preload(src) {
 }
 
 function getSrc(state) {
-	if (!available?.[state]) return null;
+	if (!available || !available[state]) return null;
 	const formats = available[state];
 	if (formats.webm) return `/avatar/${state}.webm${cacheBust}`;
 	if (formats.mp4) return `/avatar/${state}.mp4${cacheBust}`;

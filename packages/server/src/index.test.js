@@ -40,12 +40,12 @@ vi.mock("./preferences.js", () => ({
 	getPreferences: vi.fn().mockResolvedValue({}),
 }));
 
-let app, _tracker, server, baseUrl;
+let app, tracker, server, baseUrl;
 
 beforeAll(async () => {
 	const mod = await import("./index.js");
 	app = mod.app;
-	_tracker = mod.tracker;
+	tracker = mod.tracker;
 
 	server = await new Promise((resolve) => {
 		const s = app.listen(0, "127.0.0.1", () => resolve(s));

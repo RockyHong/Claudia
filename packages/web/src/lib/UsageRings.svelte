@@ -1,4 +1,6 @@
 <script>
+import Tooltip from "./Tooltip.svelte";
+
 let { usage = null } = $props();
 
 const CIRCUMFERENCE = 2 * Math.PI * 9;
@@ -17,20 +19,20 @@ function isOutpacing(utilization, resetsAt, windowMs) {
 	return utilization > timeElapsedPct(resetsAt, windowMs);
 }
 
-function _tooltipText(utilization, countdown, outpacing) {
+function tooltipText(utilization, countdown, outpacing) {
 	let line = `${Math.round(utilization ?? 0)}% used`;
 	if (countdown) line += ` · resets in ${countdown}`;
 	if (outpacing) line += `\nMay run out before reset at current pace`;
 	return line;
 }
 
-let _countdownText5h = $state("");
-let _countdownText7d = $state("");
-let _stale = $state(false);
-let _fiveHourOutpacing = $state(false);
-let _sevenDayOutpacing = $state(false);
+let countdownText5h = $state("");
+let countdownText7d = $state("");
+let stale = $state(false);
+let fiveHourOutpacing = $state(false);
+let sevenDayOutpacing = $state(false);
 
-function _dashOffset(utilization) {
+function dashOffset(utilization) {
 	return CIRCUMFERENCE * (1 - (utilization || 0) / 100);
 }
 
@@ -50,15 +52,15 @@ function formatCountdown(resetsAt) {
 
 function refreshState() {
 	if (!usage) return;
-	_countdownText5h = formatCountdown(usage.fiveHour?.resetsAt);
-	_countdownText7d = formatCountdown(usage.sevenDay?.resetsAt);
-	_stale = usage.fetchedAt && Date.now() - usage.fetchedAt > STALE_MS;
-	_fiveHourOutpacing = isOutpacing(
+	countdownText5h = formatCountdown(usage.fiveHour?.resetsAt);
+	countdownText7d = formatCountdown(usage.sevenDay?.resetsAt);
+	stale = usage.fetchedAt && Date.now() - usage.fetchedAt > STALE_MS;
+	fiveHourOutpacing = isOutpacing(
 		usage.fiveHour?.utilization,
 		usage.fiveHour?.resetsAt,
 		WINDOW_5H,
 	);
-	_sevenDayOutpacing = isOutpacing(
+	sevenDayOutpacing = isOutpacing(
 		usage.sevenDay?.utilization,
 		usage.sevenDay?.resetsAt,
 		WINDOW_7D,

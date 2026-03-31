@@ -1,4 +1,6 @@
 <script>
+import Tooltip from "./Tooltip.svelte";
+
 let { immersive = false } = $props();
 
 let status = $state(null);
@@ -22,7 +24,7 @@ $effect(() => {
 	return () => clearInterval(pollTimer);
 });
 
-let _dotClass = $derived(
+let dotClass = $derived(
 	!status
 		? "dot-unknown"
 		: status.overall === "operational"
@@ -32,7 +34,7 @@ let _dotClass = $derived(
 				: "dot-outage",
 );
 
-let _tooltipText = $derived(() => {
+let tooltipText = $derived(() => {
 	if (!status) return "Claude status: checking…";
 	return status.components
 		.map((c) => `${c.name}: ${c.status.replace(/_/g, " ")}`)

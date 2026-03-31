@@ -23,7 +23,7 @@ async function readProjects() {
 async function writeProjects(projects) {
 	const dir = path.dirname(PROJECTS_PATH);
 	await fs.mkdir(dir, { recursive: true });
-	await fs.writeFile(PROJECTS_PATH, `${JSON.stringify(projects, null, 2)}\n`);
+	await fs.writeFile(PROJECTS_PATH, JSON.stringify(projects, null, 2) + "\n");
 }
 
 export async function trackProject(cwd) {

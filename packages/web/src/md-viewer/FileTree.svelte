@@ -1,9 +1,12 @@
 <script>
+import { ChevronRight, FileText } from "lucide-svelte";
+import FileTree from "./FileTree.svelte";
+
 let { tree = [], selectedPath = "", onSelectFile = () => {} } = $props();
 
 let expanded = $state({});
 
-function _toggleFolder(name) {
+function toggleFolder(name) {
 	expanded[name] = !expanded[name];
 }
 </script>

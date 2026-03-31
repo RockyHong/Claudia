@@ -1,4 +1,6 @@
 <script>
+import { BarChart3 } from "lucide-svelte";
+
 let { onchoice } = $props();
 </script>
 

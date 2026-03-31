@@ -3,14 +3,14 @@ import { onMount } from "svelte";
 
 let { headings = [] } = $props();
 
-let _activeId = $state("");
+let activeId = $state("");
 
 onMount(() => {
 	const observer = new IntersectionObserver(
 		(entries) => {
 			for (const entry of entries) {
 				if (entry.isIntersecting) {
-					_activeId = entry.target.id;
+					activeId = entry.target.id;
 				}
 			}
 		},
@@ -32,7 +32,7 @@ onMount(() => {
 	return () => observer.disconnect();
 });
 
-function _scrollTo(id) {
+function scrollTo(id) {
 	const el = document.getElementById(id);
 	if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 }

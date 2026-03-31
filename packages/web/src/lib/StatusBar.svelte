@@ -7,7 +7,7 @@ let {
 	immersive = false,
 } = $props();
 
-let _dotClass = $derived(
+let dotClass = $derived(
 	disconnected ? "dot-disconnected" : `dot-${aggregateState}`,
 );
 </script>

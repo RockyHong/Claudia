@@ -59,7 +59,7 @@ export function registerApiRoutes(app, tracker, options = {}) {
 	const services = options;
 	// --- Projects API ---
 
-	app.get("/api/projects", async (_req, res) => {
+	app.get("/api/projects", async (req, res) => {
 		const projects = await listProjects();
 		res.json({ projects });
 	});
@@ -73,7 +73,7 @@ export function registerApiRoutes(app, tracker, options = {}) {
 		res.json({ ok: true });
 	});
 
-	app.post("/api/browse", async (_req, res) => {
+	app.post("/api/browse", async (req, res) => {
 		try {
 			const selected = await browseFolder();
 			if (!selected) return res.json({ cancelled: true });
@@ -83,12 +83,12 @@ export function registerApiRoutes(app, tracker, options = {}) {
 		}
 	});
 
-	app.post("/api/browse/cancel", (_req, res) => {
+	app.post("/api/browse/cancel", (req, res) => {
 		cancelBrowse();
 		res.json({ ok: true });
 	});
 
-	app.get("/api/usage", async (_req, res) => {
+	app.get("/api/usage", async (req, res) => {
 		const client = services.getUsageClient();
 		if (!client) return res.status(204).end();
 		const usage = await client.refreshUsage();
@@ -98,7 +98,7 @@ export function registerApiRoutes(app, tracker, options = {}) {
 
 	// --- Hooks API ---
 
-	app.get("/api/hooks/status", async (_req, res) => {
+	app.get("/api/hooks/status", async (req, res) => {
 		try {
 			const settings = await readSettings();
 			const installed = hasClaudiaHooks(settings);
@@ -108,7 +108,7 @@ export function registerApiRoutes(app, tracker, options = {}) {
 		}
 	});
 
-	app.post("/api/hooks/install", async (_req, res) => {
+	app.post("/api/hooks/install", async (req, res) => {
 		try {
 			const settings = await readSettings();
 			const merged = mergeHooks(settings);
@@ -119,7 +119,7 @@ export function registerApiRoutes(app, tracker, options = {}) {
 		}
 	});
 
-	app.post("/api/hooks/remove", async (_req, res) => {
+	app.post("/api/hooks/remove", async (req, res) => {
 		try {
 			const settings = await readSettings();
 			const cleaned = removeHooks(settings);
@@ -132,7 +132,7 @@ export function registerApiRoutes(app, tracker, options = {}) {
 
 	// --- Preferences API ---
 
-	app.get("/api/preferences", async (_req, res) => {
+	app.get("/api/preferences", async (req, res) => {
 		const prefs = await getPreferences();
 		res.json(prefs);
 	});
@@ -215,12 +215,12 @@ export function registerApiRoutes(app, tracker, options = {}) {
 
 	// --- Avatar set API ---
 
-	app.get("/api/avatars/sets", async (_req, res) => {
+	app.get("/api/avatars/sets", async (req, res) => {
 		const sets = await listSets();
 		res.json({ sets });
 	});
 
-	app.get("/api/avatars/active", async (_req, res) => {
+	app.get("/api/avatars/active", async (req, res) => {
 		const activeSet = await getActiveSet();
 		res.json({ activeSet });
 	});
@@ -372,7 +372,7 @@ export function registerApiRoutes(app, tracker, options = {}) {
 		});
 	});
 
-	app.post("/api/avatars/open-folder", (_req, res) => {
+	app.post("/api/avatars/open-folder", (req, res) => {
 		try {
 			openFolder(getAvatarsDir());
 			res.status(204).end();
@@ -415,7 +415,7 @@ export function registerApiRoutes(app, tracker, options = {}) {
 
 	// --- Terminal linking API ---
 
-	app.get("/api/terminals", async (_req, res) => {
+	app.get("/api/terminals", async (req, res) => {
 		const supported = platform() === "win32";
 		if (!supported) {
 			return res.json({ terminals: [], supported: false });
@@ -484,7 +484,7 @@ export function registerApiRoutes(app, tracker, options = {}) {
 
 	// --- Claude platform status ---
 
-	app.get("/api/claude-status", (_req, res) => {
+	app.get("/api/claude-status", (req, res) => {
 		const status = getCachedStatus();
 		if (!status) return res.status(204).end();
 		res.json(status);

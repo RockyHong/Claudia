@@ -7,11 +7,11 @@ let {
 	oncancel,
 } = $props();
 
-function _handleBackdrop(e) {
+function handleBackdrop(e) {
 	if (e.target === e.currentTarget) oncancel();
 }
 
-function _handleKeydown(e) {
+function handleKeydown(e) {
 	if (e.key === "Escape") {
 		e.stopPropagation();
 		oncancel();

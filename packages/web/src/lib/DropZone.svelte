@@ -1,26 +1,26 @@
 <script>
 let { label, file = null, previewUrl = null, onfile } = $props();
 
-let _dragging = $state(false);
+let dragging = $state(false);
 let inputEl;
 
-function _handleDrop(e) {
+function handleDrop(e) {
 	e.preventDefault();
-	_dragging = false;
+	dragging = false;
 	const dropped = e.dataTransfer?.files[0];
 	if (dropped && isVideoFile(dropped)) onfile?.(dropped);
 }
 
-function _handleDragOver(e) {
+function handleDragOver(e) {
 	e.preventDefault();
-	_dragging = true;
+	dragging = true;
 }
 
-function _handleDragLeave() {
-	_dragging = false;
+function handleDragLeave() {
+	dragging = false;
 }
 
-function _handleFileInput(e) {
+function handleFileInput(e) {
 	const selected = e.target.files[0];
 	if (selected) onfile?.(selected);
 	e.target.value = "";
@@ -30,7 +30,7 @@ function isVideoFile(f) {
 	return f.name.endsWith(".webm") || f.name.endsWith(".mp4");
 }
 
-function _handleClick() {
+function handleClick() {
 	inputEl?.click();
 }
 
@@ -43,7 +43,7 @@ let blobUrl = $derived.by(() => {
 	return url;
 });
 
-let _displayUrl = $derived(blobUrl || previewUrl);
+let displayUrl = $derived(blobUrl || previewUrl);
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->

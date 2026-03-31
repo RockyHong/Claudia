@@ -1,5 +1,7 @@
 <script>
+import { BookOpen, Folder, Ghost, GitBranch, Terminal } from "lucide-svelte";
 import { onMount } from "svelte";
+import Tooltip from "./Tooltip.svelte";
 
 let { session } = $props();
 
@@ -10,20 +12,20 @@ const stateConfig = {
 	disconnected: { dot: "dot-disconnected", label: "Disconnected" },
 };
 
-let _elapsed = $state("");
+let elapsed = $state("");
 let showLinkDropdown = $state(false);
-let _terminalList = $state([]);
-let _linkLoading = $state(false);
-let _linkError = $state("");
-let _approveLoading = $state(false);
-let _flashClass = $state("");
-let _decisionMade = $state(false);
-let _toolContextExpanded = $state(false);
+let terminalList = $state([]);
+let linkLoading = $state(false);
+let linkError = $state("");
+let approveLoading = $state(false);
+let flashClass = $state("");
+let decisionMade = $state(false);
+let toolContextExpanded = $state(false);
 let flashTimer = null;
 
-async function _handleDecision(decision) {
-	_approveLoading = true;
-	_flashClass = decision === "allow" ? "flash-approve" : "flash-deny";
+async function handleDecision(decision) {
+	approveLoading = true;
+	flashClass = decision === "allow" ? "flash-approve" : "flash-deny";
 	try {
 		await fetch(`/api/permission/${session.id}`, {
 			method: "POST",
@@ -35,9 +37,9 @@ async function _handleDecision(decision) {
 	}
 	if (flashTimer) clearTimeout(flashTimer);
 	flashTimer = setTimeout(() => {
-		_flashClass = "";
-		_approveLoading = false;
-		_decisionMade = true;
+		flashClass = "";
+		approveLoading = false;
+		decisionMade = true;
 		flashTimer = null;
 	}, 300);
 }
@@ -50,14 +52,14 @@ $effect(() => {
 			clearTimeout(flashTimer);
 			flashTimer = null;
 		}
-		_flashClass = "";
-		_approveLoading = false;
-		_decisionMade = false;
+		flashClass = "";
+		approveLoading = false;
+		decisionMade = false;
 	}
 });
 
 onMount(() => {
-	const handler = (_e) => {
+	const handler = (e) => {
 		if (showLinkDropdown) showLinkDropdown = false;
 	};
 	document.addEventListener("click", handler);
@@ -66,9 +68,9 @@ onMount(() => {
 
 $effect(() => {
 	const interval = setInterval(() => {
-		_elapsed = formatElapsed(session.stateChangedAt);
+		elapsed = formatElapsed(session.stateChangedAt);
 	}, 1000);
-	_elapsed = formatElapsed(session.stateChangedAt);
+	elapsed = formatElapsed(session.stateChangedAt);
 	return () => clearInterval(interval);
 });
 
@@ -81,9 +83,9 @@ function formatElapsed(timestamp) {
 	return `${hours}h ${minutes % 60}m`;
 }
 
-let _config = $derived(stateConfig[session.state] || stateConfig.idle);
+let config = $derived(stateConfig[session.state] || stateConfig.idle);
 
-async function _handleClick() {
+async function handleClick() {
 	if (!session.spawned) return;
 	try {
 		await fetch(`/focus/${session.id}`, { method: "POST" });
@@ -92,7 +94,7 @@ async function _handleClick() {
 	}
 }
 
-async function _openFolder(e) {
+async function openFolder(e) {
 	e.stopPropagation();
 	try {
 		await fetch("/api/open-folder", {
@@ -105,7 +107,7 @@ async function _openFolder(e) {
 	}
 }
 
-async function _openTerminal(e) {
+async function openTerminal(e) {
 	e.stopPropagation();
 	try {
 		await fetch("/api/open-terminal", {
@@ -118,7 +120,7 @@ async function _openTerminal(e) {
 	}
 }
 
-async function _spawnSession(e) {
+async function spawnSession(e) {
 	e.stopPropagation();
 	try {
 		await fetch("/api/launch", {
@@ -131,7 +133,7 @@ async function _spawnSession(e) {
 	}
 }
 
-function _openDocs(e) {
+function openDocs(e) {
 	e.stopPropagation();
 	const url = `${window.location.origin}/md-viewer.html?cwd=${encodeURIComponent(session.cwd)}`;
 	fetch("/api/open-url", {
@@ -143,37 +145,37 @@ function _openDocs(e) {
 	});
 }
 
-async function _openLinkDropdown(e) {
+async function openLinkDropdown(e) {
 	e.stopPropagation();
 	if (showLinkDropdown) {
 		showLinkDropdown = false;
 		return;
 	}
-	_linkLoading = true;
-	_linkError = "";
+	linkLoading = true;
+	linkError = "";
 	showLinkDropdown = true;
 	try {
 		const res = await fetch("/api/terminals");
 		const data = await res.json();
 		if (data.supported === false) {
-			_terminalList = [];
-			_linkError = "Linking not supported on this platform yet";
+			terminalList = [];
+			linkError = "Linking not supported on this platform yet";
 		} else {
-			_terminalList = data.terminals || [];
+			terminalList = data.terminals || [];
 		}
 	} catch {
-		_terminalList = [];
-		_linkError = "Failed to load terminals";
+		terminalList = [];
+		linkError = "Failed to load terminals";
 	} finally {
-		_linkLoading = false;
+		linkLoading = false;
 	}
 }
 
-function _flashTerminal(hwnd) {
+function flashTerminal(hwnd) {
 	fetch(`/api/flash/${hwnd}`, { method: "POST" }).catch(() => {});
 }
 
-async function _linkTerminal(hwnd) {
+async function linkTerminal(hwnd) {
 	try {
 		await fetch(`/api/link/${session.id}`, {
 			method: "POST",

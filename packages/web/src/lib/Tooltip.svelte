@@ -6,7 +6,7 @@ let anchorEl = $state(null);
 
 let bubble = null;
 
-function _show() {
+function show() {
 	if (!text || !anchorEl || bubble) return;
 
 	bubble = document.createElement("span");

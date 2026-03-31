@@ -1,4 +1,9 @@
 <script>
+import { Upload } from "lucide-svelte";
+import DropZone from "./DropZone.svelte";
+import Modal from "./Modal.svelte";
+import Tooltip from "./Tooltip.svelte";
+
 let {
 	mode = "create",
 	set = null,
@@ -12,11 +17,11 @@ let name = $state(mode === "edit" ? (set?.name ?? "") : "");
 let fileIdle = $state(null);
 let fileBusy = $state(null);
 let filePending = $state(null);
-let _error = $state("");
+let error = $state("");
 let saving = $state(false);
 
 // In edit mode, build preview URLs from existing set files
-function _existingUrl(state) {
+function existingUrl(state) {
 	if (mode !== "edit" || !set) return null;
 	const file = set.files.find((f) => f.startsWith(state));
 	if (!file) return null;
@@ -30,14 +35,14 @@ let canSave = $derived(
 				(name.trim() !== set?.name || fileIdle || fileBusy || filePending),
 );
 
-let _title = $derived(
+let title = $derived(
 	mode === "edit" ? `Edit "${set?.name}"` : "New Avatar Set",
 );
 
-async function _handleSave() {
+async function handleSave() {
 	if (!canSave || saving) return;
 	saving = true;
-	_error = "";
+	error = "";
 
 	try {
 		if (mode === "create") {
@@ -99,7 +104,7 @@ async function _handleSave() {
 
 		onsave?.(name.trim());
 	} catch (err) {
-		_error = err.message;
+		error = err.message;
 	}
 	saving = false;
 }
@@ -108,7 +113,7 @@ function ext(file) {
 	return file.name.endsWith(".mp4") ? ".mp4" : ".webm";
 }
 
-function _handleKeydown(e) {
+function handleKeydown(e) {
 	if (e.key === "Escape") {
 		e.stopPropagation();
 		onclose();

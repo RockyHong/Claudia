@@ -1,10 +1,12 @@
 <script>
+import { Link } from "lucide-svelte";
+
 let { oninstalled } = $props();
 
-let _checking = $state(true);
+let checking = $state(true);
 let installed = $state(false);
-let _installing = $state(false);
-let _error = $state("");
+let installing = $state(false);
+let error = $state("");
 
 async function checkStatus() {
 	try {
@@ -15,13 +17,13 @@ async function checkStatus() {
 	} catch {
 		installed = false;
 	} finally {
-		_checking = false;
+		checking = false;
 	}
 }
 
-async function _installHooks() {
-	_installing = true;
-	_error = "";
+async function installHooks() {
+	installing = true;
+	error = "";
 	try {
 		const res = await fetch("/api/hooks/install", { method: "POST" });
 		const data = await res.json();
@@ -29,12 +31,12 @@ async function _installHooks() {
 			installed = true;
 			oninstalled?.();
 		} else {
-			_error = data.error || "Installation failed";
+			error = data.error || "Installation failed";
 		}
-	} catch (_err) {
-		_error = "Could not reach server";
+	} catch (err) {
+		error = "Could not reach server";
 	} finally {
-		_installing = false;
+		installing = false;
 	}
 }
 

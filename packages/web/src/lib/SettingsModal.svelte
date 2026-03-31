@@ -1,4 +1,7 @@
 <script>
+import ConfigTab from "./ConfigTab.svelte";
+import Modal from "./Modal.svelte";
+
 let {
 	onclose,
 	sfx,

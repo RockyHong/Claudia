@@ -31,7 +31,7 @@ describe("getGitStatus", () => {
 	});
 
 	it("returns branch name and dirty: false for a clean repo", async () => {
-		mockExecFile.mockImplementation((_cmd, args, _opts, cb) => {
+		mockExecFile.mockImplementation((cmd, args, opts, cb) => {
 			if (args.includes("rev-parse")) {
 				cb(null, { stdout: "main\n", stderr: "" });
 			} else if (args.includes("status")) {
@@ -44,7 +44,7 @@ describe("getGitStatus", () => {
 	});
 
 	it("returns branch name and dirty: true when porcelain output is non-empty", async () => {
-		mockExecFile.mockImplementation((_cmd, args, _opts, cb) => {
+		mockExecFile.mockImplementation((cmd, args, opts, cb) => {
 			if (args.includes("rev-parse")) {
 				cb(null, { stdout: "feature/my-branch\n", stderr: "" });
 			} else if (args.includes("status")) {
@@ -61,7 +61,7 @@ describe("getGitStatus", () => {
 	});
 
 	it("returns { isGit: false } when git commands fail (non-git directory)", async () => {
-		mockExecFile.mockImplementation((_cmd, _args, _opts, cb) => {
+		mockExecFile.mockImplementation((cmd, args, opts, cb) => {
 			cb(new Error("not a git repository"));
 		});
 
@@ -70,7 +70,7 @@ describe("getGitStatus", () => {
 	});
 
 	it("trims branch name whitespace", async () => {
-		mockExecFile.mockImplementation((_cmd, args, _opts, cb) => {
+		mockExecFile.mockImplementation((cmd, args, opts, cb) => {
 			if (args.includes("rev-parse")) {
 				cb(null, { stdout: "  main  \n", stderr: "" });
 			} else if (args.includes("status")) {

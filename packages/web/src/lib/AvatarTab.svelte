@@ -1,28 +1,33 @@
 <script>
+import { Check, Download, Pencil, Trash2 } from "lucide-svelte";
+import AvatarSetEditor from "./AvatarSetEditor.svelte";
+import ConfirmDialog from "./ConfirmDialog.svelte";
+import Tooltip from "./Tooltip.svelte";
+
 let { onavatarchange } = $props();
 
 let sets = $state([]);
-let _loading = $state(true);
-let _error = $state("");
+let loading = $state(true);
+let error = $state("");
 let confirmDelete = $state(null);
-let _editorMode = $state(null);
-let _editorSet = $state(null);
+let editorMode = $state(null);
+let editorSet = $state(null);
 
 $effect(() => {
 	fetchSets();
 });
 
 async function fetchSets() {
-	_loading = true;
-	_error = "";
+	loading = true;
+	error = "";
 	try {
 		const res = await fetch("/api/avatars/sets");
 		const data = await res.json();
 		sets = data.sets;
 	} catch {
-		_error = "Failed to load avatar sets";
+		error = "Failed to load avatar sets";
 	}
-	_loading = false;
+	loading = false;
 }
 
 async function switchSet(name) {
@@ -34,7 +39,7 @@ async function switchSet(name) {
 		});
 		if (!res.ok) {
 			if (res.status === 404) {
-				_error = `"${name}" can't be found — refreshing list`;
+				error = `"${name}" can't be found — refreshing list`;
 				await fetchSets();
 				return;
 			}
@@ -43,11 +48,11 @@ async function switchSet(name) {
 		sets = sets.map((s) => ({ ...s, active: s.name === name }));
 		onavatarchange?.();
 	} catch {
-		_error = "Failed to switch avatar set";
+		error = "Failed to switch avatar set";
 	}
 }
 
-async function _confirmDeleteSet() {
+async function confirmDeleteSet() {
 	const name = confirmDelete;
 	confirmDelete = null;
 	try {
@@ -56,7 +61,7 @@ async function _confirmDeleteSet() {
 		});
 		if (!res.ok) {
 			if (res.status === 404) {
-				_error = `"${name}" can't be found — refreshing list`;
+				error = `"${name}" can't be found — refreshing list`;
 				await fetchSets();
 				return;
 			}
@@ -66,19 +71,19 @@ async function _confirmDeleteSet() {
 		await fetchSets();
 		onavatarchange?.();
 	} catch (err) {
-		_error = err.message;
+		error = err.message;
 	}
 }
 
-function _thumbnailUrl(set) {
+function thumbnailUrl(set) {
 	const idleFile = set.files.find((f) => f.startsWith("idle"));
 	if (!idleFile) return null;
 	return `/api/avatars/sets/${encodeURIComponent(set.name)}/file/${idleFile}`;
 }
 
-let _importing = $state(false);
+let importing = $state(false);
 
-async function _handleImport() {
+async function handleImport() {
 	const input = document.createElement("input");
 	input.type = "file";
 	input.accept = ".claudia";
@@ -87,8 +92,8 @@ async function _handleImport() {
 		const file = input.files?.[0];
 		if (!file) return;
 
-		_importing = true;
-		_error = "";
+		importing = true;
+		error = "";
 
 		try {
 			const setName = file.name.replace(/\.claudia$/i, "");
@@ -106,23 +111,23 @@ async function _handleImport() {
 			await fetchSets();
 			closeEditor();
 		} catch (err) {
-			_error = err.message;
+			error = err.message;
 		}
-		_importing = false;
+		importing = false;
 	};
 
 	input.click();
 }
 
-async function _openAvatarsFolder() {
+async function openAvatarsFolder() {
 	try {
 		await fetch("/api/avatars/open-folder", { method: "POST" });
 	} catch {
-		_error = "Failed to open folder";
+		error = "Failed to open folder";
 	}
 }
 
-function _exportSet(name) {
+function exportSet(name) {
 	const url = `/api/avatars/sets/${encodeURIComponent(name)}/export`;
 	const a = document.createElement("a");
 	a.href = url;
@@ -132,24 +137,24 @@ function _exportSet(name) {
 	a.remove();
 }
 
-function _openEditor(mode, set = null) {
-	_editorMode = mode;
-	_editorSet = set;
+function openEditor(mode, set = null) {
+	editorMode = mode;
+	editorSet = set;
 }
 
 function closeEditor() {
-	_editorMode = null;
-	_editorSet = null;
+	editorMode = null;
+	editorSet = null;
 }
 
-async function _handleEditorSave(setName) {
+async function handleEditorSave(setName) {
 	closeEditor();
 	await fetchSets();
 	if (setName) await switchSet(setName);
 }
 
 // Sort: default always last
-let _sortedSets = $derived(
+let sortedSets = $derived(
 	[...sets].sort((a, b) => {
 		if (a.name === "default") return 1;
 		if (b.name === "default") return -1;

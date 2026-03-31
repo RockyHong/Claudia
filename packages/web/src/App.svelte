@@ -1,25 +1,36 @@
 <script>
+import { Image, Minimize2, Settings } from "lucide-svelte";
+import AvatarModal from "./lib/AvatarModal.svelte";
+import AvatarPanel from "./lib/AvatarPanel.svelte";
 import { createAmbienceController } from "./lib/ambience.js";
+import ClaudeStatus from "./lib/ClaudeStatus.svelte";
+import DisconnectCover from "./lib/DisconnectCover.svelte";
+import HookGate from "./lib/HookGate.svelte";
+import SessionList from "./lib/SessionList.svelte";
+import SettingsModal from "./lib/SettingsModal.svelte";
+import SpawnPopover from "./lib/SpawnPopover.svelte";
+import StatusBar from "./lib/StatusBar.svelte";
 import { createSFXController } from "./lib/sfx.js";
 import { createSSEClient } from "./lib/sse.js";
+import Tooltip from "./lib/Tooltip.svelte";
 import { initTauriBridge } from "./lib/tauri-bridge.js";
 
-let _sessions = $state([]);
+let sessions = $state([]);
 let aggregateState = $state("idle");
-let _statusMessage = $state("");
-let _bgMode = $state(false);
-let _showSettings = $state(false);
-let _showAvatarModal = $state(false);
-let _showSpawn = $state(false);
-let _usage = $state(null);
-let _avatarVersion = $state(0);
-let _sseConnected = $state(true);
+let statusMessage = $state("");
+let bgMode = $state(false);
+let showSettings = $state(false);
+let showAvatarModal = $state(false);
+let showSpawn = $state(false);
+let usage = $state(null);
+let avatarVersion = $state(0);
+let sseConnected = $state(true);
 let showDisconnect = $state(false);
 let disconnectTimer = null;
-let _hooksPassed = $state(false);
+let hooksPassed = $state(false);
 let nightMode = $state(true);
 let usageMonitoring = $state(false);
-let _autoFocus = $state(true);
+let autoFocus = $state(true);
 let typingAmbience = $state(false);
 
 const sfx = createSFXController();
@@ -30,12 +41,12 @@ async function loadPreferences() {
 		const res = await fetch("/api/preferences");
 		const prefs = await res.json();
 		nightMode = prefs.theme !== "light";
-		_bgMode = prefs.immersive;
+		bgMode = prefs.immersive;
 		sfx.muted = prefs.sfx.muted;
 		sfx.volume = prefs.sfx.volume;
 		applyTheme(nightMode, false);
 		usageMonitoring = prefs.usageMonitoring === true;
-		_autoFocus = prefs.autoFocus !== false;
+		autoFocus = prefs.autoFocus !== false;
 		typingAmbience = prefs.typingAmbience === true;
 		if (usageMonitoring) startUsagePolling();
 	} catch {
@@ -54,13 +65,13 @@ function applyTheme(dark, persist = true) {
 	}
 }
 
-function _setUsageMonitoring(enabled) {
+function setUsageMonitoring(enabled) {
 	usageMonitoring = enabled;
 	if (enabled) {
 		startUsagePolling();
 	} else {
 		stopUsagePolling();
-		_usage = null;
+		usage = null;
 	}
 	fetch("/api/preferences", {
 		method: "PATCH",
@@ -69,8 +80,8 @@ function _setUsageMonitoring(enabled) {
 	}).catch(() => {});
 }
 
-function _setAutoFocus(enabled) {
-	_autoFocus = enabled;
+function setAutoFocus(enabled) {
+	autoFocus = enabled;
 	fetch("/api/preferences", {
 		method: "PATCH",
 		headers: { "Content-Type": "application/json" },
@@ -78,7 +89,7 @@ function _setAutoFocus(enabled) {
 	}).catch(() => {});
 }
 
-function _setTypingAmbience(enabled) {
+function setTypingAmbience(enabled) {
 	typingAmbience = enabled;
 	fetch("/api/preferences", {
 		method: "PATCH",
@@ -97,13 +108,13 @@ $effect(() => {
 
 async function loadUsage() {
 	if (!usageMonitoring) {
-		_usage = null;
+		usage = null;
 		return;
 	}
 	try {
 		const res = await fetch("/api/usage");
 		if (res.status === 204) return;
-		_usage = await res.json();
+		usage = await res.json();
 	} catch {
 		// Keep existing usage on failure
 	}
@@ -128,14 +139,14 @@ function stopUsagePolling() {
 loadPreferences();
 initTauriBridge();
 
-const _sseClient = createSSEClient(
+const sseClient = createSSEClient(
 	"/events",
 	(update) => {
 		// SFX-only messages (e.g. "send" on UserPromptSubmit) have no sessions
 		if (update.sessions) {
-			_sessions = update.sessions;
+			sessions = update.sessions;
 			aggregateState = update.aggregateState;
-			_statusMessage = update.statusMessage || "";
+			statusMessage = update.statusMessage || "";
 			updateDocumentTitle(update.aggregateState, update.sessions);
 		}
 
@@ -147,7 +158,7 @@ const _sseClient = createSSEClient(
 		}
 	},
 	(connected) => {
-		_sseConnected = connected;
+		sseConnected = connected;
 		if (!connected) {
 			if (!disconnectTimer) {
 				disconnectTimer = setTimeout(() => (showDisconnect = true), 8000);

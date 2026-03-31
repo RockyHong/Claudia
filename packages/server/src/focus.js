@@ -92,7 +92,13 @@ function buildWindowsFlashScript(color) {
 		"    if ($w -gt 0 -and $h -gt 0) {",
 		"      $form = New-Object System.Windows.Forms.Form",
 		"      $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::None",
-		`      $form.BackColor = [System.Drawing.Color]::FromArgb(${color.r}, ${color.g}, ${color.b})`,
+		"      $form.BackColor = [System.Drawing.Color]::FromArgb(" +
+			color.r +
+			", " +
+			color.g +
+			", " +
+			color.b +
+			")",
 		"      $form.Opacity = 0.3",
 		"      $form.TopMost = $true",
 		"      $form.ShowInTaskbar = $false",
@@ -115,16 +121,18 @@ function buildWindowsFlashScript(color) {
 function focusWindows(name, color, windowHandle) {
 	// Use stored HWND (spawned) or fall back to title matching (orphan, best-effort).
 	const findWindow = windowHandle
-		? [`$hwnd = [IntPtr]${windowHandle}`]
+		? ["$hwnd = [IntPtr]" + windowHandle]
 		: [
 				"$hwnd = [IntPtr]::Zero",
-				`$p = Get-Process | Where-Object { $_.MainWindowTitle -match [regex]::Escape('${name.replace(/'/g, "''")}') -and $_.MainWindowHandle -ne 0 } | Select-Object -First 1`,
+				"$p = Get-Process | Where-Object { $_.MainWindowTitle -match [regex]::Escape('" +
+					name.replace(/'/g, "''") +
+					"') -and $_.MainWindowHandle -ne 0 } | Select-Object -First 1",
 				"if ($p) { $hwnd = $p.MainWindowHandle }",
 			];
 
 	const ps = [
 		"Add-Type -AssemblyName System.Windows.Forms",
-		`Add-Type -Language CSharp @"\n${WIN_HELPER_CS}\n"@`,
+		'Add-Type -Language CSharp @"\n' + WIN_HELPER_CS + '\n"@',
 		"[WinHelper]::SetProcessDpiAwareness(2) | Out-Null",
 		...findWindow,
 		"if ($hwnd -ne [IntPtr]::Zero) {",
@@ -248,9 +256,9 @@ export function flashWindow(windowHandle) {
 	const color = FLASH_COLORS.navigate;
 	const ps = [
 		"Add-Type -AssemblyName System.Windows.Forms",
-		`Add-Type -Language CSharp @"\n${WIN_HELPER_CS}\n"@`,
+		'Add-Type -Language CSharp @"\n' + WIN_HELPER_CS + '\n"@',
 		"[WinHelper]::SetProcessDpiAwareness(2) | Out-Null",
-		`$hwnd = [IntPtr]${windowHandle}`,
+		"$hwnd = [IntPtr]" + windowHandle,
 		"if ($hwnd -ne [IntPtr]::Zero -and -not [WinHelper]::IsIconic($hwnd)) {",
 		"  $rect = [WinHelper]::GetWindowBounds($hwnd)",
 		"  $w = $rect.Right - $rect.Left",
@@ -258,7 +266,13 @@ export function flashWindow(windowHandle) {
 		"  if ($w -gt 0 -and $h -gt 0) {",
 		"    $form = New-Object System.Windows.Forms.Form",
 		"    $form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::None",
-		`    $form.BackColor = [System.Drawing.Color]::FromArgb(${color.r}, ${color.g}, ${color.b})`,
+		"    $form.BackColor = [System.Drawing.Color]::FromArgb(" +
+			color.r +
+			", " +
+			color.g +
+			", " +
+			color.b +
+			")",
 		"    $form.Opacity = 0.3",
 		"    $form.TopMost = $true",
 		"    $form.ShowInTaskbar = $false",
@@ -381,7 +395,7 @@ export function listTerminalWindows(excludeHandles = new Set()) {
 	const nameFilter = TERMINAL_PROCESS_NAMES.map((n) => `'${n}'`).join(",");
 	const ps = [
 		`$names = @(${nameFilter})`,
-		`Add-Type -Language CSharp @"\n${WIN_ENUM_CS}\n"@`,
+		'Add-Type -Language CSharp @"\n' + WIN_ENUM_CS + '\n"@',
 		"$pids = @{}",
 		"Get-Process | Where-Object { $names -contains $_.ProcessName } | ForEach-Object { $pids[$_.Id] = $true }",
 		"[WinEnum]::GetVisibleWindows() | ForEach-Object {",

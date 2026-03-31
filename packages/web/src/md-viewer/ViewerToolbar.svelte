@@ -1,4 +1,6 @@
 <script>
+import { List, Moon, PanelLeft, Sun } from "lucide-svelte";
+
 let {
 	filePath = "",
 	treeVisible = true,

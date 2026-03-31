@@ -1,11 +1,11 @@
 <script>
 let { title, onclose, children } = $props();
 
-function _handleKeydown(e) {
+function handleKeydown(e) {
 	if (e.key === "Escape") onclose();
 }
 
-function _handleBackdrop(e) {
+function handleBackdrop(e) {
 	if (e.target === e.currentTarget) onclose();
 }
 </script>

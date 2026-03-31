@@ -1,5 +1,9 @@
 <script>
 import { onMount } from "svelte";
+import FileTree from "./FileTree.svelte";
+import MdContent from "./MdContent.svelte";
+import TableOfContents from "./TableOfContents.svelte";
+import ViewerToolbar from "./ViewerToolbar.svelte";
 
 let { cwd = "" } = $props();
 
@@ -7,13 +11,13 @@ const CLAUDE_NAMES = new Set(["CLAUDE.md", ".claude"]);
 
 let tree = $state([]);
 let selectedPath = $state("");
-let _headings = $state([]);
-let _treeVisible = $state(true);
-let _tocVisible = $state(true);
+let headings = $state([]);
+let treeVisible = $state(true);
+let tocVisible = $state(true);
 let darkMode = $state(false);
 
-let _claudeTree = $derived(tree.filter((n) => CLAUDE_NAMES.has(n.name)));
-let _projectTree = $derived(tree.filter((n) => !CLAUDE_NAMES.has(n.name)));
+let claudeTree = $derived(tree.filter((n) => CLAUDE_NAMES.has(n.name)));
+let projectTree = $derived(tree.filter((n) => !CLAUDE_NAMES.has(n.name)));
 
 onMount(() => {
 	const saved = localStorage.getItem("md-viewer-theme");
@@ -43,15 +47,15 @@ onMount(() => {
 	loadTree();
 });
 
-function _selectFile(filePath) {
+function selectFile(filePath) {
 	selectedPath = filePath;
 }
 
-let _isClaudeFile = $derived(
+let isClaudeFile = $derived(
 	selectedPath.endsWith("/CLAUDE.md") || selectedPath === "CLAUDE.md",
 );
 
-function _toggleTheme() {
+function toggleTheme() {
 	darkMode = !darkMode;
 	localStorage.setItem("md-viewer-theme", darkMode ? "dark" : "light");
 }

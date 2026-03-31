@@ -161,7 +161,9 @@ function findWindowByTitle(title) {
 	const ps = [
 		"$hwnd = 0",
 		"for ($i = 0; $i -lt 10; $i++) {",
-		`  $p = Get-Process | Where-Object { $_.MainWindowTitle -eq '${escaped}' -and $_.MainWindowHandle -ne 0 } | Select-Object -First 1`,
+		"  $p = Get-Process | Where-Object { $_.MainWindowTitle -eq '" +
+			escaped +
+			"' -and $_.MainWindowHandle -ne 0 } | Select-Object -First 1",
 		"  if ($p) { $hwnd = $p.MainWindowHandle; break }",
 		"  Start-Sleep -Milliseconds 500",
 		"}",
@@ -269,7 +271,7 @@ function browseWindows() {
 				"-STA",
 				"-Command",
 				[
-					`Add-Type -Language CSharp @"\n${FOLDER_PICKER_CS}\n"@`,
+					'Add-Type -Language CSharp @"\n' + FOLDER_PICKER_CS + '\n"@',
 					"[FolderPicker]::Pick()",
 				].join("; "),
 			],

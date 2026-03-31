@@ -21,7 +21,7 @@ describe("buildMdTree", () => {
 	});
 
 	it("returns nested tree from git ls-files output", async () => {
-		execFile.mockImplementation((_cmd, _args, _opts, cb) => {
+		execFile.mockImplementation((cmd, args, opts, cb) => {
 			cb(null, { stdout: "README.md\ndocs/overview.md\ndocs/building.md\n" });
 		});
 
@@ -40,7 +40,7 @@ describe("buildMdTree", () => {
 	});
 
 	it("sorts folders before files, alphabetically within each", async () => {
-		execFile.mockImplementation((_cmd, _args, _opts, cb) => {
+		execFile.mockImplementation((cmd, args, opts, cb) => {
 			cb(null, { stdout: "z.md\na.md\nlib/c.md\nlib/a.md\n" });
 		});
 
@@ -60,11 +60,11 @@ describe("buildMdTree", () => {
 	});
 
 	it("falls back to recursive scan when git fails", async () => {
-		execFile.mockImplementation((_cmd, _args, _opts, cb) => {
+		execFile.mockImplementation((cmd, args, opts, cb) => {
 			cb(new Error("not a git repo"));
 		});
 
-		fs.readdir.mockImplementation(async (dir, _opts) => {
+		fs.readdir.mockImplementation(async (dir, opts) => {
 			if (dir === "/projects/nogit") {
 				return [
 					{ name: "README.md", isDirectory: () => false, isFile: () => true },

@@ -1,9 +1,11 @@
 <script>
+import { WifiOff } from "lucide-svelte";
+
 let { onretry } = $props();
 
 let retrying = $state(false);
 
-function _retry() {
+function retry() {
 	retrying = true;
 	onretry?.();
 	setTimeout(() => (retrying = false), 2000);

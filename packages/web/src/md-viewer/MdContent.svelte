@@ -59,10 +59,10 @@ let {
 let html = $state("");
 let lineCount = $state(0);
 let lastMtime = $state(0);
-let _loading = $state(false);
-let _error = $state("");
+let loading = $state(false);
+let error = $state("");
 
-let _dotColor = $derived(
+let dotColor = $derived(
 	!isClaudeFile
 		? ""
 		: lineCount < 100
@@ -72,7 +72,7 @@ let _dotColor = $derived(
 				: "var(--line-dot-orange)",
 );
 
-let _dotTip = $derived(
+let dotTip = $derived(
 	lineCount <= 200
 		? "CLAUDE.md is read every conversation — shorter means faster starts"
 		: "Over 200 lines — consider trimming for faster conversation starts",
@@ -81,12 +81,12 @@ let _dotTip = $derived(
 async function fetchContent() {
 	if (!cwd || !filePath) return;
 	try {
-		_loading = !html;
+		loading = !html;
 		const res = await fetch(
 			`/api/md/file?cwd=${encodeURIComponent(cwd)}&path=${encodeURIComponent(filePath)}`,
 		);
 		if (!res.ok) {
-			_error = res.status === 404 ? "File not found" : "Failed to load";
+			error = res.status === 404 ? "File not found" : "Failed to load";
 			return;
 		}
 		const data = await res.json();
@@ -94,12 +94,12 @@ async function fetchContent() {
 		lastMtime = data.mtime;
 		lineCount = data.content.split("\n").length;
 		html = marked.parse(data.content);
-		_error = "";
+		error = "";
 		extractHeadings();
 	} catch {
-		_error = "Failed to load file";
+		error = "Failed to load file";
 	} finally {
-		_loading = false;
+		loading = false;
 	}
 }
 
@@ -112,7 +112,7 @@ function extractHeadings() {
 		).map((h) => ({
 			id: h.id,
 			text: h.textContent,
-			level: parseInt(h.tagName[1], 10),
+			level: parseInt(h.tagName[1]),
 		}));
 		onHeadings(headings);
 	});
