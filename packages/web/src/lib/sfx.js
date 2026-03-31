@@ -70,7 +70,7 @@ function synthPending(volume) {
 
   const gain1 = ctx.createGain();
   gain1.connect(ctx.destination);
-  gain1.gain.setValueAtTime(volume * 0.8, now);
+  gain1.gain.setValueAtTime(volume * 0.35, now);
   gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
 
   const osc1 = ctx.createOscillator();
@@ -83,7 +83,7 @@ function synthPending(volume) {
   const gain2 = ctx.createGain();
   gain2.connect(ctx.destination);
   gain2.gain.setValueAtTime(0.001, now);
-  gain2.gain.setValueAtTime(volume * 0.8, now + 0.15);
+  gain2.gain.setValueAtTime(volume * 0.35, now + 0.15);
   gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
 
   const osc2 = ctx.createOscillator();
@@ -100,7 +100,7 @@ function synthIdle(volume) {
 
   const gain1 = ctx.createGain();
   gain1.connect(ctx.destination);
-  gain1.gain.setValueAtTime(volume * 0.8, now);
+  gain1.gain.setValueAtTime(volume * 0.35, now);
   gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
 
   const osc1 = ctx.createOscillator();
@@ -113,7 +113,7 @@ function synthIdle(volume) {
   const gain2 = ctx.createGain();
   gain2.connect(ctx.destination);
   gain2.gain.setValueAtTime(0.001, now);
-  gain2.gain.setValueAtTime(volume * 0.8, now + 0.15);
+  gain2.gain.setValueAtTime(volume * 0.35, now + 0.15);
   gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
 
   const osc2 = ctx.createOscillator();
