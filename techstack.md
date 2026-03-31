@@ -52,6 +52,9 @@ Each module owns one thing. Don't cross boundaries:
 - **Presentation**: `personality.js` — status message text
 - **OS**: `focus.js` — platform shell commands, isolated
 - **Storage**: `avatar-storage.js`, `project-storage.js` — file I/O
+- **Preferences**: `preferences.js` — user config read/write
+- **Sound Effects**: `sfx.js` — SFX file serving and preview
+- **Markdown**: `md-files.js` — serves project markdown files
 
 If you're importing across these in unexpected directions, the boundary is wrong.
 
@@ -98,7 +101,7 @@ Self-documenting. `getSessionDisplayName(cwd)` not `getName(s)`. Booleans as nat
 | API credentials | `~/.claude/.credentials.json` |
 | Avatar sets | `~/.claudia/avatars/{set-name}/` |
 | Known projects | `~/.claudia/projects.json` |
-| Default assets | `packages/server/assets/avatar/`, `packages/server/assets/sfx/` |
+| Default assets | `packages/server/assets/avatar/`, `packages/server/assets/icon.ico` |
 | Shutdown token | Written at runtime, `mode 0o600` |
 
 ---

@@ -20,13 +20,13 @@ Solo developer or power user running 2+ Claude Code sessions simultaneously. Alr
 
 ## User Flow
 
-1. `npx claudia` — starts server on `localhost:48901`, opens browser dashboard
+1. `npx cldi` — starts server on `localhost:48901`, opens browser dashboard
 2. Dashboard prompts hook installation on first run (one-time)
 3. User works in their terminals as usual — hooks fire automatically
 4. Dashboard shows all sessions: state, elapsed time, current tool, project name
 5. Session enters pending → avatar changes, sound plays, personality message appears
 6. User clicks session card → terminal focus jumps to that window
-7. `npx claudia teardown` — removes hooks cleanly
+7. `npx cldi uninstall` — removes hooks and data cleanly
 
 If Claudia isn't running, hooks fail silently. Claude Code is unaffected.
 
@@ -109,7 +109,7 @@ Two entry points, same server code. Build details in `docs/building.md`.
 | `bin/cli.js` | Browser tab | Node.js (npx) |
 | `bin/standalone.js` | Tauri native window | Node SEA 64-bit + Tauri |
 
-CLI: `npx claudia` / `npx claudia teardown`
+CLI: `npx cldi` / `npx cldi uninstall`
 
 ---
 
@@ -131,7 +131,9 @@ CLI: `npx claudia` / `npx claudia teardown`
 | `project-storage.js` | Known project paths cache (`~/.claudia/projects.json`) |
 | `git-status.js` | Git branch/status for session metadata |
 | `usage.js` | Claude API usage/cost from `~/.claude/.credentials.json` |
-| `sfx-preview.js` | Inline HTML page for SFX testing |
+| `sfx.js` | SFX file serving and preview |
+| `preferences.js` | User config read/write (`~/.claudia/config.json`) |
+| `md-files.js` | Serves project markdown files |
 | `job-object.js` | Windows Job Object — child process cleanup for standalone |
 | `lifecycle.js` | Shared lifecycle state for managed distributions |
 
@@ -156,17 +158,22 @@ CLI: `npx claudia` / `npx claudia teardown`
 | `lib/ConfirmDialog.svelte` | Confirmation dialog |
 | `lib/ToggleSlider.svelte` | Toggle switch |
 | `lib/Modal.svelte` | Reusable modal shell |
+| `lib/Tooltip.svelte` | Shared tooltip component |
+| `lib/ConsentModal.svelte` | Usage monitoring consent prompt |
+| `lib/DisconnectCover.svelte` | Server disconnected overlay |
 | `lib/sse.js` | EventSource client, auto-reconnect, connection status |
 | `lib/sfx.js` | Sound effects: Web Audio API synth + MP3 fallback |
+| `lib/ambience.js` | Ambient background effects |
+| `lib/tauri-bridge.js` | Tauri API integration for standalone mode |
 
 ## Other Paths
 
 | Path | Contains |
 |---|---|
 | `src-tauri/` | Tauri config, Rust shell, sidecar binaries |
-| `scripts/` | `bundle-server.js`, `build-sea.js` |
+| `scripts/` | `bundle-server.js`, `build-sea.js`, `sea-entry-template.js` |
 | `docs/building.md` | Build instructions for both distributions |
-| `packages/server/assets/` | Default avatar videos (`avatar/`), sound files (`sfx/`) |
+| `packages/server/assets/` | Default avatar videos (`avatar/`), app icon |
 
 ---
 
@@ -176,14 +183,13 @@ CLI: `npx claudia` / `npx claudia teardown`
 claudia/
 ├── bin/cli.js, standalone.js
 ├── packages/
-│   ├── server/src/          # 17 modules (see table)
-│   │   └── assets/          # avatars/, sfx/
-│   └── web/src/             # 19 files (see table)
+│   ├── server/src/          # 19 modules (see table)
+│   │   └── assets/          # avatar/, icon
+│   └── web/src/             # 24 files (see table)
 ├── src-tauri/               # Tauri shell
 ├── scripts/                 # Build scripts
 ├── docs/building.md
 ├── CLAUDE.md                # Dev instructions (read first)
 ├── overview.md              # This file
-├── techstack.md             # Tech choices & patterns
-└── todo.md                  # Open work items
+└── techstack.md             # Tech choices & patterns
 ```

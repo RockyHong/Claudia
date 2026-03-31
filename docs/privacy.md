@@ -30,7 +30,7 @@ Stores your preferences: theme (dark/light/system), sound effects toggle, immers
 
 ### `~/.claudia/shutdown-token` (Read/Write)
 
-A random token written on startup and used to authenticate graceful instance replacement — for example, when a new `npx claudia` is run while one is already running. The old instance verifies the token before shutting down.
+A random token written on startup and used to authenticate graceful instance replacement — for example, when a new `npx cldi` is run while one is already running. The old instance verifies the token before shutting down.
 
 ## System Access
 
@@ -64,7 +64,7 @@ When you launch a new Claude Code session from the dashboard, Claudia uses Node'
 ## Uninstall
 
 ```bash
-npx claudia uninstall
+npx cldi uninstall
 ```
 
 This removes all hooks Claudia added to `~/.claude/settings.json` and deletes the `~/.claudia/` directory. Your other hooks and Claude Code settings are untouched.

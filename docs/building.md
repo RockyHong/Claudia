@@ -10,7 +10,7 @@ Two distributions, one codebase. Pick the one you need.
                            |
                   +--------+--------+
                   |                 |
-              npx claudia      Standalone
+              npx cldi      Standalone
               (npm package)    (desktop app)
 ```
 
@@ -23,7 +23,7 @@ Two distributions, one codebase. Pick the one you need.
 ```bash
 npm install
 npm run build        # build the web UI
-npx claudia          # start
+npx cldi          # start
 ```
 
 That's it. No build step beyond the web UI.
@@ -54,7 +54,7 @@ npm run build:tauri
 
 This runs three things in sequence:
 
-1. **`build:sea:x64`** -- bundles the server into a single `.exe` via Node SEA
+1. **`build:sea`** -- bundles the server into a single executable via Node SEA
 2. **`npm run build`** -- builds the web UI
 3. **`npx tauri build`** -- builds the native window shell
 

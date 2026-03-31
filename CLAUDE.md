@@ -33,7 +33,7 @@ The user always picks the route. If they say "just do it" on something you sized
 
 ```
 claudia/
-  bin/cli.js                     CLI entry point (npx claudia, claudia teardown)
+  bin/cli.js                     CLI entry point (npx cldi, cldi uninstall)
   packages/
     server/src/                  Express event server, session tracking, hooks
     web/src/                     Svelte 5 browser dashboard
@@ -81,6 +81,9 @@ Each module owns one responsibility:
 - **OS Integration** (`server/src/focus.js`) — Terminal focus
 - **CLI Integration** (`server/src/hooks.js`) — Hook config management
 - **Upload Parsing** (`server/src/multipart.js`) — Multipart form-data parser
+- **Preferences** (`server/src/preferences.js`) — User config read/write (`~/.claudia/config.json`)
+- **Sound Effects** (`server/src/sfx.js`) — SFX file serving and preview
+- **Markdown Files** (`server/src/md-files.js`) — Serves project markdown files
 - **UI** (`packages/web/`) — Renders state
 
 If you find yourself importing across these boundaries in unexpected directions, the design is wrong. Fix the boundary, don't bridge it.
@@ -155,15 +158,7 @@ SSE stream at `GET /events` pushes state updates to the browser. See `overview.m
 ## Git Notes
 
 - **Only commit current session's changes** — When committing, only stage files changed in this session. If unrelated uncommitted changes exist from prior work, leave them alone. Separation of concerns applies to commits too.
-- **No Git LFS** — This repo does not use LFS. However, the dev machine has LFS installed globally, which can cause push failures (`This repository exceeded its LFS budget`). If this happens, disable the LFS filter locally:
-  ```bash
-  git config --local filter.lfs.required false
-  git config --local filter.lfs.clean ""
-  git config --local filter.lfs.smudge ""
-  git config --local filter.lfs.process ""
-  git config --local lfs.repositoryformatversion ""
-  ```
-  This was applied on 2026-03-25. If you reinstall Git or clone fresh, you may need to reapply.
+- **No Git LFS** — This repo does not use LFS.
 
 ## Planning
 

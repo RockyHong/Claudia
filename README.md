@@ -22,7 +22,7 @@ Claudia keeps watch over all your sessions in one browser tab. She tells you whe
 ## Quick Start
 
 ```bash
-npx claudia         # start the dashboard
+npx cldi         # start the dashboard
 ```
 
 On first run, the dashboard will prompt you to install hooks. That's it — run your Claude sessions and Claudia will show you what's happening.
@@ -91,8 +91,8 @@ All access is local. The only network call is the opt-in Anthropic usage API. Se
 ## Commands
 
 ```bash
-npx claudia            # Start the server + open dashboard (installs hooks on first run)
-npx claudia uninstall  # Remove hooks + delete ~/.claudia/ data
+npx cldi            # Start the server + open dashboard (installs hooks on first run)
+npx cldi uninstall  # Remove hooks + delete ~/.claudia/ data
 ```
 
 ## Requirements
@@ -122,27 +122,18 @@ Supported formats: `.webm`, `.mp4`. Switch between sets from Settings — no res
 
 ### Sound Effects
 
-Claudia plays a sound on session state changes — per session, not just aggregate:
+Claudia plays synthesized tones via Web Audio API on session state changes — per session, not just aggregate:
 
-- **Busy** — a subtle whoosh when a session starts working
+- **Send** — a subtle whoosh when a session starts working
 - **Pending** — a chime when a session needs your approval
 - **Idle** — a tone when a session finishes its task
 
-Out of the box, she uses synthesized tones via Web Audio API. To use custom audio (e.g. a TTS voice), drop MP3 files here:
-
-```
-packages/server/assets/sfx/
-  busy.mp3
-  pending.mp3
-  idle.mp3
-```
-
-If the files exist, Claudia plays them. If not, she falls back to the built-in tones. Volume and mute controls are in the Settings modal.
+Volume and mute controls are in the Settings modal.
 
 ## Uninstall
 
 ```bash
-npx claudia uninstall
+npx cldi uninstall
 ```
 
 This removes all hooks Claudia added and deletes `~/.claudia/` (avatars, projects, preferences). Your other hooks and Claude Code settings are untouched.
@@ -155,7 +146,7 @@ For manual removal steps, see [docs/privacy.md](docs/privacy.md).
 
 ```bash
 git clone https://github.com/RockyHong/Claudia.git
-cd claudia
+cd Claudia
 npm install
 npm run dev     # start server in watch mode
 npm run build   # build the web UI

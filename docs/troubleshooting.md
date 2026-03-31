@@ -7,7 +7,7 @@ The Claudia dashboard shows "Server disconnected" when it can't reach the backen
 ### Common causes
 
 **Server process died**
-- npx: The terminal running `npx claudia` was closed or the process crashed.
+- npx: The terminal running `npx cldi` was closed or the process crashed.
 - Standalone: The sidecar server crashed while the Tauri window stayed open.
 
 **Port conflict**
@@ -27,7 +27,7 @@ The Claudia dashboard shows "Server disconnected" when it can't reach the backen
 
 **npx (terminal)**
 ```bash
-npx claudia
+npx cldi
 ```
 
 **Standalone (desktop app)**
