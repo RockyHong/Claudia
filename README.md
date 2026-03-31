@@ -29,6 +29,13 @@ On first run, the dashboard will prompt you to install hooks. That's it — run 
 
 > **Note:** Already-running Claude Code sessions won't pick up the hooks. Restart them after installing.
 
+### Desktop App
+
+Prefer a standalone window? Grab the latest from [Releases](https://github.com/RockyHong/Claudia/releases) — no Node.js required.
+
+- **Windows** — `Claudia-Windows.zip` (extract and run)
+- **macOS** — `Claudia.dmg` (drag to Applications)
+
 ## Features
 
 - **Live session tracking** — see all active Claude Code sessions at a glance
