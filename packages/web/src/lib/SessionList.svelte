@@ -3,7 +3,7 @@
 
   import UsageRings from "./UsageRings.svelte";
   import ConsentModal from "./ConsentModal.svelte";
-  import { Plus } from "lucide-svelte";
+  import { Ghost } from "lucide-svelte";
 
   let { sessions = [], showSpawn = false, immersive = false, usage = null, usageMonitoring = false, onusagemonitoringchange, ontogglespawn } = $props();
 
@@ -33,8 +33,8 @@
 
 <div class="list" class:immersive>
   <button class="add-card" onclick={ontogglespawn}>
-    <Plus size={18} />
-    <span>Launch CLI session</span>
+    <Ghost size={18} />
+    <span>New CLI session</span>
   </button>
 
   {#each sorted as session (session.id)}

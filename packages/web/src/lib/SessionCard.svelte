@@ -1,6 +1,6 @@
 <script>
   import { onMount } from "svelte";
-  import { GitBranch, Folder, Terminal } from "lucide-svelte";
+  import { GitBranch, Folder, Terminal, Ghost } from "lucide-svelte";
   import Tooltip from "./Tooltip.svelte";
 
   let { session } = $props();
@@ -120,6 +120,19 @@
     }
   }
 
+  async function spawnSession(e) {
+    e.stopPropagation();
+    try {
+      await fetch("/api/launch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cwd: session.cwd }),
+      });
+    } catch {
+      // best-effort
+    }
+  }
+
   async function openLinkDropdown(e) {
     e.stopPropagation();
     if (showLinkDropdown) {
@@ -230,6 +243,9 @@
           </button></Tooltip>
           <Tooltip text="Open terminal at project"><button class="detail-icon-btn" onclick={openTerminal}>
             <Terminal />
+          </button></Tooltip>
+          <Tooltip text="Launch new CLI session for this project"><button class="detail-icon-btn" onclick={spawnSession}>
+            <Ghost />
           </button></Tooltip>
         </div>
       {/if}

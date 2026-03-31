@@ -83,7 +83,7 @@
   }
 </script>
 
-<Modal title="New session" {onclose}>
+<Modal title="New CLI session" {onclose}>
   {#if loading}
     <div class="empty">Loading...</div>
   {:else}
