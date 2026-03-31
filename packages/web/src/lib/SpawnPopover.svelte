@@ -108,7 +108,7 @@
         {/each}
       </div>
     {:else}
-      <div class="empty">No recent projects. Browse to launch a session.</div>
+      <div class="empty">No recent projects. Select a project folder to launch a session.</div>
     {/if}
 
     {#if browsing}
@@ -118,7 +118,7 @@
     {:else}
       <button class="browse-btn" onclick={browse}>
         <Folder size={16} />
-        Browse folder...
+        Select project folder...
       </button>
     {/if}
   {/if}

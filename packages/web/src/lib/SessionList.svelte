@@ -23,7 +23,7 @@
 
 <div class="sessions-panel" class:immersive>
 <div class="section-header">
-  <span class="section-label">Active Sessions</span>
+  <span class="section-label">Sessions</span>
   {#if usageMonitoring}
     <UsageRings {usage} />
   {:else}
@@ -34,7 +34,7 @@
 <div class="list" class:immersive>
   <button class="add-card" onclick={ontogglespawn}>
     <Plus size={18} />
-    <span>New session</span>
+    <span>Launch CLI session</span>
   </button>
 
   {#each sorted as session (session.id)}
