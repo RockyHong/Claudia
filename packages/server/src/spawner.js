@@ -356,9 +356,13 @@ export function openTerminal(cwd) {
  * Open a URL in the system's default browser.
  */
 export function openUrl(url) {
-  const cmd = openStrategies[currentPlatform];
-  if (!cmd) throw new Error(`Unsupported platform: ${currentPlatform}`);
-  spawn(cmd, [url], { detached: true, stdio: "ignore" }).unref();
+  if (currentPlatform === "win32") {
+    spawn("cmd", ["/c", "start", "", url], { detached: true, stdio: "ignore" }).unref();
+  } else {
+    const cmd = openStrategies[currentPlatform];
+    if (!cmd) throw new Error(`Unsupported platform: ${currentPlatform}`);
+    spawn(cmd, [url], { detached: true, stdio: "ignore" }).unref();
+  }
 }
 
 function escapeAppleScript(str) {
