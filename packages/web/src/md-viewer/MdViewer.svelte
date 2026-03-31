@@ -10,8 +10,8 @@
   let tree = $state([]);
   let selectedPath = $state("");
   let headings = $state([]);
-  let treeVisible = $state(false);
-  let tocVisible = $state(false);
+  let treeVisible = $state(true);
+  let tocVisible = $state(true);
   let darkMode = $state(false);
 
   onMount(() => {
@@ -34,7 +34,6 @@
 
   function selectFile(filePath) {
     selectedPath = filePath;
-    treeVisible = false;
   }
 
   function toggleTheme() {
@@ -56,8 +55,6 @@
 
   <div class="viewer-body">
     {#if treeVisible}
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="overlay-backdrop" onclick={() => treeVisible = false} onkeydown={(e) => e.key === 'Escape' && (treeVisible = false)}></div>
       <aside class="panel panel-tree">
         <FileTree {tree} {selectedPath} onSelectFile={selectFile} />
       </aside>
@@ -66,8 +63,6 @@
     <MdContent {cwd} filePath={selectedPath} onHeadings={(h) => headings = h} />
 
     {#if tocVisible && headings.length > 0}
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="overlay-backdrop" onclick={() => tocVisible = false} onkeydown={(e) => e.key === 'Escape' && (tocVisible = false)}></div>
       <aside class="panel panel-toc">
         <TableOfContents {headings} />
       </aside>
@@ -148,13 +143,6 @@
     right: 0;
     width: 220px;
     border-left: 1px solid var(--viewer-border);
-  }
-
-  .overlay-backdrop {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.3);
-    z-index: 10;
   }
 
   :global(body) {
