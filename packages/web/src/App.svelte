@@ -5,6 +5,7 @@
   import { initTauriBridge } from "./lib/tauri-bridge.js";
   import SessionList from "./lib/SessionList.svelte";
   import StatusBar from "./lib/StatusBar.svelte";
+  import DisconnectCover from "./lib/DisconnectCover.svelte";
   import AvatarPanel from "./lib/AvatarPanel.svelte";
   import SettingsModal from "./lib/SettingsModal.svelte";
   import AvatarModal from "./lib/AvatarModal.svelte";
@@ -23,6 +24,8 @@
   let usage = $state(null);
   let avatarVersion = $state(0);
   let sseConnected = $state(true);
+  let showDisconnect = $state(false);
+  let disconnectTimer = null;
   let hooksPassed = $state(false);
   let nightMode = $state(true);
   let usageMonitoring = $state(false);
@@ -152,6 +155,15 @@
     }
   }, (connected) => {
     sseConnected = connected;
+    if (!connected) {
+      if (!disconnectTimer) {
+        disconnectTimer = setTimeout(() => showDisconnect = true, 8000);
+      }
+    } else {
+      clearTimeout(disconnectTimer);
+      disconnectTimer = null;
+      showDisconnect = false;
+    }
   });
 
   function updateDocumentTitle(state, sessions) {
@@ -191,6 +203,10 @@
   }
 
 </script>
+
+{#if showDisconnect}
+  <DisconnectCover onretry={() => sseClient.reconnect()} />
+{/if}
 
 {#if !hooksPassed}
   <HookGate oninstalled={() => hooksPassed = true} />

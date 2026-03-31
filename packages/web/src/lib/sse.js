@@ -47,5 +47,13 @@ export function createSSEClient(url, onUpdate, onStatusChange) {
 
   connect();
 
-  return { disconnect };
+  function reconnect() {
+    if (source) {
+      source.close();
+      source = null;
+    }
+    connect();
+  }
+
+  return { disconnect, reconnect };
 }
