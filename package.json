@@ -37,8 +37,7 @@
     "claude",
     "claude-code",
     "receptionist",
-    "session-monitor",
-    "system-tray"
+    "session-monitor"
   ],
   "devDependencies": {
     "@tauri-apps/cli": "^2.10.1",

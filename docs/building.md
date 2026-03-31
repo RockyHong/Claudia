@@ -32,7 +32,7 @@ That's it. No build step beyond the web UI.
 
 ## 2. Standalone Desktop App
 
-**What you get:** `Claudia-Windows.zip` (extract and run) or `Claudia.dmg` (drag to Applications). Native window, taskbar icon, no Node.js required. Close window = stop server.
+**What you get:** `Claudia-Windows.zip` (extract and run) or `Claudia.dmg` (drag to Applications). Native window, no Node.js required. Single instance — launching again focuses the existing window. Close window = stop server.
 
 **How it works:** Tauri provides the native window shell (~5 MB). Inside it, a Node SEA (Single Executable Application) runs the server. Tauri's webview loads `localhost:48901`. No installer — just the exe.
 
