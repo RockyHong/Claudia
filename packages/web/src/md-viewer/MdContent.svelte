@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import "./hljs-theme.css";
   import { marked } from "marked";
   import hljs from "highlight.js/lib/core";
@@ -96,7 +96,7 @@
     if (filePath) {
       lastMtime = 0;
       html = "";
-      fetchContent();
+      untrack(() => fetchContent());
     }
   });
 
