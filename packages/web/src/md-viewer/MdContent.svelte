@@ -49,13 +49,28 @@
   let {
     cwd = "",
     filePath = "",
+    isClaudeFile = false,
     onHeadings = () => {},
   } = $props();
 
   let html = $state("");
+  let lineCount = $state(0);
   let lastMtime = $state(0);
   let loading = $state(false);
   let error = $state("");
+
+  let dotColor = $derived(
+    !isClaudeFile ? "" :
+    lineCount < 100 ? "var(--line-dot-green)" :
+    lineCount <= 200 ? "var(--line-dot-amber)" :
+    "var(--line-dot-orange)"
+  );
+
+  let dotTip = $derived(
+    lineCount <= 200
+      ? "CLAUDE.md is read every conversation — shorter means faster starts"
+      : "Over 200 lines — consider trimming for faster conversation starts"
+  );
 
   async function fetchContent() {
     if (!cwd || !filePath) return;
@@ -69,6 +84,7 @@
       const data = await res.json();
       if (data.mtime === lastMtime) return;
       lastMtime = data.mtime;
+      lineCount = data.content.split("\n").length;
       html = marked.parse(data.content);
       error = "";
       extractHeadings();
@@ -95,6 +111,7 @@
   $effect(() => {
     if (filePath) {
       lastMtime = 0;
+      lineCount = 0;
       html = "";
       untrack(() => fetchContent());
     }
@@ -116,6 +133,16 @@
   {:else if !filePath}
     <div class="md-placeholder">Select a file to view</div>
   {:else}
+    {#if isClaudeFile && lineCount > 0}
+      <div class="line-hint">
+        <span
+          class="line-dot"
+          style:background={dotColor}
+          title={dotTip}
+        ></span>
+        {lineCount} lines
+      </div>
+    {/if}
     <div class="md-body">
       {@html html}
     </div>
@@ -127,6 +154,26 @@
     flex: 1;
     overflow-y: auto;
     padding: 32px 48px;
+  }
+
+  .line-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 0 0;
+    font-size: 0.75rem;
+    color: var(--viewer-text-faint);
+    opacity: 0.6;
+    user-select: none;
+  }
+
+  .line-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    cursor: help;
   }
 
   .md-body {

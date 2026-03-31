@@ -47,6 +47,10 @@
     selectedPath = filePath;
   }
 
+  let isClaudeFile = $derived(
+    selectedPath.endsWith("/CLAUDE.md") || selectedPath === "CLAUDE.md"
+  );
+
   function toggleTheme() {
     darkMode = !darkMode;
     localStorage.setItem("md-viewer-theme", darkMode ? "dark" : "light");
@@ -81,7 +85,7 @@
       </aside>
     {/if}
 
-    <MdContent {cwd} filePath={selectedPath} onHeadings={(h) => headings = h} />
+    <MdContent {cwd} filePath={selectedPath} {isClaudeFile} onHeadings={(h) => headings = h} />
 
     {#if tocVisible && headings.length > 0}
       <aside class="panel panel-toc">
@@ -106,6 +110,9 @@
     --viewer-link: #3a75c4;
     --viewer-accent: #a84e31;
     --viewer-red: #c43c3c;
+    --line-dot-green: #7ab87a;
+    --line-dot-amber: #c4a43a;
+    --line-dot-orange: #c47a3a;
 
     --font-heading: 'Space Grotesk', sans-serif;
     --font-body: 'DM Sans', sans-serif;
@@ -135,6 +142,9 @@
     --viewer-link: #7aabef;
     --viewer-accent: #c15f3c;
     --viewer-red: #d95555;
+    --line-dot-green: #6aad6a;
+    --line-dot-amber: #b8963a;
+    --line-dot-orange: #b87030;
   }
 
   .viewer-body {
