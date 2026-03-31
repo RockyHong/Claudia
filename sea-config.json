@@ -6,6 +6,7 @@
   "useCodeCache": false,
   "assets": {
     "web-dist": "dist/web-dist.tar",
-    "server-bundle": "dist/server-bundle.js"
+    "server-bundle": "dist/server-bundle.js",
+    "build-stamp": "dist/build-stamp.txt"
   }
 }

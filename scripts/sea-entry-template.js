@@ -2,7 +2,7 @@
 // Extracts embedded web assets and server bundle to temp, then starts the server.
 // Must be CommonJS — Node SEA does not support ESM.
 
-const { appendFileSync, writeFileSync, mkdirSync, existsSync } = require("node:fs");
+const { appendFileSync, readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } = require("node:fs");
 const { tmpdir } = require("node:os");
 const path = require("node:path");
 const sea = require("node:sea");
@@ -18,23 +18,30 @@ process.on("unhandledRejection", (err) => {
   process.exit(1);
 });
 
-// Extract web assets from embedded blob
+// Build stamp — forces re-extraction when a new build is deployed
+const BUILD_STAMP = sea.getAsset("build-stamp", "utf8").trim();
 const WEB_DIST_DIR = path.join(tmpdir(), "claudia-web-dist");
+const BUNDLE_DIR = path.join(tmpdir(), "claudia-sea");
+const STAMP_PATH = path.join(BUNDLE_DIR, ".build-stamp");
 
-if (!existsSync(WEB_DIST_DIR)) {
+const stampMatch = existsSync(STAMP_PATH) &&
+  readFileSync(STAMP_PATH, "utf8").trim() === BUILD_STAMP;
+
+if (!stampMatch) {
+  // Clean stale dirs and re-extract everything
+  rmSync(WEB_DIST_DIR, { recursive: true, force: true });
+  rmSync(BUNDLE_DIR, { recursive: true, force: true });
+
   mkdirSync(WEB_DIST_DIR, { recursive: true });
   const tarBuffer = sea.getAsset("web-dist");
   extractTar(tarBuffer, WEB_DIST_DIR);
-}
 
-// Extract server bundle from embedded blob
-const BUNDLE_DIR = path.join(tmpdir(), "claudia-sea");
-const BUNDLE_PATH = path.join(BUNDLE_DIR, "server-bundle.js");
-
-if (!existsSync(BUNDLE_PATH)) {
   mkdirSync(BUNDLE_DIR, { recursive: true });
-  writeFileSync(BUNDLE_PATH, sea.getAsset("server-bundle", "utf8"));
+  writeFileSync(path.join(BUNDLE_DIR, "server-bundle.js"), sea.getAsset("server-bundle", "utf8"));
+  writeFileSync(STAMP_PATH, BUILD_STAMP);
 }
+
+const BUNDLE_PATH = path.join(BUNDLE_DIR, "server-bundle.js");
 
 // Set env so server knows where web assets are
 process.env.CLAUDIA_WEB_DIST = WEB_DIST_DIR;

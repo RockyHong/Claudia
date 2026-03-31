@@ -25,6 +25,16 @@ const arch = archFlag === "x86" ? "x86" : "x64";
 
 console.log(`Building Claudia SEA (${arch})...\n`);
 
+// Get build stamp (git short hash + timestamp) for cache invalidation
+let buildStamp;
+try {
+  const hash = execSync("git rev-parse --short HEAD", { cwd: root, encoding: "utf-8" }).trim();
+  buildStamp = `${hash}-${Date.now()}`;
+} catch {
+  buildStamp = `unknown-${Date.now()}`;
+}
+console.log(`Build stamp: ${buildStamp}\n`);
+
 // Step 1: Bundle server
 console.log("[1/6] Bundling server...");
 execSync("node scripts/bundle-server.js", { cwd: root, stdio: "inherit" });
@@ -46,8 +56,9 @@ fs.copyFileSync(
   path.join(root, "dist/sea-entry.js"),
 );
 
-// Step 5: Generate SEA blob
+// Step 5: Generate SEA blob (write build stamp first)
 console.log("[5/6] Generating SEA blob...");
+fs.writeFileSync(path.join(root, "dist/build-stamp.txt"), buildStamp);
 execSync("node --experimental-sea-config sea-config.json", {
   cwd: root,
   stdio: "inherit",
