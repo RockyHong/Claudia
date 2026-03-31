@@ -27,6 +27,7 @@ import {
 } from "./avatar-storage.js";
 import { readSettings, hasClaudiaHooks, mergeHooks, removeHooks, writeSettings } from "./hooks.js";
 import { getPreferences, setPreferences } from "./preferences.js";
+import { buildMdTree, readMdFile } from "./md-files.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -417,6 +418,37 @@ export function registerApiRoutes(app, tracker, options = {}) {
 
     console.log(`[link] session=${session.displayName} title=${terminalTitle} hwnd=${windowHandle}`);
     res.json({ ok: true, terminalTitle });
+  });
+
+  // --- Markdown viewer API ---
+
+  app.get("/api/md/tree", async (req, res) => {
+    const { cwd } = req.query;
+    if (!cwd || typeof cwd !== "string") {
+      return res.status(400).json({ error: "Missing cwd" });
+    }
+    try {
+      const tree = await buildMdTree(cwd);
+      res.json({ tree });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/md/file", async (req, res) => {
+    const { cwd, path: filePath } = req.query;
+    if (!cwd || !filePath) {
+      return res.status(400).json({ error: "Missing cwd or path" });
+    }
+    try {
+      const result = await readMdFile(cwd, filePath);
+      res.json(result);
+    } catch (err) {
+      if (err.code === "ENOENT") {
+        return res.status(404).json({ error: "File not found" });
+      }
+      res.status(400).json({ error: err.message });
+    }
   });
 
   // Flash a terminal window overlay (hover preview, no focus steal)

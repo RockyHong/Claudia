@@ -3,6 +3,10 @@ import http from "node:http";
 import express from "express";
 
 // Mock all external dependencies BEFORE importing the module under test
+vi.mock("./md-files.js", () => ({
+  buildMdTree: vi.fn(),
+  readMdFile: vi.fn(),
+}));
 vi.mock("node:fs/promises", () => ({ default: { access: vi.fn() } }));
 vi.mock("./focus.js", () => ({
   focusTerminal: vi.fn(),
@@ -55,6 +59,7 @@ import { spawnSession, cancelBrowse, openFolder } from "./spawner.js";
 import { listSets, getActiveSet, setActiveSet, deleteSet, updateSet, exportSet, importSet } from "./avatar-storage.js";
 import { readSettings, hasClaudiaHooks, mergeHooks, writeSettings } from "./hooks.js";
 import { getPreferences, setPreferences } from "./preferences.js";
+import { buildMdTree, readMdFile } from "./md-files.js";
 
 function request(server, method, urlPath, body) {
   return new Promise((resolve, reject) => {
@@ -648,5 +653,65 @@ describe("POST /api/avatars/import", () => {
     expect(res.status).toBe(400);
     const body = JSON.parse(res.body);
     expect(body.error).toContain("exactly 3 files");
+  });
+});
+
+describe("GET /api/md/tree", () => {
+  it("returns 400 if cwd is missing", async () => {
+    const res = await request(server, "GET", "/api/md/tree");
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Missing cwd" });
+  });
+
+  it("returns the file tree for a valid cwd", async () => {
+    const mockTree = [
+      { name: "README.md", path: "README.md" },
+      { name: "docs", children: [{ name: "overview.md", path: "docs/overview.md" }] },
+    ];
+    buildMdTree.mockResolvedValue(mockTree);
+
+    const res = await request(server, "GET", "/api/md/tree?cwd=/projects/claudia");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ tree: mockTree });
+  });
+});
+
+describe("GET /api/md/file", () => {
+  it("returns 400 if cwd is missing", async () => {
+    const res = await request(server, "GET", "/api/md/file?path=README.md");
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Missing cwd or path" });
+  });
+
+  it("returns 400 if path is missing", async () => {
+    const res = await request(server, "GET", "/api/md/file?cwd=/projects/claudia");
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Missing cwd or path" });
+  });
+
+  it("returns file content and mtime", async () => {
+    readMdFile.mockResolvedValue({ content: "# Hello", mtime: 1700000000000 });
+
+    const res = await request(server, "GET", "/api/md/file?cwd=/projects/claudia&path=README.md");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ content: "# Hello", mtime: 1700000000000 });
+  });
+
+  it("returns 400 for invalid paths", async () => {
+    readMdFile.mockRejectedValue(new Error("Invalid path"));
+
+    const res = await request(server, "GET", "/api/md/file?cwd=/projects/claudia&path=../etc/passwd");
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: "Invalid path" });
+  });
+
+  it("returns 404 for missing files", async () => {
+    const err = new Error("ENOENT");
+    err.code = "ENOENT";
+    readMdFile.mockRejectedValue(err);
+
+    const res = await request(server, "GET", "/api/md/file?cwd=/projects/claudia&path=missing.md");
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: "File not found" });
   });
 });
