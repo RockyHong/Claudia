@@ -13,14 +13,14 @@ Ground rules for technology choices, patterns, and architecture.
 | Server | Express 5 | `packages/server/src/index.js` |
 | Real-time | SSE (Server-Sent Events) | `res.write()` on held response, `GET /events` |
 | Frontend | Svelte 5, Vite | `packages/web/`, runes syntax |
-| Testing | Vitest | `vitest.config.js`, `*.test.js` co-located |
-| Linting | Biome | `biome.json` (lint + format in one tool) |
+| Testing | Vitest | `*.test.js` co-located, runs with defaults |
+| Linting | Biome | Lint + format in one tool, runs with defaults |
 | Desktop | Tauri (Rust shell) | `src-tauri/` |
 | Standalone binary | Node SEA (Single Executable App) | `scripts/build-sea.js` |
 
 ## Production Dependency
 
-**One: `express`.** Everything else is hand-rolled or dev-only. This is intentional — don't add dependencies without a strong reason.
+**Two: `express` and `adm-zip`.** Everything else is hand-rolled or dev-only. This is intentional — don't add dependencies without a strong reason.
 
 Hand-rolled instead of libraries:
 - SSE broadcast (`res.write()` loop in `index.js`)
@@ -51,10 +51,18 @@ Each module owns one thing. Don't cross boundaries:
 - **Transform**: `hook-transform.js` — raw stdin → event
 - **Presentation**: `personality.js` — status message text
 - **OS**: `focus.js` — platform shell commands, isolated
+- **Spawning**: `spawner.js` — launch Claude Code sessions from dashboard
+- **Terminal Titles**: `terminal-title.js` — unique title generation for spawned sessions
 - **Storage**: `avatar-storage.js`, `project-storage.js` — file I/O
+- **Upload**: `multipart.js` — multipart form-data parser
+- **Git**: `git-status.js` — branch/status for session metadata
+- **Usage**: `usage.js` — Claude API usage from credentials
 - **Preferences**: `preferences.js` — user config read/write
 - **Sound Effects**: `sfx.js` — SFX file serving and preview
 - **Markdown**: `md-files.js` — serves project markdown files
+- **Lifecycle**: `lifecycle.js` — shared lifecycle state for managed distributions
+- **Job Object**: `job-object.js` — Windows child process cleanup
+- **Hooks**: `hooks.js` — read/write hook config in settings.json
 
 If you're importing across these in unexpected directions, the boundary is wrong.
 

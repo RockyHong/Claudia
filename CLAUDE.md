@@ -54,7 +54,7 @@ Monorepo using npm workspaces. `packages/server` is the backend, `packages/web` 
 - **Linting**: Biome
 - **Package manager**: npm (no pnpm/yarn)
 
-Production has one dependency: `express`. This is intentional — hand-roll before reaching for a library.
+Production has two dependencies: `express` and `adm-zip`. This is intentional — hand-roll before reaching for a library.
 
 See `techstack.md` for full reasoning behind each choice.
 
@@ -77,13 +77,21 @@ Each module owns one responsibility:
 - **Transport** (`server/src/index.js`) — SSE, event/hook endpoints, server lifecycle
 - **API Routes** (`server/src/routes-api.js`) — Projects, avatars, focus, launch
 - **State** (`server/src/session-tracker.js`) — Session registry, state transitions
+- **Transform** (`server/src/hook-transform.js`) — Raw stdin JSON → internal event format
 - **Presentation** (`server/src/personality.js`) — Status message templates
 - **OS Integration** (`server/src/focus.js`) — Terminal focus
 - **CLI Integration** (`server/src/hooks.js`) — Hook config management
+- **Spawning** (`server/src/spawner.js`) — Launch Claude Code sessions from dashboard
+- **Terminal Titles** (`server/src/terminal-title.js`) — Unique terminal title generation
+- **Storage** (`server/src/avatar-storage.js`, `server/src/project-storage.js`) — File I/O for avatars and projects
 - **Upload Parsing** (`server/src/multipart.js`) — Multipart form-data parser
+- **Git** (`server/src/git-status.js`) — Branch/status for session metadata
+- **Usage** (`server/src/usage.js`) — Claude API usage from credentials
 - **Preferences** (`server/src/preferences.js`) — User config read/write (`~/.claudia/config.json`)
 - **Sound Effects** (`server/src/sfx.js`) — SFX file serving and preview
 - **Markdown Files** (`server/src/md-files.js`) — Serves project markdown files
+- **Lifecycle** (`server/src/lifecycle.js`) — Shared lifecycle state for managed distributions
+- **Job Object** (`server/src/job-object.js`) — Windows child process cleanup for standalone
 - **UI** (`packages/web/`) — Renders state
 
 If you find yourself importing across these boundaries in unexpected directions, the design is wrong. Fix the boundary, don't bridge it.

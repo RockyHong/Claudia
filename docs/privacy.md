@@ -59,7 +59,7 @@ These are display-only and read-only. No git state is ever modified.
 
 ### Process spawning
 
-When you launch a new Claude Code session from the dashboard, Claudia uses Node's `execFile` to start the process. No background processes are kept beyond the spawned Claude Code session itself.
+When you launch a new Claude Code session from the dashboard, Claudia uses Node's `spawn` and `execFile` to start processes. No background processes are kept beyond the spawned Claude Code session itself.
 
 ## Uninstall
 

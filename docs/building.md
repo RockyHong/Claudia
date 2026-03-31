@@ -52,11 +52,10 @@ npm install
 npm run build:tauri
 ```
 
-This runs three things in sequence:
+This runs two things in sequence:
 
-1. **`build:sea`** -- bundles the server into a single executable via Node SEA
-2. **`npm run build`** -- builds the web UI
-3. **`npx tauri build`** -- builds the native window shell
+1. **`build:sea`** -- bundles the server + web UI into a single executable via Node SEA
+2. **`npx tauri build`** -- builds the native window shell
 
 Output:
 - Windows: `src-tauri/target/release/Claudia.exe` + sidecar — zip them together

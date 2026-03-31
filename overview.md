@@ -142,6 +142,8 @@ CLI: `npx cldi` / `npx cldi uninstall`
 | File | Does |
 |---|---|
 | `App.svelte` | Root layout, reactive state, document title, theme |
+| `main.js` | Svelte app entry point |
+| `md-viewer.js` | Markdown file viewer entry point |
 | `lib/SessionList.svelte` | Session card list, empty state |
 | `lib/SessionCard.svelte` | Single session row: name, state dot, elapsed time, tool, focus |
 | `lib/StatusBar.svelte` | Footer: aggregate state, personality message, count |
@@ -185,7 +187,7 @@ claudia/
 ├── packages/
 │   ├── server/src/          # 19 modules (see table)
 │   │   └── assets/          # avatar/, icon
-│   └── web/src/             # 24 files (see table)
+│   └── web/src/             # 25 files (see table)
 ├── src-tauri/               # Tauri shell
 ├── scripts/                 # Build scripts
 ├── docs/building.md
