@@ -197,8 +197,8 @@
 
   .drop-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-3);
+    grid-template-columns: repeat(3, minmax(0, 130px));
+    gap: var(--space-2);
   }
 
   .actions {

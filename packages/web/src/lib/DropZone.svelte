@@ -102,6 +102,7 @@
                 background var(--duration-normal) var(--ease-in-out);
     aspect-ratio: 1;
     overflow: hidden;
+    background: transparent;
   }
 
   .dropzone:hover,
@@ -153,30 +154,34 @@
 
   .empty {
     position: absolute;
-    inset: 0 0 18px 0;
+    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
   .plus {
-    font-size: 24px;
+    font-size: 28px;
     color: var(--text-muted);
     line-height: 1;
   }
 
+  .dropzone:hover .plus {
+    color: var(--brand);
+  }
+
   .label-banner {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    text-align: center;
-    font-size: 10px;
+    bottom: var(--space-1);
+    right: var(--space-1);
+    font-size: var(--text-xs);
     font-weight: 500;
-    color: var(--text-muted);
+    color: var(--text);
     letter-spacing: 0.03em;
-    padding: 2px 0;
-    background: rgba(0, 0, 0, 0.55);
+    padding: var(--space-1) var(--space-2);
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: var(--radius-sm);
     z-index: 1;
+    white-space: nowrap;
   }
 </style>

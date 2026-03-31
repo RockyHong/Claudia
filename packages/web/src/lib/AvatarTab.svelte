@@ -202,23 +202,22 @@
           role="button"
           tabindex="0"
         >
-          <div class="set-thumb">
-            {#if thumb}
-              <!-- svelte-ignore a11y_media_has_caption -->
-              <video
-                src={thumb}
-                preload="auto"
-                muted
-                playsinline
-                onloadeddata={(e) => { e.target.currentTime = 0.1; e.target.pause(); }}
-              ></video>
-            {:else}
-              <div class="no-thumb"></div>
-            {/if}
-            {#if set.active}
-              <div class="active-check"><Check size={12} strokeWidth={3} /></div>
-            {/if}
-          </div>
+          {#if thumb}
+            <!-- svelte-ignore a11y_media_has_caption -->
+            <video
+              src={thumb}
+              preload="auto"
+              muted
+              playsinline
+              onloadeddata={(e) => { e.target.currentTime = 0.1; e.target.pause(); }}
+              class="set-thumb"
+            ></video>
+          {:else}
+            <div class="no-thumb"></div>
+          {/if}
+          {#if set.active}
+            <div class="active-check"><Check size={12} strokeWidth={3} /></div>
+          {/if}
           <span class="set-name">{set.name}</span>
           {#if !isDefault}
             <div class="card-actions">
@@ -318,36 +317,31 @@
 
   .set-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: var(--space-2);
-    max-height: 320px;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: var(--space-3);
+    max-height: 420px;
     overflow-y: auto;
   }
 
   .set-card {
     position: relative;
-    background: var(--bg);
+    background: var(--border);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    padding: var(--space-2);
+    padding: 0;
     cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-1);
+    aspect-ratio: 1;
+    overflow: hidden;
     transition: border-color var(--duration-normal), background var(--duration-normal);
-    text-align: center;
   }
 
   .set-card:hover {
     border-color: var(--text-muted);
-    background: var(--bg-card);
   }
 
   .set-card.active {
     border-width: 2px;
     border-color: var(--brand);
-    padding: calc(var(--space-2) - 1px);
     animation: active-pulse 2.5s ease-in-out infinite;
   }
 
@@ -357,12 +351,10 @@
   }
 
   .set-thumb {
-    position: relative;
     width: 100%;
-    aspect-ratio: 1;
-    border-radius: var(--radius-xs);
-    overflow: hidden;
-    background: var(--border);
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
   .active-check {
@@ -378,12 +370,7 @@
     justify-content: center;
     color: #fff;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  }
-
-  .set-thumb video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    z-index: 1;
   }
 
   .no-thumb {
@@ -393,20 +380,29 @@
   }
 
   .set-name {
+    position: absolute;
+    bottom: var(--space-1);
+    right: var(--space-1);
     font-size: var(--text-xs);
     font-weight: 500;
     color: var(--text);
+    background: rgba(0, 0, 0, 0.6);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 100%;
+    max-width: calc(100% - var(--space-2));
+    z-index: 1;
   }
 
 
   .add-card {
     border-style: dashed;
+    display: flex;
+    align-items: center;
     justify-content: center;
-    min-height: 100px;
+    background: transparent;
   }
 
   .add-card:hover {
