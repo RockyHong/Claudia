@@ -144,10 +144,10 @@
     editorSet = null;
   }
 
-  async function handleEditorSave() {
+  async function handleEditorSave(setName) {
     closeEditor();
     await fetchSets();
-    onavatarchange?.();
+    if (setName) await switchSet(setName);
   }
 
   // Sort: default always last
@@ -370,7 +370,7 @@
     justify-content: center;
     color: #fff;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    z-index: 1;
+    z-index: 2;
   }
 
   .no-thumb {
@@ -424,7 +424,8 @@
   .card-actions {
     position: absolute;
     top: var(--space-1);
-    left: var(--space-1);
+    right: var(--space-1);
+    z-index: 3;
     display: flex;
     flex-direction: column;
     gap: 2px;

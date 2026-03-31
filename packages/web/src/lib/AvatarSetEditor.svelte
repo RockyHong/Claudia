@@ -85,7 +85,7 @@
         }
       }
 
-      onsave?.();
+      onsave?.(name.trim());
     } catch (err) {
       error = err.message;
     }
@@ -199,6 +199,7 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 130px));
     gap: var(--space-2);
+    justify-content: center;
   }
 
   .actions {
