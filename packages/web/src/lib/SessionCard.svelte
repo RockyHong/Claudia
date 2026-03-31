@@ -21,6 +21,7 @@
   let flashClass = $state("");
   let decisionMade = $state(false);
   let toolContextExpanded = $state(false);
+  let flashTimer = null;
 
   async function handleDecision(decision) {
     approveLoading = true;
@@ -34,16 +35,27 @@
     } catch {
       // best-effort — if server is down, hook will timeout and fallback
     }
-    setTimeout(() => {
+    if (flashTimer) clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => {
       flashClass = "";
       approveLoading = false;
       decisionMade = true;
+      flashTimer = null;
     }, 300);
   }
 
   // Reset when a new permission request arrives for this session
   $effect(() => {
-    if (session.permissionRequest) decisionMade = false;
+    if (session.permissionRequest) {
+      // Cancel any in-flight flash timer from a previous decision
+      if (flashTimer) {
+        clearTimeout(flashTimer);
+        flashTimer = null;
+      }
+      flashClass = "";
+      approveLoading = false;
+      decisionMade = false;
+    }
   });
 
   onMount(() => {
