@@ -243,6 +243,9 @@
       {/if}
       {#if session.cwd}
         <div class="detail-actions">
+          <Tooltip text="Browse project docs"><button class="detail-icon-btn" onclick={openDocs}>
+            <BookOpen />
+          </button></Tooltip>
           <Tooltip text="Open project folder"><button class="detail-icon-btn" onclick={openFolder}>
             <Folder />
           </button></Tooltip>
@@ -251,9 +254,6 @@
           </button></Tooltip>
           <Tooltip text="Launch new CLI session for this project"><button class="detail-icon-btn" onclick={spawnSession}>
             <Ghost />
-          </button></Tooltip>
-          <Tooltip text="Browse project docs"><button class="detail-icon-btn" onclick={openDocs}>
-            <BookOpen />
           </button></Tooltip>
         </div>
       {/if}

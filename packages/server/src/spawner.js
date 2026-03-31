@@ -272,9 +272,43 @@ const openStrategies = {
 };
 
 /**
- * Open a folder in the OS file explorer. Fire-and-forget.
+ * Open a folder in the OS file explorer and bring it to front. Fire-and-forget.
  */
 export function openFolder(cwd) {
+  if (currentPlatform === "win32") {
+    const escaped = cwd.replace(/'/g, "''");
+    const ps = [
+      "Add-Type @'",
+      "using System; using System.Runtime.InteropServices;",
+      "public class FocusHelper {",
+      '  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);',
+      '  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);',
+      '  [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr hWnd);',
+      '  [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);',
+      "  public static void ForceForeground(IntPtr hwnd) {",
+      "    if (IsIconic(hwnd)) ShowWindow(hwnd, 9);",
+      "    keybd_event(0x12, 0, 0, UIntPtr.Zero);",
+      "    SetForegroundWindow(hwnd);",
+      "    keybd_event(0x12, 0, 2, UIntPtr.Zero);",
+      "  }",
+      "}",
+      "'@",
+      // Use Shell.Application COM to open folder — creates a normal, focused window
+      "$shell = New-Object -ComObject Shell.Application",
+      `$shell.Explore('${escaped}')`,
+      "Start-Sleep -Milliseconds 600",
+      // Find the new window and force it to front
+      "$shell.Windows() | ForEach-Object {",
+      `  if ($_.LocationURL -and [Uri]::UnescapeDataString($_.LocationURL) -match [regex]::Escape('${escaped}')) {`,
+      "    $hwnd = [IntPtr]$_.HWND",
+      "    [FocusHelper]::ForceForeground($hwnd)",
+      "    return",
+      "  }",
+      "}",
+    ].join("\n");
+    execFile("powershell", ["-NoProfile", "-Command", ps], { timeout: 10000 });
+    return;
+  }
   const cmd = openStrategies[currentPlatform];
   if (!cmd) throw new Error(`Unsupported platform: ${currentPlatform}`);
   spawn(cmd, [cwd], { detached: true, stdio: "ignore" }).unref();

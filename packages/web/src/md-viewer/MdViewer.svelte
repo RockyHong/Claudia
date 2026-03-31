@@ -25,6 +25,12 @@
       const res = await fetch(`/api/md/tree?cwd=${encodeURIComponent(cwd)}`);
       const data = await res.json();
       tree = data.tree || [];
+
+      // Auto-select root README.md if present
+      if (!selectedPath) {
+        const readme = tree.find((n) => !n.children && n.name.toLowerCase() === "readme.md");
+        if (readme) selectedPath = readme.path;
+      }
     } catch {
       tree = [];
     }
