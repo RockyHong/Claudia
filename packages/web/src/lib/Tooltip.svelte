@@ -1,50 +1,48 @@
 <script>
+  import { onDestroy } from "svelte";
+
   let { text = "", children } = $props();
   let anchorEl = $state(null);
-  let bubbleEl = $state(null);
-  let pos = $state({ top: 0, left: 0 });
-  let hovering = $state(false);
 
-  function reposition() {
-    if (!anchorEl || !bubbleEl) return;
+  let bubble = null;
+
+  function show() {
+    if (!text || !anchorEl || bubble) return;
+
+    bubble = document.createElement("span");
+    bubble.className = "tooltip-bubble";
+    bubble.textContent = text;
+    // Render off-screen to measure
+    bubble.style.cssText = "position:fixed;visibility:hidden;top:0;left:0";
+    document.body.appendChild(bubble);
+
     const ar = anchorEl.getBoundingClientRect();
-    const br = bubbleEl.getBoundingClientRect();
+    const br = bubble.getBoundingClientRect();
     const gap = 6;
 
-    // Center above anchor, then clamp to viewport
     let top = ar.top - br.height - gap;
     let left = ar.left + ar.width / 2 - br.width / 2;
 
-    // If overflows top, show below instead
     if (top < 4) top = ar.bottom + gap;
-    // Clamp horizontal
     if (left < 4) left = 4;
     if (left + br.width > window.innerWidth - 4) left = window.innerWidth - br.width - 4;
 
-    pos = { top, left };
+    bubble.style.cssText = `position:fixed;top:${top}px;left:${left}px`;
   }
 
-  function onenter() {
-    hovering = true;
-    // Wait one tick for bubble to render, then position
-    requestAnimationFrame(reposition);
+  function hide() {
+    if (bubble) {
+      bubble.remove();
+      bubble = null;
+    }
   }
 
-  function onleave() {
-    hovering = false;
-  }
+  onDestroy(hide);
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<span class="tooltip-anchor" bind:this={anchorEl} onmouseenter={onenter} onmouseleave={onleave}>
+<span class="tooltip-anchor" bind:this={anchorEl} onmouseenter={show} onmouseleave={hide}>
   {@render children()}
-  {#if text && hovering}
-    <span
-      class="tooltip-bubble"
-      bind:this={bubbleEl}
-      style="top:{pos.top}px;left:{pos.left}px"
-    >{text}</span>
-  {/if}
 </span>
 
 <style>
@@ -53,8 +51,7 @@
     display: inline-flex;
   }
 
-  .tooltip-bubble {
-    position: fixed;
+  :global(.tooltip-bubble) {
     white-space: pre-line;
     width: max-content;
     max-width: min(300px, 90vw);

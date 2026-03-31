@@ -1,6 +1,7 @@
 <script>
   import AvatarSetEditor from "./AvatarSetEditor.svelte";
   import ConfirmDialog from "./ConfirmDialog.svelte";
+  import Tooltip from "./Tooltip.svelte";
   import { Trash2, Download, Pencil } from "lucide-svelte";
 
   let { onavatarchange } = $props();
@@ -223,21 +224,27 @@
 
           {#if !isDefault}
             <div class="card-actions">
-              <button
-                class="action-btn delete-action"
-                onclick={(e) => { e.stopPropagation(); confirmDelete = set.name; }}
-                aria-label="Delete {set.name}"
-              ><Trash2 strokeWidth={1.5} /></button>
-              <button
-                class="action-btn export-action"
-                onclick={(e) => { e.stopPropagation(); exportSet(set.name); }}
-                aria-label="Export {set.name}"
-              ><Download strokeWidth={1.5} /></button>
-              <button
-                class="action-btn edit-action"
-                onclick={(e) => { e.stopPropagation(); openEditor("edit", set); }}
-                aria-label="Edit {set.name}"
-              ><Pencil strokeWidth={1.5} /></button>
+              <Tooltip text="Delete">
+                <button
+                  class="action-btn delete-action"
+                  onclick={(e) => { e.stopPropagation(); confirmDelete = set.name; }}
+                  aria-label="Delete {set.name}"
+                ><Trash2 strokeWidth={1.5} /></button>
+              </Tooltip>
+              <Tooltip text="Export">
+                <button
+                  class="action-btn export-action"
+                  onclick={(e) => { e.stopPropagation(); exportSet(set.name); }}
+                  aria-label="Export {set.name}"
+                ><Download strokeWidth={1.5} /></button>
+              </Tooltip>
+              <Tooltip text="Edit">
+                <button
+                  class="action-btn edit-action"
+                  onclick={(e) => { e.stopPropagation(); openEditor("edit", set); }}
+                  aria-label="Edit {set.name}"
+                ><Pencil strokeWidth={1.5} /></button>
+              </Tooltip>
             </div>
           {/if}
         </div>

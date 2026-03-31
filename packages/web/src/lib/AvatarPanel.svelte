@@ -1,5 +1,6 @@
 <script>
   import { Maximize2 } from "lucide-svelte";
+  import Tooltip from "./Tooltip.svelte";
 
   let { aggregateState = "idle", background = false, version = 0, onavatarclick, onimmersive } = $props();
 
@@ -143,13 +144,17 @@
     ></video>
 
     {#if !background && onimmersive}
-      <button
-        class="expand-btn"
-        onclick={() => onimmersive()}
-        aria-label="Immersive mode"
-      >
-        <Maximize2 />
-      </button>
+      <span class="expand-wrap">
+        <Tooltip text="Enter immersive mode">
+          <button
+            class="expand-btn"
+            onclick={() => onimmersive()}
+            aria-label="Immersive mode"
+          >
+            <Maximize2 />
+          </button>
+        </Tooltip>
+      </span>
     {/if}
   </div>
 {/if}
@@ -198,11 +203,15 @@
     opacity: 1;
   }
 
-  .expand-btn {
+  .expand-wrap {
     position: absolute;
     top: 8px;
     right: 8px;
     z-index: 1;
+  }
+
+  .expand-btn {
+    position: relative;
     background: rgba(0, 0, 0, 0.5);
     border: none;
     border-radius: 8px;

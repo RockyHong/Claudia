@@ -28,8 +28,14 @@ Rules:
 
 - Lead with the verb when it's an action ("Open...", "Link...")
 - Lead with the noun when it's informational ("Session started 5m ago")
+- Use natural language that describes intent, not implementation ("Export avatar set" not "Export as .claudia")
+- Don't repeat what the visual context already provides — if the tooltip appears on a card labeled "my-set", say "Export" not "Export avatar set"
 - Keep under ~30 characters — if it needs more, it's not a tooltip, it's documentation
 - No periods, no articles ("a", "the") unless needed for clarity
+
+## Consistency within groups
+
+If one element in a visual group gets a tooltip, **all siblings at the same level should too**. A row of icon buttons where only one has a tooltip feels broken — either all need them or none do. Apply the three criteria to the group as a whole, not to each icon individually.
 
 ## Implementation
 
