@@ -23,7 +23,7 @@
           class="tree-item tree-folder-toggle"
           onclick={() => toggleFolder(node.name)}
         >
-          <ChevronRight size={12} class={expanded[node.name] ? 'chevron-open' : ''} />
+          <ChevronRight size={14} class={expanded[node.name] ? 'chevron-open' : ''} />
           <span>{node.name}</span>
         </button>
         {#if expanded[node.name]}
@@ -42,7 +42,7 @@
         class:selected={selectedPath === node.path}
         onclick={() => onSelectFile(node.path)}
       >
-        <FileText size={12} />
+        <FileText size={14} />
         <span>{node.name}</span>
       </button>
     {/if}
@@ -51,20 +51,20 @@
 
 <style>
   .file-tree {
-    padding: 8px 0;
+    padding: 12px 0;
     overflow-y: auto;
-    font-size: 13px;
+    font-size: 0.8125rem;
   }
 
   .tree-item {
     all: unset;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     width: 100%;
-    padding: 4px 12px;
+    padding: 6px 16px;
     cursor: pointer;
-    color: var(--viewer-text-faint);
+    color: var(--viewer-text-muted);
     box-sizing: border-box;
     transition: color 150ms ease, background 150ms ease;
   }

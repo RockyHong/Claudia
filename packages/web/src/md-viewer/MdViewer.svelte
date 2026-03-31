@@ -10,26 +10,13 @@
   let tree = $state([]);
   let selectedPath = $state("");
   let headings = $state([]);
-  let treeVisible = $state(true);
-  let tocVisible = $state(true);
+  let treeVisible = $state(false);
+  let tocVisible = $state(false);
   let darkMode = $state(false);
-  let narrow = $state(false);
 
   onMount(() => {
-    const mqNarrow = window.matchMedia("(max-width: 900px)");
-    const mqPortrait = window.matchMedia("(orientation: portrait)");
-    const update = () => { narrow = mqNarrow.matches || mqPortrait.matches; };
-    update();
-    mqNarrow.addEventListener("change", update);
-    mqPortrait.addEventListener("change", update);
-
     const saved = localStorage.getItem("md-viewer-theme");
     if (saved === "dark") darkMode = true;
-
-    return () => {
-      mqNarrow.removeEventListener("change", update);
-      mqPortrait.removeEventListener("change", update);
-    };
   });
 
   async function loadTree() {
@@ -47,16 +34,13 @@
 
   function selectFile(filePath) {
     selectedPath = filePath;
-    if (narrow) treeVisible = false;
+    treeVisible = false;
   }
 
   function toggleTheme() {
     darkMode = !darkMode;
     localStorage.setItem("md-viewer-theme", darkMode ? "dark" : "light");
   }
-
-  let showTreeOverlay = $derived(narrow && treeVisible);
-  let showTocOverlay = $derived(narrow && tocVisible);
 </script>
 
 <div class="viewer" class:dark={darkMode}>
@@ -71,32 +55,20 @@
   />
 
   <div class="viewer-body">
-    {#if treeVisible && !narrow}
-      <aside class="panel panel-tree">
-        <FileTree {tree} {selectedPath} onSelectFile={selectFile} />
-      </aside>
-    {/if}
-
-    {#if showTreeOverlay}
+    {#if treeVisible}
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div class="overlay-backdrop" onclick={() => treeVisible = false} onkeydown={(e) => e.key === 'Escape' && (treeVisible = false)}></div>
-      <aside class="panel panel-tree overlay">
+      <aside class="panel panel-tree">
         <FileTree {tree} {selectedPath} onSelectFile={selectFile} />
       </aside>
     {/if}
 
     <MdContent {cwd} filePath={selectedPath} onHeadings={(h) => headings = h} />
 
-    {#if tocVisible && !narrow && headings.length > 0}
-      <aside class="panel panel-toc">
-        <TableOfContents {headings} />
-      </aside>
-    {/if}
-
-    {#if showTocOverlay && headings.length > 0}
+    {#if tocVisible && headings.length > 0}
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div class="overlay-backdrop" onclick={() => tocVisible = false} onkeydown={(e) => e.key === 'Escape' && (tocVisible = false)}></div>
-      <aside class="panel panel-toc overlay">
+      <aside class="panel panel-toc">
         <TableOfContents {headings} />
       </aside>
     {/if}
@@ -129,6 +101,7 @@
     background: var(--viewer-bg);
     color: var(--viewer-text);
     font-family: var(--font-body);
+    font-size: 0.9375rem;
   }
 
   .viewer.dark {
@@ -155,35 +128,26 @@
   }
 
   .panel {
-    flex-shrink: 0;
-    overflow-y: auto;
-    background: var(--viewer-sidebar-bg);
-  }
-
-  .panel-tree {
-    width: 220px;
-    border-right: 1px solid var(--viewer-border);
-  }
-
-  .panel-toc {
-    width: 180px;
-    border-left: 1px solid var(--viewer-border);
-  }
-
-  .overlay {
     position: absolute;
     top: 0;
     bottom: 0;
     z-index: 20;
+    flex-shrink: 0;
+    overflow-y: auto;
+    background: var(--viewer-sidebar-bg);
     box-shadow: 4px 0 16px rgba(0, 0, 0, 0.15);
   }
 
-  .panel-tree.overlay {
+  .panel-tree {
     left: 0;
+    width: 260px;
+    border-right: 1px solid var(--viewer-border);
   }
 
-  .panel-toc.overlay {
+  .panel-toc {
     right: 0;
+    width: 220px;
+    border-left: 1px solid var(--viewer-border);
   }
 
   .overlay-backdrop {

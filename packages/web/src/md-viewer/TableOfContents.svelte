@@ -46,7 +46,7 @@
     <button
       class="toc-item"
       class:active={activeId === heading.id}
-      style="padding-left: {8 + (heading.level - 1) * 12}px"
+      style="padding-left: {12 + (heading.level - 1) * 12}px"
       onclick={() => scrollTo(heading.id)}
     >
       {heading.text}
@@ -56,26 +56,27 @@
 
 <style>
   .toc {
-    padding: 12px 0;
+    padding: 16px 0;
     overflow-y: auto;
-    font-size: 12px;
+    font-size: 0.8125rem;
   }
 
   .toc-title {
+    font-family: var(--font-heading);
     font-weight: 600;
-    font-size: 10px;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--viewer-text-faint);
-    padding: 0 12px 8px;
+    padding: 0 16px 12px;
   }
 
   .toc-item {
     all: unset;
     display: block;
     width: 100%;
-    padding: 3px 12px;
-    color: var(--viewer-text-faint);
+    padding: 5px 16px;
+    color: var(--viewer-text-muted);
     cursor: pointer;
     box-sizing: border-box;
     transition: color 150ms ease;
