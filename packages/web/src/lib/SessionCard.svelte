@@ -1,6 +1,6 @@
 <script>
   import { onMount } from "svelte";
-  import { GitBranch, Folder, Terminal, Ghost } from "lucide-svelte";
+  import { GitBranch, Folder, Terminal, Ghost, BookOpen } from "lucide-svelte";
   import Tooltip from "./Tooltip.svelte";
 
   let { session } = $props();
@@ -133,6 +133,11 @@
     }
   }
 
+  function openDocs(e) {
+    e.stopPropagation();
+    window.open(`/md-viewer.html?cwd=${encodeURIComponent(session.cwd)}`, '_blank');
+  }
+
   async function openLinkDropdown(e) {
     e.stopPropagation();
     if (showLinkDropdown) {
@@ -246,6 +251,9 @@
           </button></Tooltip>
           <Tooltip text="Launch new CLI session for this project"><button class="detail-icon-btn" onclick={spawnSession}>
             <Ghost />
+          </button></Tooltip>
+          <Tooltip text="Browse project docs"><button class="detail-icon-btn" onclick={openDocs}>
+            <BookOpen />
           </button></Tooltip>
         </div>
       {/if}
