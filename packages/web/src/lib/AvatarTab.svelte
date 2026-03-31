@@ -188,7 +188,6 @@
         tabindex="0"
       >
         <div class="add-icon">+</div>
-        <span class="set-name">Add New</span>
       </div>
 
       {#each sortedSets as set (set.name)}
