@@ -438,6 +438,17 @@ describe("session-tracker", () => {
 			expect(tracker.getSessions()).toHaveLength(1);
 		});
 
+		it("skips linked sessions (dead-window pruning handles those)", () => {
+			tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
+			tracker.linkSessionById("s1", "MyTerminal", 12345);
+
+			vi.advanceTimersByTime(STALE_SESSION_TIMEOUT_MS + 1);
+			tracker.pruneStale();
+
+			expect(tracker.getSessions()).toHaveLength(1);
+			expect(tracker.getSessions()[0].id).toBe("s1");
+		});
+
 		it("notifies when sessions are pruned", () => {
 			tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
 

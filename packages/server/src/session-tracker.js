@@ -263,6 +263,8 @@ export function createSessionTracker({
 		const now = Date.now();
 		let pruned = false;
 		for (const [id, session] of sessions) {
+			// Skip linked sessions — dead-window pruning handles those
+			if (session.windowHandle != null) continue;
 			if (now - session.lastEvent > STALE_SESSION_TIMEOUT_MS) {
 				sessions.delete(id);
 				pruned = true;
