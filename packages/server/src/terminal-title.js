@@ -1,8 +1,6 @@
 let spawnCounter = 0;
 
-export function generateTerminalTitle(cwd) {
-	const name =
-		cwd.replace(/\\/g, "/").split("/").filter(Boolean).pop() || "session";
+export function generateTerminalTitle(_cwd) {
 	const n = ++spawnCounter;
-	return n === 1 ? name : `${name} ${n}`;
+	return n === 1 ? "Claudia" : `Claudia ${n}`;
 }
