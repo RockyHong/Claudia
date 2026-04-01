@@ -39,7 +39,7 @@ export function createPreferences(baseDir) {
 			delete patch.sfx;
 		}
 		Object.assign(current, patch);
-		await fs.writeFile(configPath, JSON.stringify(current, null, 2) + "\n");
+		await fs.writeFile(configPath, `${JSON.stringify(current, null, 2)}\n`);
 		return get();
 	}
 

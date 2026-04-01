@@ -5,7 +5,7 @@
 			"bin/**",
 			"packages/server/src/**",
 			"packages/server/package.json",
-			"packages/web/src/**",
+			"packages/web/src/**/*.js",
 			"packages/web/package.json",
 			"packages/web/*.config.js",
 			"scripts/**"

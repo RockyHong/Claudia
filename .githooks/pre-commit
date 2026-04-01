@@ -1,0 +1,17 @@
+#!/bin/sh
+# Pre-commit hook: auto-fix lint and formatting on staged files.
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR -- '*.js' '*.json' '*.jsonc')
+
+if [ -z "$STAGED" ]; then
+  exit 0
+fi
+
+# Auto-fix staged files in place
+echo "$STAGED" | xargs npx biome check --write --unsafe
+
+# Re-stage the fixed files
+echo "$STAGED" | xargs git add
+
+# Final lint check — block commit if unfixable errors remain
+echo "$STAGED" | xargs npx biome check

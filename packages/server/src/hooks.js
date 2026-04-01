@@ -73,7 +73,7 @@ export async function readSettings() {
 export async function writeSettings(settings) {
 	const dir = path.dirname(SETTINGS_PATH);
 	await fs.mkdir(dir, { recursive: true });
-	await fs.writeFile(SETTINGS_PATH, JSON.stringify(settings, null, 2) + "\n");
+	await fs.writeFile(SETTINGS_PATH, `${JSON.stringify(settings, null, 2)}\n`);
 }
 
 export function hasClaudiaHooks(settings) {

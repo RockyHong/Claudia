@@ -18,7 +18,7 @@ vi.mock("node:os", () => ({
 
 // Helper: make execFile call its callback with success
 function succeedExecFile() {
-	mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+	mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
 		if (typeof opts === "function") {
 			cb = opts;
 		}
@@ -28,7 +28,7 @@ function succeedExecFile() {
 
 // Helper: make exec call its callback with success
 function succeedExec() {
-	mockExec.mockImplementation((cmd, opts, cb) => {
+	mockExec.mockImplementation((_cmd, opts, cb) => {
 		if (typeof opts === "function") {
 			cb = opts;
 		}
@@ -38,7 +38,7 @@ function succeedExec() {
 
 // Helper: make execFile call its callback with an error
 function failExecFile() {
-	mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+	mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
 		if (typeof opts === "function") {
 			cb = opts;
 		}
@@ -165,7 +165,7 @@ describe("win32 platform", () => {
 	});
 
 	it("calls powershell and parses dead handles from stdout", async () => {
-		mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
 			if (typeof opts === "function") {
 				cb = opts;
 			}
@@ -185,7 +185,7 @@ describe("win32 platform", () => {
 	});
 
 	it("returns empty Set when stdout is empty (no dead windows)", async () => {
-		mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
 			if (typeof opts === "function") {
 				cb = opts;
 			}
@@ -198,7 +198,7 @@ describe("win32 platform", () => {
 	// ── listTerminalWindows ──────────────────────────────────────────────────
 
 	it("returns terminal windows from powershell stdout", async () => {
-		mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
 			if (typeof opts === "function") {
 				cb = opts;
 			}
@@ -214,7 +214,7 @@ describe("win32 platform", () => {
 	});
 
 	it("excludes handles in the exclude set", async () => {
-		mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
 			if (typeof opts === "function") {
 				cb = opts;
 			}
@@ -231,7 +231,7 @@ describe("win32 platform", () => {
 	});
 
 	it("returns empty array when stdout is empty", async () => {
-		mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
 			if (typeof opts === "function") {
 				cb = opts;
 			}

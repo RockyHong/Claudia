@@ -271,7 +271,7 @@ app.get("/events", (req, res) => {
 });
 
 // REST endpoint for initial state load
-app.get("/api/sessions", (req, res) => {
+app.get("/api/sessions", (_req, res) => {
 	res.json({
 		sessions: tracker.getSessions(),
 		aggregateState: tracker.getAggregateState(),

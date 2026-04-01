@@ -121,7 +121,7 @@ function buildWindowsFlashScript(color) {
 function focusWindows(name, color, windowHandle) {
 	// Use stored HWND (spawned) or fall back to title matching (orphan, best-effort).
 	const findWindow = windowHandle
-		? ["$hwnd = [IntPtr]" + windowHandle]
+		? [`$hwnd = [IntPtr]${windowHandle}`]
 		: [
 				"$hwnd = [IntPtr]::Zero",
 				"$p = Get-Process | Where-Object { $_.MainWindowTitle -match [regex]::Escape('" +
@@ -132,7 +132,7 @@ function focusWindows(name, color, windowHandle) {
 
 	const ps = [
 		"Add-Type -AssemblyName System.Windows.Forms",
-		'Add-Type -Language CSharp @"\n' + WIN_HELPER_CS + '\n"@',
+		`Add-Type -Language CSharp @"\n${WIN_HELPER_CS}\n"@`,
 		"[WinHelper]::SetProcessDpiAwareness(2) | Out-Null",
 		...findWindow,
 		"if ($hwnd -ne [IntPtr]::Zero) {",
@@ -256,9 +256,9 @@ export function flashWindow(windowHandle) {
 	const color = FLASH_COLORS.navigate;
 	const ps = [
 		"Add-Type -AssemblyName System.Windows.Forms",
-		'Add-Type -Language CSharp @"\n' + WIN_HELPER_CS + '\n"@',
+		`Add-Type -Language CSharp @"\n${WIN_HELPER_CS}\n"@`,
 		"[WinHelper]::SetProcessDpiAwareness(2) | Out-Null",
-		"$hwnd = [IntPtr]" + windowHandle,
+		`$hwnd = [IntPtr]${windowHandle}`,
 		"if ($hwnd -ne [IntPtr]::Zero -and -not [WinHelper]::IsIconic($hwnd)) {",
 		"  $rect = [WinHelper]::GetWindowBounds($hwnd)",
 		"  $w = $rect.Right - $rect.Left",
@@ -395,7 +395,7 @@ export function listTerminalWindows(excludeHandles = new Set()) {
 	const nameFilter = TERMINAL_PROCESS_NAMES.map((n) => `'${n}'`).join(",");
 	const ps = [
 		`$names = @(${nameFilter})`,
-		'Add-Type -Language CSharp @"\n' + WIN_ENUM_CS + '\n"@',
+		`Add-Type -Language CSharp @"\n${WIN_ENUM_CS}\n"@`,
 		"$pids = @{}",
 		"Get-Process | Where-Object { $names -contains $_.ProcessName } | ForEach-Object { $pids[$_.Id] = $true }",
 		"[WinEnum]::GetVisibleWindows() | ForEach-Object {",

@@ -45,7 +45,7 @@ function makeExecFileMock({
 	empty = false,
 } = {}) {
 	let callCount = 0;
-	return vi.fn((cmd, args, opts, cb) => {
+	return vi.fn((_cmd, _args, opts, cb) => {
 		// execFile(cmd, args, cb) — opts is optional
 		if (typeof opts === "function") {
 			cb = opts;
@@ -352,7 +352,7 @@ describe("browseFolder — win32", () => {
 	});
 
 	it("calls execFile with powershell", async () => {
-		mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
 			if (typeof opts === "function") cb = opts;
 			cb(null, "C:\\Users\\user\\project\n", "");
 		});
@@ -362,7 +362,7 @@ describe("browseFolder — win32", () => {
 	});
 
 	it("returns the selected path when a folder is chosen", async () => {
-		mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
 			if (typeof opts === "function") cb = opts;
 			cb(null, "C:\\Users\\user\\project\n", "");
 		});
@@ -371,7 +371,7 @@ describe("browseFolder — win32", () => {
 	});
 
 	it("returns null when the dialog is cancelled (empty stdout)", async () => {
-		mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
 			if (typeof opts === "function") cb = opts;
 			cb(null, "", "");
 		});
@@ -380,7 +380,7 @@ describe("browseFolder — win32", () => {
 	});
 
 	it("returns null when execFile errors", async () => {
-		mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
 			if (typeof opts === "function") cb = opts;
 			cb(new Error("powershell not found"), "", "");
 		});
@@ -389,7 +389,7 @@ describe("browseFolder — win32", () => {
 	});
 
 	it("passes GetForegroundWindow as owner HWND in the C# code", async () => {
-		mockExecFile.mockImplementation((cmd, args, cb) => {
+		mockExecFile.mockImplementation((_cmd, _args, cb) => {
 			cb(null, "C:\\project\n", "");
 		});
 		await browseFolder();
@@ -401,7 +401,7 @@ describe("browseFolder — win32", () => {
 	});
 
 	it("uses try/finally for COM cleanup in the C# code", async () => {
-		mockExecFile.mockImplementation((cmd, args, cb) => {
+		mockExecFile.mockImplementation((_cmd, _args, cb) => {
 			cb(null, "C:\\project\n", "");
 		});
 		await browseFolder();
@@ -430,7 +430,7 @@ describe("browseFolder — darwin", () => {
 	});
 
 	it("calls execFile with osascript", async () => {
-		mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
 			if (typeof opts === "function") cb = opts;
 			cb(null, "/Users/user/project\n", "");
 		});
@@ -439,7 +439,7 @@ describe("browseFolder — darwin", () => {
 	});
 
 	it("returns the selected path", async () => {
-		mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
 			if (typeof opts === "function") cb = opts;
 			cb(null, "/Users/user/project\n", "");
 		});
@@ -448,7 +448,7 @@ describe("browseFolder — darwin", () => {
 	});
 
 	it("returns null when the dialog is cancelled", async () => {
-		mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
 			if (typeof opts === "function") cb = opts;
 			cb(null, "\n", "");
 		});
@@ -473,7 +473,7 @@ describe("browseFolder — linux", () => {
 	});
 
 	it("calls execFile with zenity", async () => {
-		mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
 			if (typeof opts === "function") cb = opts;
 			cb(null, "/home/user/project\n", "");
 		});
@@ -482,7 +482,7 @@ describe("browseFolder — linux", () => {
 	});
 
 	it("passes --file-selection and --directory flags", async () => {
-		mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
 			if (typeof opts === "function") cb = opts;
 			cb(null, "/home/user/project\n", "");
 		});
@@ -493,7 +493,7 @@ describe("browseFolder — linux", () => {
 	});
 
 	it("returns the selected path", async () => {
-		mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
 			if (typeof opts === "function") cb = opts;
 			cb(null, "/home/user/project\n", "");
 		});
@@ -502,7 +502,7 @@ describe("browseFolder — linux", () => {
 	});
 
 	it("returns null when zenity is cancelled", async () => {
-		mockExecFile.mockImplementation((cmd, args, opts, cb) => {
+		mockExecFile.mockImplementation((_cmd, _args, opts, cb) => {
 			if (typeof opts === "function") cb = opts;
 			// zenity exits with code 1 when cancelled
 			cb(new Error("exit code 1"), "", "");
@@ -626,7 +626,7 @@ describe("cancelBrowse", () => {
 
 	it("kills the active browse process", async () => {
 		const mockKill = vi.fn();
-		mockExecFile.mockImplementation((cmd, args, cb) => {
+		mockExecFile.mockImplementation((_cmd, _args, _cb) => {
 			// Don't call cb — simulate a hanging dialog
 			return { kill: mockKill };
 		});

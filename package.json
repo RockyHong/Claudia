@@ -13,6 +13,7 @@
     "claudia-standalone": "./bin/standalone.js"
   },
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks",
     "dev": "npm run dev --workspace=packages/server",
     "build": "npm run build --workspace=packages/web",
     "test": "vitest run",

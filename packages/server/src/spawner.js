@@ -271,7 +271,7 @@ function browseWindows() {
 				"-STA",
 				"-Command",
 				[
-					'Add-Type -Language CSharp @"\n' + FOLDER_PICKER_CS + '\n"@',
+					`Add-Type -Language CSharp @"\n${FOLDER_PICKER_CS}\n"@`,
 					"[FolderPicker]::Pick()",
 				].join("; "),
 			],
