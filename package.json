@@ -21,11 +21,11 @@
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "bundle:server": "node scripts/bundle-server.js",
-    "build:sea": "node scripts/build-sea.js",
-    "build:sea:x64": "node scripts/build-sea.js --arch x64",
+    "build:sea": "npm run clean && node scripts/build-sea.js",
+    "build:sea:x64": "npm run clean && node scripts/build-sea.js --arch x64",
     "dev:tauri": "npm run build:sea:x64 && cargo build --release --manifest-path src-tauri/Cargo.toml",
     "build:tauri": "npm run build:sea && npx tauri build",
-    "clean": "node -e \"const fs=require('fs');['dist','packages/web/dist','src-tauri/target'].forEach(d=>{fs.rmSync(d,{recursive:true,force:true});console.log('removed',d)})\""
+    "clean": "node scripts/clean.js"
   },
   "engines": {
     "node": ">=18.0.0"

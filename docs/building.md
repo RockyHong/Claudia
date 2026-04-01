@@ -52,10 +52,11 @@ npm install
 npm run build:tauri
 ```
 
-This runs two things in sequence:
+This runs three things in sequence:
 
-1. **`build:sea`** -- bundles the server + web UI into a single executable via Node SEA
-2. **`npx tauri build`** -- builds the native window shell
+1. **`clean`** -- removes previous build output (`dist/`, `packages/web/dist/`, `src-tauri/target/`)
+2. **`build:sea`** -- bundles the server + web UI into a single executable via Node SEA
+3. **`npx tauri build`** -- builds the native window shell
 
 Output:
 - Windows: `src-tauri/target/release/Claudia.exe` + sidecar — zip them together
@@ -95,6 +96,15 @@ cp dist/claudia-server-x64.exe src-tauri/binaries/claudia-server-x86_64-pc-windo
 # 5. Build Tauri
 npx tauri build
 ```
+
+### Cleaning up
+
+All builds are clean builds — `build:sea` and `build:tauri` run `npm run clean` automatically before building.
+
+| Command | What it removes |
+|---------|----------------|
+| `npm run clean` | Build output: `dist/`, `packages/web/dist/`, `.svelte-kit/`, `src-tauri/target/`, sidecar binaries |
+| `npx cldi uninstall` | Hooks, `~/.claudia/` data dir, and SEA runtime temp (with confirmation prompt) |
 
 ---
 

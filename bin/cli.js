@@ -3,7 +3,7 @@
 import { execFile, execSync } from "node:child_process";
 import fs from "node:fs/promises";
 import { createServer as createNetServer } from "node:net";
-import { homedir, platform } from "node:os";
+import { homedir, platform, tmpdir } from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import {
@@ -50,7 +50,23 @@ async function runUninstall() {
 		hasData = true;
 	} catch {}
 
-	if (!hasHooks && !hasData) {
+	// SEA runtime temp dirs
+	const tmp = tmpdir();
+	const tempPaths = [
+		path.join(tmp, "claudia-web-dist"),
+		path.join(tmp, "claudia-sea"),
+		path.join(tmp, "claudia-sea.log"),
+	];
+	let hasTemp = false;
+	for (const p of tempPaths) {
+		try {
+			await fs.access(p);
+			hasTemp = true;
+			break;
+		} catch {}
+	}
+
+	if (!hasHooks && !hasData && !hasTemp) {
 		console.log("Nothing to remove. Claudia is not installed.");
 		return;
 	}
@@ -63,6 +79,10 @@ async function runUninstall() {
 	if (hasData) {
 		console.log(`  Data directory: ${claudiaDir}`);
 		console.log("    (avatars, projects, preferences, shutdown token)");
+	}
+	if (hasTemp) {
+		console.log(`  Temp files in ${tmp}`);
+		console.log("    (claudia-web-dist, claudia-sea, claudia-sea.log)");
 	}
 
 	const ok = await confirm("\nProceed with uninstall?");
@@ -89,6 +109,13 @@ async function runUninstall() {
 			console.error(`Error removing data: ${err.message}`);
 		}
 	}
+
+	for (const p of tempPaths) {
+		try {
+			await fs.rm(p, { recursive: true, force: true });
+		} catch {}
+	}
+	if (hasTemp) console.log("Temp files removed.");
 
 	console.log("\nClaudia has been uninstalled.");
 }
