@@ -10,6 +10,7 @@ import { findDeadWindows, focusTerminal } from "./focus.js";
 import { getGitStatus } from "./git-status.js";
 import { transformHookPayload, VALID_HOOK_TYPES } from "./hook-transform.js";
 import { getStatusMessage } from "./personality.js";
+import { resolveTerminalWindow } from "./pid-ancestry.js";
 import { getPreferences } from "./preferences.js";
 import { trackProject } from "./project-storage.js";
 import { registerApiRoutes } from "./routes-api.js";
@@ -170,6 +171,26 @@ app.post("/hook/:type", (req, res) => {
 	if (event.cwd) trackProject(event.cwd);
 	if (type === "UserPromptSubmit") {
 		broadcastSfx("send");
+	}
+
+	// Auto-link: resolve terminal window from hook shell PID (fire-and-forget)
+	if (type === "SessionStart") {
+		const session = tracker.getSession(event.session);
+		if (session && !session.spawned) {
+			const hookPid = parseInt(req.headers["x-hook-pid"], 10);
+			if (hookPid > 0) {
+				resolveTerminalWindow(hookPid)
+					.then((result) => {
+						if (result) {
+							tracker.linkSessionById(event.session, result.title, result.hwnd);
+							console.log(
+								`[auto-link] session=${session.displayName} title=${result.title} hwnd=${result.hwnd}`,
+							);
+						}
+					})
+					.catch(() => {});
+			}
+		}
 	}
 
 	// Release held permission response if session was removed (stopped)
