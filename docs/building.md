@@ -140,4 +140,4 @@ Both distributions run the same code:
 
 ## Troubleshooting
 
-Build issues are covered in the [troubleshooting guide](../help/troubleshooting.md#dev).
+Build issues are covered in the [troubleshooting guide](help/troubleshooting.md#dev).

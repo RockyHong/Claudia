@@ -42,8 +42,8 @@ claudia/
     techstack.md                 Tech choices, architecture rules
     design-system.html           Component catalog + design rules
     product-mock.html            Assembled dashboard + immersive mode
+    building.md                  Build instructions (npx, Tauri)
     help/                        User-facing guides
-      building.md                Build instructions (npx, Tauri)
       privacy.md                 What Claudia accesses, removal options
       troubleshooting.md         Common issues + fixes by distribution
     specs/                       Feature specs — source of truth per feature
@@ -164,6 +164,6 @@ SSE stream at `GET /events` pushes state updates to the browser. See `docs/overv
 - `docs/overview.md` — Product context, data flow, module index
 - `docs/techstack.md` — Tech choices, architecture rules, coding patterns, storage locations
 - `docs/specs/` — **Feature specs** — source of truth for what each feature does and why
-- `docs/help/building.md` — Build instructions for both distributions (npx, Tauri)
+- `docs/building.md` — Build instructions for both distributions (npx, Tauri)
 - `docs/superpowers/specs/` — Design specs from brainstorming sessions (temporal — deleted after merge)
 - `docs/superpowers/plans/` — Implementation plans for execution (temporal — deleted after merge)
