@@ -278,18 +278,18 @@ describe("generateTerminalTitle", () => {
 		mockPlatform.mockReturnValue("win32");
 	});
 
-	it("returns Claudia-based title regardless of cwd", async () => {
+	it("includes project name and claudia with number", async () => {
 		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
 		const { spawnSession } = await import("./spawner.js");
 		const { terminalTitle } = await spawnSession("/home/user/myproject");
-		expect(terminalTitle).toMatch(/^Claudia( \d+)?$/);
+		expect(terminalTitle).toMatch(/^myproject claudia \d+$/);
 	});
 
-	it("returns Claudia-based title for Windows paths", async () => {
+	it("extracts project name from Windows paths", async () => {
 		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
 		const { spawnSession } = await import("./spawner.js");
 		const { terminalTitle } = await spawnSession("C:\\Users\\user\\winproject");
-		expect(terminalTitle).toMatch(/^Claudia( \d+)?$/);
+		expect(terminalTitle).toMatch(/^winproject claudia \d+$/);
 	});
 
 	it("produces different titles on consecutive calls (incrementing counter)", async () => {
@@ -301,18 +301,18 @@ describe("generateTerminalTitle", () => {
 		expect(t1).not.toBe(t2);
 	});
 
-	it("title format is 'Claudia' or 'Claudia N'", async () => {
+	it("title format is '{project} claudia {n}'", async () => {
 		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
 		const { spawnSession } = await import("./spawner.js");
 		const { terminalTitle } = await spawnSession("/home/user/myapp");
-		expect(terminalTitle).toMatch(/^Claudia( \d+)?$/);
+		expect(terminalTitle).toMatch(/^myapp claudia \d+$/);
 	});
 
-	it("returns Claudia-based title for empty cwd", async () => {
+	it("falls back to 'session' for empty cwd", async () => {
 		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
 		const { spawnSession } = await import("./spawner.js");
 		const { terminalTitle } = await spawnSession("");
-		expect(terminalTitle).toMatch(/^Claudia( \d+)?$/);
+		expect(terminalTitle).toMatch(/^session claudia \d+$/);
 	});
 });
 
