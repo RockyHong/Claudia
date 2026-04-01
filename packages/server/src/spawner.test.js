@@ -278,18 +278,18 @@ describe("generateTerminalTitle", () => {
 		mockPlatform.mockReturnValue("win32");
 	});
 
-	it("includes the last path segment as the project name", async () => {
+	it("returns Claudia-based title regardless of cwd", async () => {
 		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
 		const { spawnSession } = await import("./spawner.js");
 		const { terminalTitle } = await spawnSession("/home/user/myproject");
-		expect(terminalTitle).toContain("myproject");
+		expect(terminalTitle).toMatch(/^Claudia( \d+)?$/);
 	});
 
-	it("normalises Windows backslashes before extracting the name", async () => {
+	it("returns Claudia-based title for Windows paths", async () => {
 		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
 		const { spawnSession } = await import("./spawner.js");
 		const { terminalTitle } = await spawnSession("C:\\Users\\user\\winproject");
-		expect(terminalTitle).toContain("winproject");
+		expect(terminalTitle).toMatch(/^Claudia( \d+)?$/);
 	});
 
 	it("produces different titles on consecutive calls (incrementing counter)", async () => {
@@ -301,18 +301,18 @@ describe("generateTerminalTitle", () => {
 		expect(t1).not.toBe(t2);
 	});
 
-	it("title format is 'name' or 'name N'", async () => {
+	it("title format is 'Claudia' or 'Claudia N'", async () => {
 		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
 		const { spawnSession } = await import("./spawner.js");
 		const { terminalTitle } = await spawnSession("/home/user/myapp");
-		expect(terminalTitle).toMatch(/^myapp( \d+)?$/);
+		expect(terminalTitle).toMatch(/^Claudia( \d+)?$/);
 	});
 
-	it("uses 'session' as name fallback when cwd is empty string", async () => {
+	it("returns Claudia-based title for empty cwd", async () => {
 		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
 		const { spawnSession } = await import("./spawner.js");
 		const { terminalTitle } = await spawnSession("");
-		expect(terminalTitle).toContain("session");
+		expect(terminalTitle).toMatch(/^Claudia( \d+)?$/);
 	});
 });
 
