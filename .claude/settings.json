@@ -1,5 +1,20 @@
 {
   "enabledPlugins": {
     "superpowers@claude-plugins-official": true
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));const f=d.tool_input?.file_path;if(f&&/\\\\.(js|ts|svelte|json|css|html)$/.test(f)){const{execSync}=require('child_process');try{execSync('npx @biomejs/biome check --fix --no-errors-on-unmatched '+JSON.stringify(f),{stdio:'ignore',cwd:d.cwd})}catch{}}\"",
+            "timeout": 10,
+            "statusMessage": "Formatting..."
+          }
+        ]
+      }
+    ]
   }
 }
