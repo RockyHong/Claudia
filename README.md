@@ -23,7 +23,7 @@ Claude Code had me running — different monitors, different terminals, differen
 
 So here comes Claudia — built with Claude, under Claudia's watch?! It watches them all in one tab and dings when something needs me.
 
-And honestly, who doesn't like some company? ...sometimes I think it's watching me too.
+And honestly, who doesn't like some company?
 
 ## Quick Start
 
