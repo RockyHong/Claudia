@@ -1,6 +1,8 @@
 # Claudia
 
-Your Claude keeper — one dashboard for all your Claude Code sessions.
+**Your Claude keeper.** One dashboard for all your Claude Code sessions.
+
+*Claude + día (Spanish for "day") — because if you're building with Claude every day, someone should be keeping watch.*
 
 ```
   ┌──────────────────────────────────┐
@@ -15,9 +17,11 @@ Your Claude keeper — one dashboard for all your Claude Code sessions.
   └──────────────────────────────────┘
 ```
 
-When you run multiple Claude Code sessions across different terminals, you constantly tab-switch to check: *Is it done? Does it need me? Which terminal was that?*
+## Why
 
-Claudia keeps watch over all your sessions in one browser tab. She tells you when and where to look — so you don't have to.
+I run multiple Claude Code sessions across different terminals. I was constantly tab-switching — *is it done? Does it need me? Which terminal was that?*
+
+Claudia watches all your sessions in one browser tab. She tells you when and where to look — so you don't have to.
 
 ## Quick Start
 
@@ -25,9 +29,9 @@ Claudia keeps watch over all your sessions in one browser tab. She tells you whe
 npx cldi         # start the dashboard
 ```
 
-On first run, the dashboard will prompt you to install hooks. That's it — run your Claude sessions and Claudia will show you what's happening.
+First run prompts you to install hooks. That's it — run your Claude sessions and Claudia picks them up.
 
-> **Note:** Already-running Claude Code sessions won't pick up the hooks. Restart them after installing.
+> Already-running sessions won't see the hooks. Restart them after installing.
 
 ### Desktop App
 
@@ -35,16 +39,6 @@ Prefer a standalone window? Grab the latest from [Releases](https://github.com/R
 
 - **Windows** — `Claudia-Windows.zip` (extract and run)
 - **macOS** — `Claudia.dmg` (drag to Applications)
-
-## Features
-
-- **Live session tracking** — see all active Claude Code sessions at a glance
-- **State detection** — Idle, Busy, Pending (needs you)
-- **Terminal focus** — click to jump to the right terminal (Windows, macOS, Linux)
-- **Personality** — Claudia is your Claude keeper, not a dashboard. She talks like one.
-- **Dynamic favicon** — tab icon changes color by state, so you can spot it even when minimized
-- **Dark/light mode** — follows your system preference
-- **Zero dependencies on Claude Code** — if Claudia isn't running, hooks fail silently. Nothing changes about your CLI experience.
 
 ## How It Works
 
@@ -60,94 +54,35 @@ Terminal 3 (claude code)  ──┘
                     Browser dashboard
 ```
 
-Claude Code [hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) fire on session start, tool use, permission requests, and session stop, sending a small JSON payload to Claudia's local server. Claudia tracks session state, detects idle/busy/pending transitions, and pushes updates to your browser via Server-Sent Events.
+Claude Code [hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) fire on session events, sending a small JSON payload to Claudia's local server. She tracks state transitions and pushes updates to your browser via Server-Sent Events.
 
 All localhost. Nothing leaves your machine.
 
-## What Claudia Accesses
+## Features
 
-**Files:**
+- **Live session tracking** — see every active session at a glance
+- **State detection** — Idle (○ green), Busy (● blue, pulsing), Pending (◉ orange, pulsing)
+- **Terminal focus** — click a session to jump to the right terminal
+- **Personality** — Claudia is your keeper, not a dashboard. She talks like one.
+- **Dynamic favicon** — tab icon changes color by state, visible even when minimized
+- **Sound cues** — synthesized tones on state changes (send, pending, idle)
+- **Dark/light mode** — follows your system preference
+- **Custom avatars** — upload video sets per state through Settings
+- **Zero footprint** — if Claudia isn't running, hooks fail silently. Your CLI stays untouched.
 
-| What | Path | Purpose |
-|------|------|---------|
-| Hook settings | `~/.claude/settings.json` | Register/remove hooks in Claude Code |
-| OAuth token | `~/.claude/.credentials.json` | Fetch usage limits (opt-in) |
-| Avatars | `~/.claudia/avatars/` | Custom avatar video sets |
-| Projects | `~/.claudia/projects.json` | Session display names |
-| Preferences | `~/.claudia/config.json` | Theme, sound, usage monitoring |
-| Shutdown token | `~/.claudia/shutdown-token` | Graceful instance replacement |
+## Privacy
 
-**System:**
+All access is local. The only network call is the opt-in Anthropic usage API.
 
-| What | Purpose |
-|------|---------|
-| Terminal windows | Enumerate, read titles, focus/flash for navigation |
-| Git | Read branch and working tree state per session |
-| Process spawning | Launch new Claude Code sessions from dashboard |
-
-All access is local. The only network call is the opt-in Anthropic usage API. See [docs/help/privacy.md](docs/help/privacy.md) for full details.
-
-## States
-
-| State | Meaning | Visual |
-|---|---|---|
-| **Idle** | Waiting for input or between tasks | ○ green |
-| **Busy** | Running tools, writing code | ● blue (pulsing) |
-| **Pending** | Needs your approval or input | ◉ orange (pulsing) |
-
-## Commands
-
-```bash
-npx cldi            # Start the server + open dashboard (installs hooks on first run)
-npx cldi uninstall  # Remove hooks + delete ~/.claudia/ data
-```
-
-## Requirements
-
-- Node.js 18+
-- Claude Code (with hooks support)
-
-## Customization
-
-### Avatar Videos
-
-Upload avatar sets through the Settings modal in the dashboard, or place files directly:
-
-```
-~/.claudia/avatars/
-  default/
-    idle.webm
-    busy.webm
-    pending.webm
-  my-custom-set/
-    idle.webm
-    busy.webm
-    pending.webm
-```
-
-Supported formats: `.webm`, `.mp4`. Switch between sets from Settings — no restart needed.
-
-### Sound Effects
-
-Claudia plays synthesized tones via Web Audio API on session state changes — per session, not just aggregate:
-
-- **Send** — a subtle whoosh when a session starts working
-- **Pending** — a chime when a session needs your approval
-- **Idle** — a tone when a session finishes its task
-
-Volume and mute controls are in the Settings modal.
+See [docs/help/privacy.md](docs/help/privacy.md) for exactly what Claudia reads, and how to remove every trace.
 
 ## Uninstall
 
 ```bash
-npx cldi uninstall
+npx cldi uninstall   # remove hooks + delete all Claudia data
 ```
 
-This removes all Claudia hooks from `~/.claude/settings.json` and deletes `~/.claudia/` (avatars, projects, preferences). Your other hooks and Claude Code settings are untouched.
-
-To remove hooks only without deleting data, use **Settings > Remove hooks** in the dashboard.
-
-For all removal options and manual steps, see [docs/help/privacy.md](docs/help/privacy.md).
+For partial removal options, see [docs/help/privacy.md](docs/help/privacy.md).
 
 ## Contributing
 
@@ -162,6 +97,11 @@ npm run lint    # check with Biome
 ```
 
 See [CLAUDE.md](CLAUDE.md) for design principles and coding standards.
+
+## Requirements
+
+- Node.js 18+
+- Claude Code (with hooks support)
 
 ## License
 
