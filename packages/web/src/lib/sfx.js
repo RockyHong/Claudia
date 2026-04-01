@@ -128,9 +128,12 @@ const SYNTHS = { send: synthSend, pending: synthPending, idle: synthIdle };
 
 // --- Controller ---
 
+const SFX_COOLDOWN_MS = 300;
+
 export function createSFXController() {
 	let muted = false;
 	let volume = 0.5;
+	let lastPlayTime = 0;
 
 	return {
 		get muted() {
@@ -147,9 +150,12 @@ export function createSFXController() {
 			volume = v;
 		},
 
-		/** Play a sound triggered by SSE. Respects mute/volume. */
+		/** Play a sound triggered by SSE. Respects mute/volume + cooldown. */
 		play(name) {
 			if (muted) return;
+			const now = performance.now();
+			if (now - lastPlayTime < SFX_COOLDOWN_MS) return;
+			lastPlayTime = now;
 			const synth = SYNTHS[name];
 			if (synth) synth(volume);
 		},
