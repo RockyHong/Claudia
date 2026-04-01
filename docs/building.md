@@ -2,17 +2,8 @@
 
 Two distributions, one codebase. Pick the one you need.
 
-```
-                  +-------------------+
-                  |   Server Core     |
-                  |   + Web Dashboard |
-                  +--------+----------+
-                           |
-                  +--------+--------+
-                  |                 |
-              npx cldi      Standalone
-              (npm package)    (desktop app)
-```
+1. [npx (development / npm)](#1-npx-development--npm) — terminal command, no build step
+2. [Standalone Desktop App](#2-standalone-desktop-app) — portable exe / dmg, no Node required
 
 ---
 
