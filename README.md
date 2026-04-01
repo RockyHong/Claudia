@@ -1,8 +1,8 @@
 # Claudia
 
-**Your Claude keeper.** One dashboard for all your Claude Code sessions.
+**Your Claude keeper.**
 
-*Claude + día (Spanish for "day") — because if you're building with Claude every day, someone should be keeping watch.*
+*Claude + día — Claude Code every day?*
 
 ```
   ┌──────────────────────────────────┐
