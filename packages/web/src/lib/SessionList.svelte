@@ -46,7 +46,7 @@ let sorted = $derived(
   </button>
 
   {#each sorted as session (session.id)}
-    <SessionCard {session} />
+    <SessionCard {session} {immersive} />
   {/each}
 
 </div>

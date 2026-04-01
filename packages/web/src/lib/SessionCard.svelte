@@ -2,7 +2,7 @@
 import { BookOpen, Folder, Ghost, GitBranch, Terminal } from "lucide-svelte";
 import Tooltip from "./Tooltip.svelte";
 
-let { session } = $props();
+let { session, immersive = false } = $props();
 
 const stateConfig = {
 	idle: { dot: "dot-idle", label: "Idle" },
@@ -151,6 +151,7 @@ function openDocs(e) {
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
   class="card {session.state}"
+  class:immersive
   class:clickable={session.windowHandle}
   onclick={handleClick}
   onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), handleClick())}
@@ -348,6 +349,12 @@ function openDocs(e) {
     padding: 2px 6px;
     border-radius: var(--radius-sm);
     vertical-align: middle;
+  }
+
+  .card.immersive .subagent-badge {
+    color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   @media (prefers-reduced-motion: reduce) {
