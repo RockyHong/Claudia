@@ -1,6 +1,5 @@
 <script>
 import { BookOpen, Folder, Ghost, GitBranch, Terminal } from "lucide-svelte";
-import { onMount } from "svelte";
 import Tooltip from "./Tooltip.svelte";
 
 let { session } = $props();
@@ -13,10 +12,6 @@ const stateConfig = {
 };
 
 let elapsed = $state("");
-let showLinkDropdown = $state(false);
-let terminalList = $state([]);
-let linkLoading = $state(false);
-let linkError = $state("");
 let approveLoading = $state(false);
 let flashClass = $state("");
 let decisionMade = $state(false);
@@ -58,14 +53,6 @@ $effect(() => {
 	}
 });
 
-onMount(() => {
-	const handler = (e) => {
-		if (showLinkDropdown) showLinkDropdown = false;
-	};
-	document.addEventListener("click", handler);
-	return () => document.removeEventListener("click", handler);
-});
-
 $effect(() => {
 	const interval = setInterval(() => {
 		elapsed = formatElapsed(session.stateChangedAt);
@@ -86,7 +73,7 @@ function formatElapsed(timestamp) {
 let config = $derived(stateConfig[session.state] || stateConfig.idle);
 
 async function handleClick() {
-	if (!session.spawned) return;
+	if (!session.windowHandle) return;
 	try {
 		await fetch(`/focus/${session.id}`, { method: "POST" });
 	} catch {
@@ -145,87 +132,24 @@ function openDocs(e) {
 	});
 }
 
-async function openLinkDropdown(e) {
-	e.stopPropagation();
-	if (showLinkDropdown) {
-		showLinkDropdown = false;
-		return;
-	}
-	linkLoading = true;
-	linkError = "";
-	showLinkDropdown = true;
-	try {
-		const res = await fetch("/api/terminals");
-		const data = await res.json();
-		if (data.supported === false) {
-			terminalList = [];
-			linkError = "Linking not supported on this platform yet";
-		} else {
-			terminalList = data.terminals || [];
-		}
-	} catch {
-		terminalList = [];
-		linkError = "Failed to load terminals";
-	} finally {
-		linkLoading = false;
-	}
-}
 
-function flashTerminal(hwnd) {
-	fetch(`/api/flash/${hwnd}`, { method: "POST" }).catch(() => {});
-}
-
-async function linkTerminal(hwnd) {
-	try {
-		await fetch(`/api/link/${session.id}`, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ windowHandle: hwnd }),
-		});
-	} catch {
-		// best-effort
-	}
-	showLinkDropdown = false;
-}
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
   class="card {session.state}"
-  class:clickable={session.spawned}
+  class:clickable={session.windowHandle}
   onclick={handleClick}
   onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), handleClick())}
-  tabindex={session.spawned ? 0 : -1}
-  role={session.spawned ? "button" : undefined}
+  tabindex={session.windowHandle ? 0 : -1}
+  role={session.windowHandle ? "button" : undefined}
 >
   <div class="card-row">
     <div class="card-left">
       <span class="dot {config.dot}"></span>
       <span class="name">
-        {session.terminalTitle || session.displayName}
+        {session.displayName} &middot; {session.terminalName || "Unknown"}
       </span>
-      {#if !session.spawned}
-        <Tooltip text="Link to terminal window"><span class="orphan-badge" role="button" tabindex="0" onclick={openLinkDropdown} onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), openLinkDropdown(e))}>unlinked</span></Tooltip>
-      {/if}
-      {#if showLinkDropdown}
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div class="link-dropdown" onclick={(e) => e.stopPropagation()}>
-          {#if linkLoading}
-            <div class="link-dropdown-item link-dropdown-empty">Loading...</div>
-          {:else if linkError}
-            <div class="link-dropdown-item link-dropdown-empty">{linkError}</div>
-          {:else if terminalList.length === 0}
-            <div class="link-dropdown-item link-dropdown-empty">No terminals found</div>
-          {:else}
-            {#each terminalList as terminal}
-              <button class="link-dropdown-item" onclick={() => linkTerminal(terminal.hwnd)} onmouseenter={() => flashTerminal(terminal.hwnd)}>
-                {terminal.title}
-              </button>
-            {/each}
-          {/if}
-        </div>
-      {/if}
     </div>
     <span class="card-state">
       {config.label}
@@ -371,73 +295,6 @@ async function linkTerminal(hwnd) {
   @keyframes pulse-dot {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
-  }
-
-  .orphan-badge {
-    font-size: 9px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-faint);
-    background: var(--bg-raised);
-    padding: 2px 6px;
-    border-radius: var(--radius-sm);
-    vertical-align: middle;
-    cursor: pointer;
-    transition: color var(--duration-normal, 150ms) var(--ease-in-out, ease),
-                background var(--duration-normal, 150ms) var(--ease-in-out, ease);
-  }
-
-  .orphan-badge:hover {
-    color: var(--text-muted);
-    background: var(--bg-hover, var(--bg-raised));
-  }
-
-  .link-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    margin-top: 4px;
-    margin-bottom: 4px;
-    min-width: 240px;
-    max-width: 360px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 100;
-    overflow: hidden;
-  }
-
-  .link-dropdown-item {
-    all: unset;
-    display: block;
-    width: 100%;
-    padding: var(--space-2) var(--space-3);
-    font-family: var(--font-mono, monospace);
-    font-size: var(--text-xs);
-    color: var(--text-muted);
-    cursor: pointer;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    box-sizing: border-box;
-  }
-
-  .link-dropdown-item:hover {
-    background: var(--bg-hover, var(--bg-raised));
-    color: var(--text-primary, var(--text));
-  }
-
-  .link-dropdown-empty {
-    color: var(--text-faint);
-    cursor: default;
-    font-family: var(--font-body, sans-serif);
-  }
-
-  .link-dropdown-empty:hover {
-    background: none;
-    color: var(--text-faint);
   }
 
   .detail-actions {
