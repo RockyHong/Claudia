@@ -19,9 +19,9 @@
 
 ## Why
 
-Multiple monitors. Multiple terminals. Multiple projects. All running Claude Code — and you're the one keeping track.
+I run multiple Claude Code sessions — different monitors, different terminals, different projects. I kept tab-switching: *is it done? Does it need me? Which terminal was that?*
 
-Claudia watches all your sessions in one browser tab. She dings when something needs you. You stop checking.
+So I built Claudia — with Claude, building itself, naturally. She watches them all in one tab and dings when something needs me. Claude, every day.
 
 ## Quick Start
 
