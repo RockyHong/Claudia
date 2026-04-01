@@ -322,17 +322,15 @@ app.use(express.static(WEB_DIST));
 const WINDOW_CHECK_INTERVAL_MS = 5_000;
 let windowCheckRunning = false;
 
-async function pruneDeadSpawnedSessions() {
+async function pruneDeadLinkedSessions() {
 	if (windowCheckRunning) return;
 	windowCheckRunning = true;
 	try {
-		const spawned = tracker
-			.getSessions()
-			.filter((s) => s.spawned && s.windowHandle);
-		if (spawned.length === 0) return;
+		const linked = tracker.getSessions().filter((s) => s.windowHandle);
+		if (linked.length === 0) return;
 
-		const dead = await findDeadWindows(spawned.map((s) => s.windowHandle));
-		for (const session of spawned) {
+		const dead = await findDeadWindows(linked.map((s) => s.windowHandle));
+		for (const session of linked) {
 			if (dead.has(session.windowHandle)) {
 				console.log(
 					`[prune] window closed for "${session.displayName}" (hwnd=${session.windowHandle})`,
@@ -369,7 +367,7 @@ export async function startServer(port = PORT, options = {}) {
 		usageClient.refreshUsage().catch(() => {});
 	}
 	const windowCheckInterval = setInterval(
-		pruneDeadSpawnedSessions,
+		pruneDeadLinkedSessions,
 		WINDOW_CHECK_INTERVAL_MS,
 	);
 	startStatusPolling();
