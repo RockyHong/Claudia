@@ -26,7 +26,7 @@ Claudia watches all your sessions in one browser tab. She tells you when and whe
 ## Quick Start
 
 ```bash
-npx cldi         # start the dashboard
+npx cldi         # **cl**au**di**a — start the dashboard
 ```
 
 First run prompts you to install hooks. That's it — run your Claude sessions and Claudia picks them up.
