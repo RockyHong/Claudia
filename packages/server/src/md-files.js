@@ -20,11 +20,16 @@ const IGNORED_DIRS = new Set([
 export async function buildMdTree(cwd) {
 	let files;
 	try {
-		const { stdout } = await execFileAsync("git", ["ls-files", "*.md"], {
-			cwd,
-			timeout: 5000,
-		});
-		files = stdout.trim().split("\n").filter(Boolean);
+		const [tracked, untracked] = await Promise.all([
+			execFileAsync("git", ["ls-files", "*.md"], { cwd, timeout: 5000 }),
+			execFileAsync(
+				"git",
+				["ls-files", "--others", "--exclude-standard", "*.md"],
+				{ cwd, timeout: 5000 },
+			),
+		]);
+		const all = `${tracked.stdout}\n${untracked.stdout}`;
+		files = [...new Set(all.trim().split("\n").filter(Boolean))];
 	} catch {
 		files = await scanMdFiles(cwd, "");
 	}
