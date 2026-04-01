@@ -58,7 +58,7 @@ Claude Code sessions ──► hooks (stdin JSON via POST) ──► Claudia ser
 
 ## Distribution
 
-Two entry points, same server code. Build details in `docs/building.md`.
+Two entry points, same server code. Build details in `docs/help/building.md`.
 
 | Entry | Shell | Runtime |
 |---|---|---|
@@ -134,6 +134,6 @@ CLI: `npx cldi` / `npx cldi uninstall`
 |---|---|
 | `src-tauri/` | Tauri config, Rust shell, sidecar binaries |
 | `scripts/` | `bundle-server.js`, `build-sea.js`, `sea-entry-template.js` |
-| `docs/building.md` | Build instructions for both distributions |
+| `docs/help/building.md` | Build instructions for both distributions |
 | `docs/specs/` | Feature specs — source of truth per feature |
 | `packages/server/assets/` | Default avatar videos (`avatar/`), app icon |

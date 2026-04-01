@@ -22,7 +22,9 @@ describe("buildMdTree", () => {
 
 	it("returns nested tree from git ls-files output", async () => {
 		execFile.mockImplementation((_cmd, _args, _opts, cb) => {
-			cb(null, { stdout: "README.md\ndocs/overview.md\ndocs/building.md\n" });
+			cb(null, {
+				stdout: "README.md\ndocs/overview.md\ndocs/help/building.md\n",
+			});
 		});
 
 		const tree = await buildMdTree("/projects/claudia");
@@ -31,7 +33,10 @@ describe("buildMdTree", () => {
 			{
 				name: "docs",
 				children: [
-					{ name: "building.md", path: "docs/building.md" },
+					{
+						name: "help",
+						children: [{ name: "building.md", path: "docs/help/building.md" }],
+					},
 					{ name: "overview.md", path: "docs/overview.md" },
 				],
 			},

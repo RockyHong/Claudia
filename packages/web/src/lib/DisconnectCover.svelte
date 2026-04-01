@@ -23,7 +23,7 @@ function retry() {
       {retrying ? "Retrying…" : "Retry Now"}
     </button>
     <p class="hint">
-      Need help? See the <a href="https://github.com/RockyHong/Claudia/blob/main/docs/troubleshooting.md" target="_blank" rel="noopener noreferrer">troubleshooting guide</a>.
+      Need help? See the <a href="https://github.com/RockyHong/Claudia/blob/main/docs/help/troubleshooting.md" target="_blank" rel="noopener noreferrer">troubleshooting guide</a>.
     </p>
   </div>
 </div>

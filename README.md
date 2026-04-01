@@ -85,7 +85,7 @@ All localhost. Nothing leaves your machine.
 | Git | Read branch and working tree state per session |
 | Process spawning | Launch new Claude Code sessions from dashboard |
 
-All access is local. The only network call is the opt-in Anthropic usage API. See [docs/privacy.md](docs/privacy.md) for full details.
+All access is local. The only network call is the opt-in Anthropic usage API. See [docs/help/privacy.md](docs/help/privacy.md) for full details.
 
 ## States
 
@@ -147,7 +147,7 @@ This removes all Claudia hooks from `~/.claude/settings.json` and deletes `~/.cl
 
 To remove hooks only without deleting data, use **Settings > Remove hooks** in the dashboard.
 
-For all removal options and manual steps, see [docs/privacy.md](docs/privacy.md).
+For all removal options and manual steps, see [docs/help/privacy.md](docs/help/privacy.md).
 
 ## Contributing
 
