@@ -140,14 +140,4 @@ Both distributions run the same code:
 
 ## Troubleshooting
 
-**SEA build fails with "postject" errors**
-- Make sure you're on Node 22+. SEA support matured in Node 20 but asset embedding requires 22.
-- On Windows: run from an elevated terminal if signature removal fails.
-
-**Tauri build fails**
-- Install Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
-- Windows: install [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) with "Desktop development with C++".
-
-**Bundle fails with import errors**
-- Run `npm install` first. esbuild needs to be installed.
-- The server bundle keeps `express` external -- it must be available at runtime (SEA embeds it via the bundle, npm provides it for dev).
+Build issues are covered in the [troubleshooting guide](troubleshooting.md#dev).
