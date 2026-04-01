@@ -8,71 +8,82 @@ Sessions spawned by Claudia auto-link because Claudia creates the terminal and k
 
 ## Approach
 
-Pass the hook shell's PID to the server via HTTP header. The server walks the process tree up to find a known terminal process and its window handle.
+The SessionStart hook resolves the terminal HWND inline (synchronously, via PowerShell process tree walk) and sends it to the server as an HTTP header. The server parses the HWND and title, then links the session.
 
 ## Hook Command Change
 
-Only `SessionStart` gets the PID header. Other hooks stay unchanged.
+Only `SessionStart` gets the inline resolution. Other hooks stay unchanged.
 
 ```bash
 # Before
 curl -sfS -X POST -H "Content-Type: application/json" -d @- http://127.0.0.1:48901/hook/SessionStart 2>/dev/null || true
 
 # After
-curl -sfS -X POST -H "Content-Type: application/json" -H "X-Hook-PID: $PPID" -d @- http://127.0.0.1:48901/hook/SessionStart 2>/dev/null || true
+HWND_INFO=$(powershell -NoProfile -Command '...process tree walk...'); curl -sfS -X POST -H "Content-Type: application/json" -H "X-Hook-Window: $HWND_INFO" -d @- http://127.0.0.1:48901/hook/SessionStart 2>/dev/null || true
 ```
 
-`$PPID` is the parent process PID (the Claude Code node process). Using `$PPID` instead of `$$` because the hook shell exits before the async PID walk completes — the parent process is guaranteed to still be alive. Users need one hook reinstall (existing install button handles this).
+The PowerShell walk runs **synchronously before curl** so the process tree is still alive. The result is `HWND|WindowTitle` or empty. Users need one hook reinstall (existing install button handles this).
 
-## PID-to-HWND Resolution
+### Why inline, not async
 
-New module `pid-ancestry.js`. Single function: `resolveTerminalWindow(pid)` returns `{ hwnd, title }` or `null`.
+Early attempts passed the shell PID (`$$` or `$PPID`) via header and resolved asynchronously on the server. Both failed:
+- `$$` — the hook shell exits before the async PowerShell walk starts, so the PID is dead
+- `$PPID` — returns `1` (init) on Windows/Git Bash, not the Claude Code process
 
-Process tree walk via PowerShell:
-1. Start at the hook shell PID
+Inline resolution avoids both issues: the walk runs while the shell and all its ancestors are alive.
+
+### PowerShell details
+
+The walk uses `$PID` (PowerShell's own automatic variable) as the starting point, then `Get-CimInstance Win32_Process` to traverse `ParentProcessId`. Uses `$cur` as the loop variable — `$pid` is read-only in PowerShell (alias for `$PID`).
+
+## HWND Resolution
+
+Process tree walk via PowerShell (inline in hook command, also available as standalone `pid-ancestry.js`):
+
+1. Start at the PowerShell process's own PID
 2. Walk `ParentProcessId` up via `Win32_Process`
 3. At each ancestor, check if process name is in the known terminal list
-4. If found and `MainWindowHandle !== 0`, return HWND + window title
-5. If we hit PID 0 or a non-terminal app (e.g. `Code.exe`), return null
+4. If found and `MainWindowHandle !== 0`, output `HWND|title`
+5. If we hit PID 0 or exhaust 20 iterations, output nothing
 
-Known terminal processes (from existing `focus.js` list): `WindowsTerminal`, `cmd`, `powershell`, `pwsh`, `ConEmuC64`, `ConEmuC`, `mintty`, `Alacritty`, `kitty`, `Hyper`, `Tabby`, `WezTerm`.
+Known terminal processes: `WindowsTerminal`, `cmd`, `powershell`, `pwsh`, `ConEmuC64`, `ConEmuC`, `mintty`, `Alacritty`, `kitty`, `Hyper`, `Tabby`, `WezTerm`.
 
-Timeout: 5 seconds. Failure = unlinked. Windows-only; other platforms return null immediately.
+Windows-only; other platforms produce no header (empty `HWND_INFO`).
 
 ### Platform Coverage
 
-| Source | PID walk result | Outcome |
+| Source | Walk result | Outcome |
 |---|---|---|
 | Windows Terminal | Finds `WindowsTerminal.exe` HWND | Auto-linked |
 | Standalone cmd | Finds `cmd.exe` HWND | Auto-linked |
 | Standalone PowerShell | Finds `powershell.exe` HWND | Auto-linked |
 | VS Code terminal | Walks up to `Code.exe` — not in terminal list | Unknown |
 | VS Code extension | No terminal at all | Unknown |
-| macOS / Linux | No PID header / no Windows API | Unknown |
+| macOS / Linux | No PowerShell / no Windows API | Unknown |
 
 ## Auto-Link Flow
 
 In `index.js`, after `tracker.handleEvent(event)` for `SessionStart`:
 
 1. If session already linked (spawned by Claudia) — skip
-2. Read `X-Hook-PID` header — if missing, skip
-3. Call `resolveTerminalWindow(pid)` async, fire-and-forget (don't block hook response)
-4. If HWND found — `tracker.linkSessionById(sessionId, windowTitle, hwnd)`
-5. If null — session stays unlinked, displays as `Unknown`
+2. Read `X-Hook-Window` header — if missing or empty, skip
+3. Parse `HWND|title` — if invalid, skip
+4. `tracker.linkSessionById(sessionId, title, hwnd)`
 
-The hook response returns immediately. The PowerShell lookup runs in the background.
+No async work — the header already contains the resolved HWND and title.
 
 ## Session Display
 
-Always: `{displayName} · {terminalName}`
+Always: `{displayName} · {terminalLabel}`
 
 - `displayName` — project folder name from `cwd`, deduped (`my-app`, `my-app 2`)
-- `terminalName` — terminal window title (linked) or `Unknown` / `Unknown 2` (unlinked), deduped in session-tracker same as displayName
+- `terminalName` — full terminal identifier stored in session (e.g. `my-app claudia 1`, `Windows PowerShell`, `Unknown`)
+- `terminalLabel` — frontend derived: strips `displayName` prefix from `terminalName` to avoid redundancy
 
 Examples:
 ```
-my-app · Claudia                — spawned by Claudia
-my-app · Claudia 2              — second spawn
+my-app · claudia 1              — spawned by Claudia (terminal title: "my-app claudia 1")
+my-app · claudia 2              — second spawn
 my-app · Windows PowerShell     — auto-linked standalone
 my-app · Command Prompt         — auto-linked cmd
 my-app · Unknown                — unlinked (VS Code, macOS, etc.)
@@ -83,13 +94,17 @@ No visual distinction between linked and unlinked — the name speaks for itself
 
 ## Spawn Naming Change
 
-`terminal-title.js` changes from generating folder-based names to `Claudia`, `Claudia 2`, `Claudia 3`. The project name is already shown as `displayName`.
+`terminal-title.js` generates `{project} claudia {n}` (always numbered, sanitized). The terminal window title includes the project name for OS-level identification (taskbar, alt-tab). The session card strips the redundant project prefix via `terminalLabel`.
 
 No renaming on link — neither auto-link nor manual link ever renames the terminal window. Spawned sessions get named once at spawn time only. This avoids the `--suppressApplicationTitle` conflict where relinking after server restart fails to rename.
 
 ## Alert Gating
 
-Notifications (`onPendingAlert`, `onIdleAlert`) currently gate on `spawned` boolean. Replace with linked status: fire alerts for any session where `terminalName !== "Unknown"` (i.e. we know which window to flash/focus).
+Notifications (`onPendingAlert`, `onIdleAlert`) fire for any session where `terminalName` does not start with `"Unknown"` (i.e. we know which window to flash/focus).
+
+## Window Pruning
+
+Dead window pruning (every 5s) checks all sessions with a `windowHandle` — both spawned and auto-linked. Unlinked sessions (`windowHandle: null`) are excluded. When a linked terminal window closes, the session card is removed.
 
 ## Removals
 
@@ -101,7 +116,7 @@ Notifications (`onPendingAlert`, `onIdleAlert`) currently gate on `spawned` bool
 ### Server code (`focus.js`)
 - `listTerminalWindows()` and `WIN_ENUM_CS` helper — enumeration no longer needed
 - `flashWindow()` — only used by removed link dropdown hover
-- `TERMINAL_PROCESS_NAMES` — moves to `pid-ancestry.js`
+- `TERMINAL_PROCESS_NAMES` — moved to `pid-ancestry.js` and inline in hook command
 
 ### Frontend (`SessionCard.svelte`)
 - `showLinkDropdown`, `terminalList`, `linkLoading`, `linkError` state
@@ -109,8 +124,8 @@ Notifications (`onPendingAlert`, `onIdleAlert`) currently gate on `spawned` bool
 - Orphan badge element, link dropdown markup, all `.link-dropdown*` CSS
 
 ### What stays
-- `focusTerminal()` — session card click-to-focus
-- `findDeadWindows()` — prune dead sessions
+- `focusTerminal()` — session card click-to-focus (now works for auto-linked too)
+- `findDeadWindows()` — prune dead sessions (now covers all linked sessions)
 - `renameTerminal()` — used at spawn time
 - `storeSpawnedInfo()` — spawned session flow unchanged
 
@@ -118,11 +133,11 @@ Notifications (`onPendingAlert`, `onIdleAlert`) currently gate on `spawned` bool
 
 | File | Change |
 |---|---|
-| `hooks.js` | SessionStart command gets `X-Hook-PID: $$` header |
-| `pid-ancestry.js` | **New** — `resolveTerminalWindow(pid)` |
-| `index.js` | Async auto-link after SessionStart handleEvent |
+| `hooks.js` | SessionStart command: inline PowerShell HWND resolution, `X-Hook-Window` header |
+| `pid-ancestry.js` | **New** — standalone `resolveTerminalWindow(pid)` (kept for potential future use) |
+| `index.js` | Parse `X-Hook-Window` header on SessionStart, link session; prune all linked windows |
 | `session-tracker.js` | Add `terminalName` field, dedup `Unknown`/`Unknown 2`, gate alerts on linked status |
-| `terminal-title.js` | `Claudia`, `Claudia 2` instead of folder name |
-| `SessionCard.svelte` | Always `{displayName} · {terminalName}`, remove dropdown/badge/flash |
-| `routes-api.js` | Remove three endpoints |
+| `terminal-title.js` | `{project} claudia {n}` format, sanitized |
+| `SessionCard.svelte` | `{displayName} · {terminalLabel}` with prefix stripping, remove dropdown/badge/flash |
+| `routes-api.js` | Remove three endpoints, unused imports |
 | `focus.js` | Remove `listTerminalWindows`, `WIN_ENUM_CS`, `flashWindow`, `TERMINAL_PROCESS_NAMES` |

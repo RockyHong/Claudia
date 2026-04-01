@@ -33,15 +33,17 @@ Session cards always show `{displayName} · {terminalName}`.
 
 ### Terminal names by source
 
-| Source | terminalName | How |
-|---|---|---|
-| Spawned by Claudia | `Claudia`, `Claudia 2` | Set at spawn time (global counter) |
-| Auto-linked (standalone terminal) | Window title (e.g. `Windows PowerShell`) | PID walk via `X-Hook-PID` header on SessionStart |
-| Unlinked (VS Code, macOS, etc.) | `Unknown`, `Unknown 2` | Default, deduped |
+| Source | terminalName | Card display | How |
+|---|---|---|---|
+| Spawned by Claudia | `my-app claudia 1` | `my-app · claudia 1` | Set at spawn time (global counter) |
+| Auto-linked (standalone terminal) | Window title (e.g. `Windows PowerShell`) | `my-app · Windows PowerShell` | Inline PowerShell walk on SessionStart |
+| Unlinked (VS Code, macOS, etc.) | `Unknown`, `Unknown 2` | `my-app · Unknown` | Default, deduped |
+
+Card display uses `terminalLabel` — a frontend derived that strips the `displayName` prefix from `terminalName` to avoid redundancy (e.g. `my-app claudia 1` → `claudia 1`).
 
 ### Auto-link flow
 
-On `SessionStart`, the hook shell PID is passed via `X-Hook-PID: $$` HTTP header. The server walks the process tree (Windows-only, via `Win32_Process`) to find a known terminal process with a visible window. If found, the session is linked to that window handle. If not (VS Code, non-Windows), the session stays unlinked as "Unknown".
+On `SessionStart`, the hook command runs an inline PowerShell process tree walk (synchronously, before curl) to resolve the terminal HWND and title. The result is sent via `X-Hook-Window: HWND|title` header. The server parses this and links the session. Windows-only; other platforms send an empty header and stay unlinked as "Unknown".
 
 ### Alert gating
 
@@ -52,6 +54,7 @@ Notifications (`onPendingAlert`, `onIdleAlert`) only fire for linked sessions �
 - **Creation**: on first hook event for an unknown `session_id`
 - **Ghost prevention**: late `PermissionRequest` for an ended session is dropped — only live sessions accept events
 - **Stale pruning**: sessions inactive for 10 minutes are removed. Pruned every 60s.
+- **Window pruning**: linked sessions (any with `windowHandle`) are checked every 5s. If the terminal window is closed, the session is removed. Unlinked sessions are excluded.
 - **Git metadata**: fetched async on creation, cwd change, and idle transition. Card renders immediately, git info fills in when ready.
 
 ## SSE Contract
