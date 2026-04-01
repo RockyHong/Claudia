@@ -1,7 +1,5 @@
 # Claudia
 
-A personal receptionist app that monitors all active Claude Code sessions, displays their states, and notifies you when attention is needed.
-
 ## Development Workflow
 
 Before starting any work, **assess the task size and propose a route for the user to confirm.** Present it like:
