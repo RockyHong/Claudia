@@ -367,6 +367,27 @@ describe("session-tracker", () => {
 				toolInput: "src/foo.js",
 			});
 		});
+
+		it("assigns terminalName 'Unknown' to unlinked sessions", () => {
+			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
+			const session = tracker.getSessions()[0];
+			expect(session.terminalName).toBe("Unknown");
+		});
+
+		it("deduplicates Unknown terminalName for multiple unlinked sessions", () => {
+			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj-a" });
+			tracker.handleEvent({ session: "s2", state: "idle", cwd: "/proj-b" });
+			const sessions = tracker.getSessions();
+			const names = sessions.map((s) => s.terminalName).sort();
+			expect(names).toEqual(["Unknown", "Unknown 2"]);
+		});
+
+		it("assigns terminalTitle as terminalName for spawned sessions", () => {
+			tracker.storeSpawnedInfo("/proj", "Claudia", 123);
+			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
+			const session = tracker.getSessions()[0];
+			expect(session.terminalName).toBe("Claudia");
+		});
 	});
 
 	describe("display name extraction", () => {
@@ -508,6 +529,68 @@ describe("session-tracker", () => {
 
 			const handles = tracker.getLinkedHandles();
 			expect(handles).toEqual(new Set([111, 222]));
+		});
+	});
+
+	describe("alert gating on linked status", () => {
+		it("fires onPendingAlert for linked sessions", () => {
+			const pendingAlerts = [];
+			const alertTracker = createSessionTracker({
+				onPendingAlert: (s) => pendingAlerts.push(s.id),
+			});
+
+			alertTracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
+			alertTracker.linkSessionById("s1", "Windows PowerShell", 123);
+
+			alertTracker.handleEvent({
+				session: "s1",
+				state: "pending",
+				message: "Need approval",
+			});
+			expect(pendingAlerts).toContain("s1");
+			alertTracker.stop();
+		});
+
+		it("does not fire onPendingAlert for unlinked sessions", () => {
+			const pendingAlerts = [];
+			const alertTracker = createSessionTracker({
+				onPendingAlert: (s) => pendingAlerts.push(s.id),
+			});
+
+			alertTracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
+			alertTracker.handleEvent({
+				session: "s1",
+				state: "pending",
+				message: "Need approval",
+			});
+			expect(pendingAlerts).toHaveLength(0);
+			alertTracker.stop();
+		});
+
+		it("fires onIdleAlert for linked sessions", () => {
+			const idleAlerts = [];
+			const alertTracker = createSessionTracker({
+				onIdleAlert: (s) => idleAlerts.push(s.id),
+			});
+
+			alertTracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
+			alertTracker.linkSessionById("s1", "Windows PowerShell", 123);
+
+			alertTracker.handleEvent({ session: "s1", state: "idle" });
+			expect(idleAlerts).toContain("s1");
+			alertTracker.stop();
+		});
+
+		it("does not fire onIdleAlert for unlinked sessions", () => {
+			const idleAlerts = [];
+			const alertTracker = createSessionTracker({
+				onIdleAlert: (s) => idleAlerts.push(s.id),
+			});
+
+			alertTracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
+			alertTracker.handleEvent({ session: "s1", state: "idle" });
+			expect(idleAlerts).toHaveLength(0);
+			alertTracker.stop();
 		});
 	});
 });

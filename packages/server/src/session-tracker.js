@@ -33,6 +33,7 @@ function createSession(id, cwd) {
 		spawned: false,
 		terminalTitle: null,
 		windowHandle: null,
+		terminalName: "Unknown",
 		git: null,
 		subagentActivity: 0,
 		activeSubagents: 0,
@@ -58,6 +59,16 @@ export function createSessionTracker({
 	function deduplicateDisplayName(baseName) {
 		const existing = new Set(
 			Array.from(sessions.values()).map((s) => s.displayName),
+		);
+		if (!existing.has(baseName)) return baseName;
+		let n = 2;
+		while (existing.has(`${baseName} ${n}`)) n++;
+		return `${baseName} ${n}`;
+	}
+
+	function deduplicateTerminalName(baseName) {
+		const existing = new Set(
+			Array.from(sessions.values()).map((s) => s.terminalName),
 		);
 		if (!existing.has(baseName)) return baseName;
 		let n = 2;
@@ -125,10 +136,12 @@ export function createSessionTracker({
 				session.spawned = true;
 				session.terminalTitle = info.terminalTitle;
 				session.windowHandle = info.windowHandle;
+				session.terminalName = info.terminalTitle;
 				// Consume so next spawn of same cwd gets its own entry
 				spawnedInfo.delete(normalizedCwd);
 			}
 			session.displayName = deduplicateDisplayName(session.displayName);
+			session.terminalName = deduplicateTerminalName(session.terminalName);
 			sessions.set(sessionId, session);
 		}
 
@@ -173,7 +186,11 @@ export function createSessionTracker({
 				session.permissionRequest = null;
 				session.subagentActivity = 0;
 				session.activeSubagents = 0;
-				if (prevState !== State.IDLE && session.terminalTitle && onIdleAlert) {
+				if (
+					prevState !== State.IDLE &&
+					!session.terminalName.startsWith("Unknown") &&
+					onIdleAlert
+				) {
 					onIdleAlert(session);
 				}
 				break;
@@ -184,7 +201,7 @@ export function createSessionTracker({
 				session.permissionRequest = permissionRequest || null;
 				if (
 					prevState !== State.PENDING &&
-					session.terminalTitle &&
+					!session.terminalName.startsWith("Unknown") &&
 					onPendingAlert
 				) {
 					onPendingAlert(session);
@@ -228,6 +245,7 @@ export function createSessionTracker({
 			spawned: s.spawned,
 			terminalTitle: s.terminalTitle,
 			windowHandle: s.windowHandle,
+			terminalName: s.terminalName,
 			git: s.git,
 			subagentActivity: s.subagentActivity,
 			activeSubagents: s.activeSubagents,
@@ -289,6 +307,7 @@ export function createSessionTracker({
 			newest.spawned = true;
 			newest.terminalTitle = terminalTitle;
 			newest.windowHandle = windowHandle;
+			newest.terminalName = terminalTitle;
 			// Consume — the entry was matched, don't let new-session path double-match
 			spawnedInfo.delete(normalized);
 			notify();
@@ -298,9 +317,9 @@ export function createSessionTracker({
 	function linkSessionById(sessionId, terminalTitle, windowHandle) {
 		const session = sessions.get(sessionId);
 		if (!session) return false;
-		session.spawned = true;
 		session.terminalTitle = terminalTitle;
 		session.windowHandle = windowHandle;
+		session.terminalName = terminalTitle;
 		notify();
 		return true;
 	}
@@ -321,6 +340,7 @@ export function createSessionTracker({
 			spawned: s.spawned,
 			terminalTitle: s.terminalTitle,
 			windowHandle: s.windowHandle,
+			terminalName: s.terminalName,
 			git: s.git,
 			subagentActivity: s.subagentActivity,
 			activeSubagents: s.activeSubagents,
