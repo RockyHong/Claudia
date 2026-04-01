@@ -72,6 +72,16 @@ function getSrc(state) {
 }
 
 let aspectRatio = $state("");
+let usePixelated = $state(true);
+let panelEl = $state(null);
+
+function updatePixelated(el) {
+	if (!el || !panelEl) return;
+	const nativeW = el.videoWidth;
+	const displayW = panelEl.getBoundingClientRect().width;
+	if (!nativeW || !displayW) return;
+	usePixelated = nativeW / displayW <= 0.5;
+}
 
 function captureAspect(el) {
 	if (!el || aspectRatio) return;
@@ -79,6 +89,17 @@ function captureAspect(el) {
 	const h = el.videoHeight;
 	if (w && h) aspectRatio = `${w} / ${h}`;
 }
+
+$effect(() => {
+	const el = panelEl;
+	if (!el) return;
+	const ro = new ResizeObserver(() => {
+		const active = showA ? videoA : videoB;
+		updatePixelated(active);
+	});
+	ro.observe(el);
+	return () => ro.disconnect();
+});
 
 $effect(() => {
 	const src = getSrc(aggregateState);
@@ -93,6 +114,7 @@ $effect(() => {
 		requestAnimationFrame(() => {
 			videoB?.play().catch(() => {});
 			captureAspect(videoB);
+			updatePixelated(videoB);
 			showA = false;
 		});
 	} else {
@@ -100,6 +122,7 @@ $effect(() => {
 		requestAnimationFrame(() => {
 			videoA?.play().catch(() => {});
 			captureAspect(videoA);
+			updatePixelated(videoA);
 			showA = true;
 		});
 	}
@@ -108,6 +131,7 @@ $effect(() => {
 
 {#if available}
   <div
+    bind:this={panelEl}
     class="avatar-panel"
     class:bg-mode={background}
     class:hoverable={!background && onimmersive}
@@ -119,7 +143,8 @@ $effect(() => {
       src={srcA || undefined}
       class="slot"
       class:visible={showA}
-      onloadedmetadata={() => captureAspect(videoA)}
+      class:pixelated={usePixelated}
+      onloadedmetadata={() => { captureAspect(videoA); updatePixelated(videoA); }}
       autoplay
       loop
       muted
@@ -131,7 +156,8 @@ $effect(() => {
       src={srcB || undefined}
       class="slot"
       class:visible={!showA}
-      onloadedmetadata={() => captureAspect(videoB)}
+      class:pixelated={usePixelated}
+      onloadedmetadata={() => { captureAspect(videoB); updatePixelated(videoB); }}
       autoplay
       loop
       muted
@@ -186,6 +212,9 @@ $effect(() => {
     border-radius: 16px;
     opacity: 0;
     transition: opacity 0.3s ease;
+  }
+
+  .slot.pixelated {
     image-rendering: pixelated;
   }
 
