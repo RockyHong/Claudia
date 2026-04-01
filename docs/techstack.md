@@ -39,7 +39,7 @@ Hooks (POST) ──► Server (state machine) ──► SSE ──► Browser
                                     ◄── HTTP POST (focus, launch, settings)
 ```
 
-No WebSocket. SSE covers server→browser push. Browser→server is plain HTTP POST for actions. Don't introduce bidirectional channels.
+SSE covers server→browser push. Browser→server is plain HTTP POST for actions. Unidirectional by design.
 
 ### Separation of concerns
 
@@ -62,8 +62,8 @@ If you're importing across these in unexpected directions, the boundary is wrong
 - Functions do one thing
 - `const` by default, `let` only for reassignment, never `var`
 - Async/await over raw promises
-- No classes unless instance state is clearly needed
-- Error handling at boundaries, not deep in logic
+- Classes only when instance state is clearly needed
+- Error handling at boundaries, keep inner logic clean
 
 ### Naming
 
@@ -76,7 +76,7 @@ Self-documenting. `getSessionDisplayName(cwd)` not `getName(s)`. Booleans as nat
 - **Svelte 5 runes**: `$state`, `$derived`, `$effect` — no legacy reactive syntax
 - **Props down, events up** — components don't reach into parents
 - **One component, one concern** — small, focused files
-- **No CSS framework** — hand-written CSS in component `<style>` blocks
+- **Hand-written CSS** — component `<style>` blocks, scoped by default
 - **Video**: HTML `<video>` with `loop` attribute for avatars
 - **Audio**: Web Audio API for synth tones, `<audio>` for MP3 fallback
 

@@ -15,13 +15,13 @@ The single screen — everything the user sees and interacts with.
 └─────────────────────────────────────┘
 ```
 
-One page. No routing. Modals and popovers overlay this layout — never replace it.
+Single page. Modals and popovers overlay this layout.
 
 ## Startup Sequence
 
 1. Load preferences → apply theme, sound settings
 2. Connect SSE → start receiving state updates
-3. Check hooks → show HookGate if not installed (blocks everything else)
+3. Check hooks → show HookGate if hooks are missing (blocks everything else)
 4. Initialize SFX + ambience controllers
 5. Initialize Tauri bridge (standalone mode only)
 
@@ -35,7 +35,7 @@ Three things update automatically from aggregate state:
 
 - **Favicon** — green/blue/orange SVG data URI, changes with state
 - **Document title** — `"Claudia — 3 sessions (1 pending)"` format
-- **Status message** — template-based personality text from `personality.js`. Deterministic: same state → same message. No randomness.
+- **Status message** — template-based personality text from `personality.js`. Deterministic: same state always produces same message.
 
 ## Platform Status
 
@@ -58,4 +58,4 @@ SSE client auto-reconnects on disconnect. If down for more than a few seconds, a
 
 ## Sound
 
-Aggregate state changes trigger synth tones via Web Audio API. No audio files for defaults — generated in real-time. Custom MP3s can be placed in avatar set directories. Ambience layer plays subtle typing sounds while sessions are busy (opt-in via preferences). Browser autoplay policy handled gracefully — sounds only after first user interaction.
+Aggregate state changes trigger synth tones via Web Audio API — defaults are generated in real-time. Custom MP3s can be placed in avatar set directories. Ambience layer plays subtle typing sounds while sessions are busy (opt-in via preferences). Browser autoplay policy handled gracefully — sounds activate after first user interaction.

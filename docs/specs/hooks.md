@@ -10,7 +10,7 @@ Claude Code's hook system runs shell commands at lifecycle points. Claudia insta
 Claude Code → stdin JSON → curl POST /hook/:type → hook-transform.js → session-tracker
 ```
 
-**Critical detail**: data comes via **stdin JSON**, not environment variables. The `--data @-` flag pipes stdin to the POST body.
+**Critical detail**: data comes via **stdin JSON** (the `--data @-` flag pipes stdin to the POST body).
 
 ## Hook Types
 
@@ -29,12 +29,12 @@ Claude Code → stdin JSON → curl POST /hook/:type → hook-transform.js → s
 ## Installation Flow
 
 1. **First run** — HookGate overlay blocks the dashboard until hooks are installed. One button, one action.
-2. **Merge strategy** — `mergeHooks()` adds Claudia's hooks to `~/.claude/settings.json` without touching other tools' hooks. Each hook type gets its own array entry.
+2. **Merge strategy** — `mergeHooks()` adds Claudia's hooks to `~/.claude/settings.json`, preserving other tools' hooks. Each hook type gets its own array entry.
 3. **Removal** — `removeHooks()` strips only Claudia entries. `npx cldi uninstall` does full cleanup.
-4. **Silent failure** — if Claudia server is down, `curl` fails and Claude Code continues unaffected. This is by design — hooks must never block the user's work.
+4. **Silent failure** — hooks are fire-and-forget. `curl` exits cleanly whether the server is up or down, so Claude Code always keeps working.
 
 ## Design Decisions
 
 - **Hardcoded port 48901** — no discovery needed, hooks are static strings
-- **No bidirectional channel** — hooks push to server, that's it. Server pushes to browser via SSE. Two unidirectional pipes, not one bidirectional one.
-- **Legacy `/event` endpoint** — accepts pre-formatted events for backwards compatibility, but all hooks use `/hook/:type`
+- **Unidirectional by design** — hooks push to server, server pushes to browser via SSE. Two one-way pipes.
+- **Legacy `/event` endpoint** — accepts pre-formatted events for backwards compatibility; all hooks use `/hook/:type`

@@ -1,10 +1,10 @@
 # Feature Specs
 
-Source of truth for what Claudia does and why. Each spec covers product-level behavior — intent, user flows, cross-module interactions, and decisions not obvious from reading the code.
+Source of truth for what Claudia does and why. Each spec covers product-level behavior — intent, user flows, cross-module interactions, and design decisions.
 
-**These are not work orders.** Superpowers specs (`docs/superpowers/specs/`) describe what to build and get deleted after merge. These specs describe what exists and why — updated as features evolve.
+**Permanent source of truth.** Superpowers specs (`docs/superpowers/specs/`) are work orders deleted after merge. These specs describe what exists and why — updated as features evolve.
 
-**These are not code docs.** Implementation details, API tables, and module internals live in the code itself. Grep it. Specs focus on the "why" and the product logic that connects modules.
+**Product-level, code-light.** Implementation details, API tables, and module internals live in the code. Specs focus on the "why" and the product logic that connects modules.
 
 ---
 

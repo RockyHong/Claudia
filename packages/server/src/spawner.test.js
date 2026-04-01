@@ -301,11 +301,11 @@ describe("generateTerminalTitle", () => {
 		expect(t1).not.toBe(t2);
 	});
 
-	it("title format is '<name>-<uid>'", async () => {
+	it("title format is 'name' or 'name N'", async () => {
 		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
 		const { spawnSession } = await import("./spawner.js");
 		const { terminalTitle } = await spawnSession("/home/user/myapp");
-		expect(terminalTitle).toMatch(/^.+-[0-9a-z]{2,}$/);
+		expect(terminalTitle).toMatch(/^myapp( \d+)?$/);
 	});
 
 	it("uses 'session' as name fallback when cwd is empty string", async () => {

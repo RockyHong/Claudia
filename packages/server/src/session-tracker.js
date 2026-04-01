@@ -61,8 +61,8 @@ export function createSessionTracker({
 		);
 		if (!existing.has(baseName)) return baseName;
 		let n = 2;
-		while (existing.has(`${baseName} (${n})`)) n++;
-		return `${baseName} (${n})`;
+		while (existing.has(`${baseName} ${n}`)) n++;
+		return `${baseName} ${n}`;
 	}
 
 	function notify() {

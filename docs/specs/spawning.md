@@ -26,7 +26,7 @@ The flash overlay fades out over ~200ms. Platform-specific: WinForms overlay on 
 
 ## Linking
 
-If automatic spawn matching fails, users can manually link a session to a terminal window. The link dropdown lists visible terminal windows (Windows only); hovering flashes the window for identification without stealing focus.
+If automatic spawn matching fails, users can manually link a session to a terminal window. The link dropdown lists visible terminal windows (Windows only); hovering flashes the window for identification while keeping current focus.
 
 ## Platform Reality
 
@@ -50,5 +50,5 @@ In standalone (Tauri) distribution, spawned terminals are assigned to a Windows 
 
 - **`--suppressApplicationTitle`** on Windows Terminal — keeps Claudia's unique title even after Claude sets its own
 - **Unique titles via `terminal-title.js`** — avoids ambiguity when multiple sessions share a project name
-- **Flash, don't just focus** — the overlay confirms which window was targeted, reducing "did that work?" uncertainty
+- **Flash + focus** — the overlay confirms which window was targeted, reducing "did that work?" uncertainty
 - **Folder picker is cancellable** — `cancelBrowse()` kills the dialog process if the user navigates away

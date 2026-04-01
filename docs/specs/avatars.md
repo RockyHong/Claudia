@@ -20,7 +20,7 @@ Each set is a folder under `~/.claudia/avatars/{set-name}/` with up to 3 video f
 
 ## Default Set
 
-Built-in videos in `packages/server/assets/avatar/`. Used when active set is "default" or custom set has missing files. Cannot be deleted.
+Built-in videos in `packages/server/assets/avatar/`. Used when active set is "default" or custom set has missing files. Always available, permanent.
 
 ## User Operations
 
@@ -33,6 +33,6 @@ Built-in videos in `packages/server/assets/avatar/`. Used when active set is "de
 ## Design Decisions
 
 - **Video over GIF/sprite** — videos are smoother, more expressive, and the `<video loop>` API is simpler than animation frame management
-- **Set-based, not per-state** — sets are cohesive visual identities, not mix-and-match pieces
-- **Server probes formats** — no client negotiation needed, the server knows what's available per set
+- **Set-based** — sets are cohesive visual identities, all three states designed together
+- **Server probes formats** — server knows what's available per set, client just requests
 - **Cache-busting** — `avatarVersion` counter increments on any set change, forces frontend reload

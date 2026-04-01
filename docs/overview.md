@@ -6,13 +6,13 @@ Local session monitor for Claude Code. Just hooks, state tracking, and a dashboa
 
 ## Problem
 
-A developer running multiple Claude Code sessions across terminals has no centralized view. They tab-switch constantly to check: is it done? Does it need permission? Which terminal? The more sessions, the worse it gets.
+A developer running multiple Claude Code sessions across terminals lacks a centralized view. They tab-switch constantly to check: is it done? Does it need permission? Which terminal? The more sessions, the worse it gets.
 
 ## Solution
 
 Claudia is a local receptionist that watches all Claude Code sessions from one place. It uses Claude Code's hook system to receive events, tracks state per session, and renders a live dashboard showing who's idle, who's busy, and who's waiting on the user — with one-click terminal focus.
 
-No AI, no LLM. Template-based personality messages. Pure event-driven state tracking.
+Template-based personality messages. Pure event-driven state tracking.
 
 ## User
 
@@ -28,7 +28,7 @@ Solo developer or power user running 2+ Claude Code sessions simultaneously. Alr
 6. User clicks session card → terminal focus jumps to that window
 7. `npx cldi uninstall` — removes hooks and data cleanly
 
-If Claudia isn't running, hooks fail silently. Claude Code is unaffected.
+Hooks fail silently when the server is down — Claude Code keeps working normally.
 
 ## Features
 
@@ -85,7 +85,7 @@ CLI: `npx cldi` / `npx cldi uninstall`
 | `spawner.js` | Launch Claude Code sessions, folder browsing, open folder/terminal/URL |
 | `terminal-title.js` | Unique terminal title generation for spawned sessions |
 | `avatar-storage.js` | Avatar set CRUD (`~/.claudia/avatars/`) |
-| `multipart.js` | Multipart form-data parser (hand-rolled, no deps) |
+| `multipart.js` | Multipart form-data parser (hand-rolled) |
 | `project-storage.js` | Known project paths cache (`~/.claudia/projects.json`) |
 | `git-status.js` | Git branch/status for session metadata |
 | `usage.js` | Claude API usage/cost from `~/.claude/.credentials.json` |
