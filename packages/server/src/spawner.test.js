@@ -1,3 +1,4 @@
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // These mocks must be declared before any imports of the module under test.
@@ -560,8 +561,9 @@ describe("openFolder — darwin", () => {
 	it("spawns open with the given path", () => {
 		const child = createMockChild();
 		mockSpawn.mockReturnValue(child);
-		openFolder("/Users/user/project");
-		expect(mockSpawn).toHaveBeenCalledWith("open", ["/Users/user/project"], {
+		const testPath = "/Users/user/project";
+		openFolder(testPath);
+		expect(mockSpawn).toHaveBeenCalledWith("open", [path.resolve(testPath)], {
 			detached: true,
 			stdio: "ignore",
 		});

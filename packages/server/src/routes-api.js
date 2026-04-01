@@ -155,10 +155,15 @@ export function registerApiRoutes(app, tracker, options = {}) {
 		}
 	});
 
-	app.post("/api/open-folder", (req, res) => {
+	app.post("/api/open-folder", async (req, res) => {
 		const { cwd } = req.body;
 		if (!cwd || typeof cwd !== "string") {
 			return res.status(400).json({ error: "Missing cwd" });
+		}
+		try {
+			await fs.access(cwd);
+		} catch {
+			return res.status(400).json({ error: "Directory not found" });
 		}
 		try {
 			openFolder(cwd);
@@ -168,10 +173,15 @@ export function registerApiRoutes(app, tracker, options = {}) {
 		}
 	});
 
-	app.post("/api/open-terminal", (req, res) => {
+	app.post("/api/open-terminal", async (req, res) => {
 		const { cwd } = req.body;
 		if (!cwd || typeof cwd !== "string") {
 			return res.status(400).json({ error: "Missing cwd" });
+		}
+		try {
+			await fs.access(cwd);
+		} catch {
+			return res.status(400).json({ error: "Directory not found" });
 		}
 		try {
 			openTerminal(cwd);
@@ -432,6 +442,14 @@ export function registerApiRoutes(app, tracker, options = {}) {
 			return res.status(400).json({ error: "Missing cwd" });
 		}
 		try {
+			const stat = await fs.stat(cwd);
+			if (!stat.isDirectory()) {
+				return res.status(400).json({ error: "Not a directory" });
+			}
+		} catch {
+			return res.status(400).json({ error: "Directory not found" });
+		}
+		try {
 			const tree = await buildMdTree(cwd);
 			res.json({ tree });
 		} catch (err) {
@@ -443,6 +461,14 @@ export function registerApiRoutes(app, tracker, options = {}) {
 		const { cwd, path: filePath } = req.query;
 		if (!cwd || !filePath) {
 			return res.status(400).json({ error: "Missing cwd or path" });
+		}
+		try {
+			const stat = await fs.stat(cwd);
+			if (!stat.isDirectory()) {
+				return res.status(400).json({ error: "Not a directory" });
+			}
+		} catch {
+			return res.status(400).json({ error: "Directory not found" });
 		}
 		try {
 			const result = await readMdFile(cwd, filePath);

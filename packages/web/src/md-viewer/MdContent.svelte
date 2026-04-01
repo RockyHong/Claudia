@@ -11,6 +11,7 @@ import typescript from "highlight.js/lib/languages/typescript";
 import xml from "highlight.js/lib/languages/xml";
 import yaml from "highlight.js/lib/languages/yaml";
 import { marked } from "marked";
+import DOMPurify from "dompurify";
 
 hljs.registerLanguage("javascript", javascript);
 hljs.registerLanguage("js", javascript);
@@ -93,7 +94,7 @@ async function fetchContent() {
 		if (data.mtime === lastMtime) return;
 		lastMtime = data.mtime;
 		lineCount = data.content.split("\n").length;
-		html = marked.parse(data.content);
+		html = DOMPurify.sanitize(marked.parse(data.content));
 		error = "";
 		extractHeadings();
 	} catch {

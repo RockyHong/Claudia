@@ -25,7 +25,7 @@ function handleKeydown(e) {
 <!-- svelte-ignore a11y_interactive_supports_focus -->
 <div class="backdrop" onclick={handleBackdrop} onkeydown={() => {}} role="dialog" aria-modal="true" aria-label="Confirm">
   <div class="dialog">
-    <p class="message">{@html message}</p>
+    <p class="message">{message}</p>
     <div class="actions">
       <button class="cancel-btn" onclick={oncancel}>Cancel</button>
       <button class="confirm-btn {variant}" onclick={onconfirm}>{confirmLabel}</button>

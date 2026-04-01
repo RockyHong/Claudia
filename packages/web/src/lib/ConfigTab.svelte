@@ -188,7 +188,7 @@ checkHookStatus();
 
 {#if confirmAction === "install"}
   <ConfirmDialog
-    message="This will install Claudia hooks into <code>~/.claude/settings.json</code>. Existing hooks are preserved."
+    message="This will install Claudia hooks into ~/.claude/settings.json. Existing hooks are preserved."
     confirmLabel="Install hooks"
     variant="neutral"
     onconfirm={installHooks}
@@ -196,7 +196,7 @@ checkHookStatus();
   />
 {:else if confirmAction === "remove"}
   <ConfirmDialog
-    message="Remove all Claudia hooks from <code>~/.claude/settings.json</code>? Your other hooks will not be touched."
+    message="Remove all Claudia hooks from ~/.claude/settings.json? Your other hooks will not be touched."
     confirmLabel="Remove hooks"
     onconfirm={removeHooks}
     oncancel={() => confirmAction = null}

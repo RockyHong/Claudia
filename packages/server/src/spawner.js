@@ -1,5 +1,6 @@
 import { execFile, spawn } from "node:child_process";
 import { platform } from "node:os";
+import path from "node:path";
 import { generateTerminalTitle } from "./terminal-title.js";
 
 const currentPlatform = platform();
@@ -325,8 +326,9 @@ const openStrategies = {
  * Open a folder in the OS file explorer and bring it to front. Fire-and-forget.
  */
 export function openFolder(cwd) {
+	const resolved = path.resolve(cwd);
 	if (currentPlatform === "win32") {
-		const escaped = cwd.replace(/'/g, "''");
+		const escaped = resolved.replace(/'/g, "''");
 		const ps = [
 			"Add-Type @'",
 			"using System; using System.Runtime.InteropServices;",
@@ -361,7 +363,7 @@ export function openFolder(cwd) {
 	}
 	const cmd = openStrategies[currentPlatform];
 	if (!cmd) throw new Error(`Unsupported platform: ${currentPlatform}`);
-	spawn(cmd, [cwd], { detached: true, stdio: "ignore" }).unref();
+	spawn(cmd, [resolved], { detached: true, stdio: "ignore" }).unref();
 }
 
 const terminalStrategies = {
@@ -407,24 +409,36 @@ const terminalStrategies = {
  * Open a terminal at the given directory. Fire-and-forget.
  */
 export function openTerminal(cwd) {
+	const resolved = path.resolve(cwd);
 	const strategy = terminalStrategies[currentPlatform];
 	if (!strategy) throw new Error(`Unsupported platform: ${currentPlatform}`);
-	strategy(cwd);
+	strategy(resolved);
 }
 
 /**
  * Open a URL in the system's default browser.
+ * Only http: and https: schemes are allowed to prevent command injection.
  */
 export function openUrl(url) {
+	let parsed;
+	try {
+		parsed = new URL(url);
+	} catch {
+		throw new Error("Invalid URL");
+	}
+	if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+		throw new Error("Only http and https URLs are allowed");
+	}
+
 	if (currentPlatform === "win32") {
-		spawn("cmd", ["/c", "start", "", url], {
+		spawn("cmd", ["/c", "start", "", parsed.href], {
 			detached: true,
 			stdio: "ignore",
 		}).unref();
 	} else {
 		const cmd = openStrategies[currentPlatform];
 		if (!cmd) throw new Error(`Unsupported platform: ${currentPlatform}`);
-		spawn(cmd, [url], { detached: true, stdio: "ignore" }).unref();
+		spawn(cmd, [parsed.href], { detached: true, stdio: "ignore" }).unref();
 	}
 }
 

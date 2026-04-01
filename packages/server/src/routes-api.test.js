@@ -7,7 +7,12 @@ vi.mock("./md-files.js", () => ({
 	buildMdTree: vi.fn(),
 	readMdFile: vi.fn(),
 }));
-vi.mock("node:fs/promises", () => ({ default: { access: vi.fn() } }));
+vi.mock("node:fs/promises", () => ({
+	default: {
+		access: vi.fn(),
+		stat: vi.fn().mockResolvedValue({ isDirectory: () => true }),
+	},
+}));
 vi.mock("./focus.js", () => ({
 	focusTerminal: vi.fn(),
 }));
