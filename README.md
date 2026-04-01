@@ -56,21 +56,15 @@ Terminal 3 (claude code)  ──┘
                     Browser dashboard
 ```
 
-Claude Code [hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) fire on session events, sending a small JSON payload to Claudia's local server. She tracks state transitions and pushes updates to your browser via Server-Sent Events.
-
-All localhost. Nothing leaves your machine.
+Claude Code [hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) fire on session events, sending a small JSON payload to Claudia's local server. It tracks state transitions and pushes updates to your browser via Server-Sent Events.
 
 ## Features
 
-- **Live session tracking** — see every active session at a glance
-- **State detection** — Idle (○ green), Busy (● blue, pulsing), Pending (◉ orange, pulsing)
-- **Terminal focus** — click a session to jump to the right terminal
-- **Personality** — Claudia is your keeper, not a dashboard. She talks like one.
-- **Dynamic favicon** — tab icon changes color by state, visible even when minimized
-- **Sound cues** — synthesized tones on state changes (send, pending, idle)
-- **Dark/light mode** — follows your system preference
-- **Custom avatars** — upload video sets per state through Settings
-- **Zero footprint** — if Claudia isn't running, hooks fail silently. Your CLI stays untouched.
+- **All sessions, one view** — no more tab-switching to check what's done, blocked, or waiting
+- **Spawn** — launch project terminals, Claude sessions, open project folders — without leaving the dashboard
+- **Project docs** — browse the markdown tree per project — specs, READMEs, scope at a glance
+- **Focus** — notifications tell you when something needs you, terminal jump gets you there
+- **Avatar** — video sets that react to what's happening — custom sets, import/export
 
 ## Privacy
 
@@ -83,22 +77,6 @@ See [docs/help/privacy.md](docs/help/privacy.md) for exactly what Claudia reads,
 ```bash
 npx cldi uninstall   # remove hooks + delete all Claudia data
 ```
-
-For partial removal options, see [docs/help/privacy.md](docs/help/privacy.md).
-
-## Contributing
-
-```bash
-git clone https://github.com/RockyHong/Claudia.git
-cd Claudia
-npm install
-npm run dev     # start server in watch mode
-npm run build   # build the web UI
-npm test        # run tests
-npm run lint    # check with Biome
-```
-
-See [CLAUDE.md](CLAUDE.md) for design principles and coding standards.
 
 ## Requirements
 
