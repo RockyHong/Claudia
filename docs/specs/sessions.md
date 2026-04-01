@@ -26,19 +26,26 @@ This prevents the dashboard from flashing idle/busy/idle as subagents finish one
 
 ## Naming
 
-One format everywhere — dashboard cards and terminal title bars use the same scheme:
+Session cards always show `{displayName} · {terminalName}`.
 
-```
-{last-path-segment}           → api-server
-{last-path-segment} {n}       → api-server 2
-```
+- **displayName** — project folder name from `cwd`, deduped at session registration (`my-app`, `my-app 2`). Updates if cwd changes mid-session.
+- **terminalName** — identifies the terminal window. Set by auto-link or spawn, deduped for "Unknown" values.
 
-Suffix is space + number, only when disambiguating. Shell-safe (in the focus sanitize allowlist: `a-z A-Z 0-9 - _ . space`), human-readable in both contexts.
+### Terminal names by source
 
-- **Display names** add the suffix at session registration (collision with existing sessions)
-- **Terminal titles** add the suffix at spawn time (global counter per server lifetime)
+| Source | terminalName | How |
+|---|---|---|
+| Spawned by Claudia | `Claudia`, `Claudia 2` | Set at spawn time (global counter) |
+| Auto-linked (standalone terminal) | Window title (e.g. `Windows PowerShell`) | PID walk via `X-Hook-PID` header on SessionStart |
+| Unlinked (VS Code, macOS, etc.) | `Unknown`, `Unknown 2` | Default, deduped |
 
-Display names update if cwd changes mid-session.
+### Auto-link flow
+
+On `SessionStart`, the hook shell PID is passed via `X-Hook-PID: $$` HTTP header. The server walks the process tree (Windows-only, via `Win32_Process`) to find a known terminal process with a visible window. If found, the session is linked to that window handle. If not (VS Code, non-Windows), the session stays unlinked as "Unknown".
+
+### Alert gating
+
+Notifications (`onPendingAlert`, `onIdleAlert`) only fire for linked sessions — those where `terminalName` does not start with "Unknown". This prevents alerts for sessions where we can't focus a terminal window.
 
 ## Lifecycle
 
