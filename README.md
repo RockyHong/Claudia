@@ -19,11 +19,13 @@
 
 ## Why
 
-I run multiple Claude Code sessions — different monitors, different terminals, different projects. I kept tab-switching: *is it done? Does it need me? Which terminal was that?*
+Claude Code had me running — different monitors, different terminals, different projects. I kept tab-switching: *is it done? Is it blocked? Which terminal was that?*
 
-So I built Claudia — with Claude, under Claudia's watch?! She watches them all in one tab and dings when something needs me. Claude, every day.
+So here comes Claudia — built with Claude, under Claudia's watch?! It watches them all in one tab and dings when something needs me.
 
-And honestly? The best part isn't the tracking — it's that she feels like someone's there, building with you.
+And honestly, who doesn't like some company? Building alone doesn't have to feel lonely.
+
+...sometimes I think it's keeping watch over me too.
 
 ## Quick Start
 
