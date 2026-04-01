@@ -32,19 +32,13 @@ If Claudia isn't running, hooks fail silently. Claude Code is unaffected.
 
 ## Features
 
-- **Session list** — all active Claude Code sessions with live state, elapsed time, last tool
-- **State detection** — idle (green), busy (blue pulsing), pending (orange pulsing)
-- **Terminal focus** — click to raise the right terminal window (Windows/macOS/Linux)
-- **Avatar** — video avatar that changes by aggregate state (pending > busy > idle)
-- **Custom avatar sets** — upload/manage via settings, stored in `~/.claudia/avatars/`
-- **Sound effects** — Web Audio synth tones on state transitions, custom MP3 override
-- **Personality messages** — receptionist-style status text from templates (`personality.js`)
-- **Session spawning** — launch new Claude Code sessions from the dashboard
-- **Usage display** — API cost/usage rings from credentials
-- **Hook gate** — first-run UX prompts hook installation if missing
-- **Project browser** — browse/select known project folders
-- **Dynamic favicon** — tab icon color matches aggregate state
-- **Dark/light mode** — follows system preference
+- **Session tracking** — live state machine, subagent awareness, aggregate state ([spec](specs/sessions.md))
+- **Hook protocol** — 9 hook types, stdin JSON, silent failure design ([spec](specs/hooks.md))
+- **Dashboard** — single-screen layout, immersive mode, sound, status indicators, modals ([spec](specs/dashboard.md))
+- **Avatars** — video personality reacting to aggregate state, custom sets, import/export ([spec](specs/avatars.md))
+- **Spawning & focus** — launch sessions, terminal linking, window focus with flash ([spec](specs/spawning.md))
+
+See [docs/specs/](specs/index.md) for product-level behavior, design decisions, and cross-module flows.
 
 ---
 
@@ -60,45 +54,7 @@ Claude Code sessions ──► hooks (stdin JSON via POST) ──► Claudia ser
 - **In**: `POST /hook/:type` — raw Claude Code stdin JSON, transformed by `hook-transform.js`
 - **In (legacy)**: `POST /event` — pre-formatted `{session, state, tool, cwd, message, ts}`
 - **Out**: `GET /events` — SSE `state_update` messages to browser (`EventSource`)
-- **API**: `routes-api.js` — projects, avatars, usage, focus, launch, terminals, hooks status
-
-## Session States
-
-| State | Trigger hooks | Meaning |
-|---|---|---|
-| `idle` | `SessionStart`, `Stop` | Waiting for user input |
-| `busy` | `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `SubagentStop`, `PreCompact` | Working |
-| `pending` | `PermissionRequest` | Needs user attention |
-| `stopped` | `SessionEnd` | Session closed |
-
-Aggregate rule: `pending` > `busy` > `idle` (highest priority wins for avatar/favicon).
-
-No debouncing — `PreToolUse`/`PostToolUse` both map to `busy`, stays busy until `Stop`.
-
-Stale pruning: no event for 10 min → session removed.
-
-## Hook Protocol
-
-Hooks installed in `~/.claude/settings.json` via the dashboard (first-run prompt or Settings → Reinstall). Claude Code passes context as **stdin JSON** (not env vars). The `"hooks"` key wraps all hook arrays. See `packages/server/src/hooks.js` for exact config shape.
-
-9 hook types: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PermissionRequest`, `Stop`, `SessionEnd`, `SubagentStop`, `PreCompact`.
-
-## SSE Payload
-
-```json
-{
-  "type": "state_update",
-  "sessions": [{ "id", "state", "cwd", "displayName", "lastTool", "lastEvent", "pendingMessage" }],
-  "aggregateState": "pending",
-  "statusMessage": "The frontend crew needs your sign-off."
-}
-```
-
-## Display Name
-
-`cwd` → last path segment. `/home/user/projects/api-server` → `api-server`. Duplicate cwds get a short session ID suffix. Logic in `session-tracker.js:extractDisplayName()`.
-
----
+- **API**: `routes-api.js` — REST endpoints for all features
 
 ## Distribution
 
@@ -113,18 +69,20 @@ CLI: `npx cldi` / `npx cldi uninstall`
 
 ---
 
-## Server Modules — `packages/server/src/`
+## Module Index
+
+### Server — `packages/server/src/`
 
 | File | Does |
 |---|---|
 | `index.js` | Express app, SSE broadcast, `/hook/:type`, `/event`, server lifecycle |
-| `routes-api.js` | REST endpoints: projects, avatars, usage, focus, launch, terminals, hooks |
-| `session-tracker.js` | Session registry, state machine, display names, stale pruning |
+| `routes-api.js` | REST endpoints: projects, avatars, usage, focus, launch, terminals, hooks, preferences, claude-status |
+| `session-tracker.js` | Session registry, state machine, display names, stale pruning, subagent tracking |
 | `hook-transform.js` | Raw stdin JSON → internal event format |
 | `hooks.js` | Read/write `~/.claude/settings.json` hook config |
 | `personality.js` | Status message templates per state transition |
-| `focus.js` | Terminal focus — platform shell commands (PowerShell / osascript / xdotool) |
-| `spawner.js` | Launch Claude Code sessions from dashboard |
+| `focus.js` | Terminal focus, flash, window enumeration — platform shell commands |
+| `spawner.js` | Launch Claude Code sessions, folder browsing, open folder/terminal/URL |
 | `terminal-title.js` | Unique terminal title generation for spawned sessions |
 | `avatar-storage.js` | Avatar set CRUD (`~/.claudia/avatars/`) |
 | `multipart.js` | Multipart form-data parser (hand-rolled, no deps) |
@@ -133,11 +91,12 @@ CLI: `npx cldi` / `npx cldi uninstall`
 | `usage.js` | Claude API usage/cost from `~/.claude/.credentials.json` |
 | `sfx.js` | SFX file serving and preview |
 | `preferences.js` | User config read/write (`~/.claudia/config.json`) |
+| `claude-status.js` | Claude platform status polling from status.claude.com |
 | `md-files.js` | Serves project markdown files |
 | `job-object.js` | Windows Job Object — child process cleanup for standalone |
 | `lifecycle.js` | Shared lifecycle state for managed distributions |
 
-## Web — `packages/web/src/`
+### Web — `packages/web/src/`
 
 | File | Does |
 |---|---|
@@ -156,6 +115,7 @@ CLI: `npx cldi` / `npx cldi uninstall`
 | `lib/SpawnPopover.svelte` | Launch new Claude Code session |
 | `lib/HookGate.svelte` | First-run gate: prompts hook installation |
 | `lib/UsageRings.svelte` | API usage/cost ring visualization |
+| `lib/ClaudeStatus.svelte` | Platform status indicator dot |
 | `lib/DropZone.svelte` | Drag-and-drop file upload |
 | `lib/ConfirmDialog.svelte` | Confirmation dialog |
 | `lib/ToggleSlider.svelte` | Toggle switch |
@@ -168,31 +128,12 @@ CLI: `npx cldi` / `npx cldi uninstall`
 | `lib/ambience.js` | Ambient background effects |
 | `lib/tauri-bridge.js` | Tauri API integration for standalone mode |
 
-## Other Paths
+### Other Paths
 
 | Path | Contains |
 |---|---|
 | `src-tauri/` | Tauri config, Rust shell, sidecar binaries |
 | `scripts/` | `bundle-server.js`, `build-sea.js`, `sea-entry-template.js` |
 | `docs/building.md` | Build instructions for both distributions |
+| `docs/specs/` | Feature specs — source of truth per feature |
 | `packages/server/assets/` | Default avatar videos (`avatar/`), app icon |
-
----
-
-## File Tree
-
-```
-claudia/
-├── bin/cli.js, standalone.js
-├── packages/
-│   ├── server/src/          # 19 modules (see table)
-│   │   └── assets/          # avatar/, icon
-│   └── web/src/             # 25 files (see table)
-├── src-tauri/               # Tauri shell
-├── scripts/                 # Build scripts
-├── docs/
-│   ├── building.md          # Build instructions
-│   ├── overview.md          # This file
-│   └── techstack.md         # Tech choices & patterns
-├── CLAUDE.md                # Dev instructions (read first)
-```

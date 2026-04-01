@@ -43,26 +43,13 @@ No WebSocket. SSE covers server→browser push. Browser→server is plain HTTP P
 
 ### Separation of concerns
 
-Each module owns one thing. Don't cross boundaries:
+Each module owns one thing. Don't cross boundaries. See `docs/overview.md` → Module Index for the full list. Key boundaries:
 
-- **Transport**: `index.js` — HTTP, SSE, server lifecycle
-- **API**: `routes-api.js` — all REST endpoints
-- **State**: `session-tracker.js` — session registry, transitions
-- **Transform**: `hook-transform.js` — raw stdin → event
-- **Presentation**: `personality.js` — status message text
-- **OS**: `focus.js` — platform shell commands, isolated
-- **Spawning**: `spawner.js` — launch Claude Code sessions from dashboard
-- **Terminal Titles**: `terminal-title.js` — unique title generation for spawned sessions
-- **Storage**: `avatar-storage.js`, `project-storage.js` — file I/O
-- **Upload**: `multipart.js` — multipart form-data parser
-- **Git**: `git-status.js` — branch/status for session metadata
-- **Usage**: `usage.js` — Claude API usage from credentials
-- **Preferences**: `preferences.js` — user config read/write
-- **Sound Effects**: `sfx.js` — SFX file serving and preview
-- **Markdown**: `md-files.js` — serves project markdown files
-- **Lifecycle**: `lifecycle.js` — shared lifecycle state for managed distributions
-- **Job Object**: `job-object.js` — Windows child process cleanup
-- **Hooks**: `hooks.js` — read/write hook config in settings.json
+- **Transport** (`index.js`) ↔ **API** (`routes-api.js`) ↔ **State** (`session-tracker.js`)
+- **Transform** (`hook-transform.js`) — raw stdin → event, no other job
+- **OS** (`focus.js`, `job-object.js`) — all platform-specific code isolated here
+- **Storage** (`avatar-storage.js`, `project-storage.js`, `preferences.js`) — file I/O only
+- **External** (`claude-status.js`, `usage.js`) — outbound API calls, cached
 
 If you're importing across these in unexpected directions, the boundary is wrong.
 
@@ -109,8 +96,11 @@ Self-documenting. `getSessionDisplayName(cwd)` not `getName(s)`. Booleans as nat
 | API credentials | `~/.claude/.credentials.json` |
 | Avatar sets | `~/.claudia/avatars/{set-name}/` |
 | Known projects | `~/.claudia/projects.json` |
+| User preferences | `~/.claudia/config.json` |
 | Default assets | `packages/server/assets/avatar/`, `packages/server/assets/icon.ico` |
 | Shutdown token | Written at runtime, `mode 0o600` |
+
+For details on each feature's data and API surface, see [docs/specs/](specs/index.md).
 
 ---
 
