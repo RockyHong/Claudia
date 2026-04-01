@@ -1,7 +1,7 @@
 // API routes: projects, avatars, focus, launch, browse
 
 import fs from "node:fs/promises";
-import { platform } from "node:os";
+
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
@@ -21,12 +21,7 @@ import {
 	VALID_FILENAMES,
 } from "./avatar-storage.js";
 import { getCachedStatus } from "./claude-status.js";
-import {
-	flashWindow,
-	focusTerminal,
-	listTerminalWindows,
-	renameTerminal,
-} from "./focus.js";
+import { focusTerminal } from "./focus.js";
 import {
 	hasClaudiaHooks,
 	mergeHooks,
@@ -50,7 +45,6 @@ import {
 	openUrl,
 	spawnSession,
 } from "./spawner.js";
-import { generateTerminalTitle } from "./terminal-title.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -430,44 +424,6 @@ export function registerApiRoutes(app, tracker, options = {}) {
 		}
 	});
 
-	// --- Terminal linking API ---
-
-	app.get("/api/terminals", async (_req, res) => {
-		const supported = platform() === "win32";
-		if (!supported) {
-			return res.json({ terminals: [], supported: false });
-		}
-		const excludeHandles = tracker.getLinkedHandles();
-		const terminals = await listTerminalWindows(excludeHandles);
-		res.json({ terminals, supported: true });
-	});
-
-	app.post("/api/link/:sessionId", async (req, res) => {
-		const session = tracker.getSession(req.params.sessionId);
-		if (!session) {
-			return res.status(404).json({ error: "Session not found" });
-		}
-		if (session.spawned) {
-			return res.status(400).json({ error: "Session already linked" });
-		}
-		const { windowHandle } = req.body;
-		if (!windowHandle || typeof windowHandle !== "number") {
-			return res.status(400).json({ error: "Missing windowHandle" });
-		}
-
-		const terminalTitle = generateTerminalTitle(session.cwd);
-		await renameTerminal(windowHandle, terminalTitle);
-		tracker.linkSessionById(req.params.sessionId, terminalTitle, windowHandle);
-
-		// Flash the terminal to confirm the link visually (fire-and-forget)
-		focusTerminal(terminalTitle, "navigate", windowHandle);
-
-		console.log(
-			`[link] session=${session.displayName} title=${terminalTitle} hwnd=${windowHandle}`,
-		);
-		res.json({ ok: true, terminalTitle });
-	});
-
 	// --- Markdown viewer API ---
 
 	app.get("/api/md/tree", async (req, res) => {
@@ -505,15 +461,6 @@ export function registerApiRoutes(app, tracker, options = {}) {
 		const status = getCachedStatus();
 		if (!status) return res.status(204).end();
 		res.json(status);
-	});
-
-	// Flash a terminal window overlay (hover preview, no focus steal)
-	app.post("/api/flash/:hwnd", (req, res) => {
-		const hwnd = parseInt(req.params.hwnd, 10);
-		if (!hwnd || hwnd <= 0)
-			return res.status(400).json({ error: "Invalid hwnd" });
-		flashWindow(hwnd);
-		res.json({ ok: true });
 	});
 
 	// Trigger terminal focus for a session

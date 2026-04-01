@@ -10,8 +10,6 @@ vi.mock("./md-files.js", () => ({
 vi.mock("node:fs/promises", () => ({ default: { access: vi.fn() } }));
 vi.mock("./focus.js", () => ({
 	focusTerminal: vi.fn(),
-	listTerminalWindows: vi.fn(),
-	renameTerminal: vi.fn(),
 }));
 vi.mock("./project-storage.js", () => ({
 	trackProject: vi.fn(),
@@ -68,7 +66,7 @@ import {
 	setActiveSet,
 	updateSet,
 } from "./avatar-storage.js";
-import { focusTerminal, listTerminalWindows, renameTerminal } from "./focus.js";
+import { focusTerminal } from "./focus.js";
 import {
 	hasClaudiaHooks,
 	mergeHooks,
@@ -152,8 +150,6 @@ function requestRaw(server, method, urlPath, body, headers = {}) {
 const mockTracker = {
 	getSession: vi.fn(),
 	storeSpawnedInfo: vi.fn(),
-	linkSessionById: vi.fn(),
-	getLinkedHandles: vi.fn(),
 };
 
 let server;
@@ -474,39 +470,6 @@ describe("GET /api/usage (with client)", () => {
 	});
 });
 
-describe("GET /api/terminals", () => {
-	it("returns filtered terminal window list", async () => {
-		mockTracker.getLinkedHandles.mockReturnValue(new Set([111]));
-		listTerminalWindows.mockResolvedValue([
-			{ hwnd: 222, title: "cmd.exe" },
-			{ hwnd: 333, title: "PowerShell" },
-		]);
-
-		const res = await request(server, "GET", "/api/terminals");
-
-		expect(res.status).toBe(200);
-		expect(res.body).toEqual({
-			terminals: [
-				{ hwnd: 222, title: "cmd.exe" },
-				{ hwnd: 333, title: "PowerShell" },
-			],
-			supported: true,
-		});
-		expect(mockTracker.getLinkedHandles).toHaveBeenCalled();
-		expect(listTerminalWindows).toHaveBeenCalledWith(new Set([111]));
-	});
-
-	it("returns empty array when no terminals found", async () => {
-		mockTracker.getLinkedHandles.mockReturnValue(new Set());
-		listTerminalWindows.mockResolvedValue([]);
-
-		const res = await request(server, "GET", "/api/terminals");
-
-		expect(res.status).toBe(200);
-		expect(res.body).toEqual({ terminals: [], supported: true });
-	});
-});
-
 describe("GET /api/hooks/status", () => {
 	it("returns installed: true when hooks are present", async () => {
 		const settings = {
@@ -640,73 +603,6 @@ describe("PATCH /api/preferences", () => {
 		});
 		expect(res.status).toBe(200);
 		expect(res.body.sfx.volume).toBe(0.8);
-	});
-});
-
-describe("POST /api/link/:sessionId", () => {
-	it("returns 404 for unknown session", async () => {
-		mockTracker.getSession.mockReturnValue(null);
-
-		const res = await request(server, "POST", "/api/link/unknown-id", {
-			windowHandle: 123,
-		});
-
-		expect(res.status).toBe(404);
-		expect(res.body).toEqual({ error: "Session not found" });
-	});
-
-	it("returns 400 if session is already spawned", async () => {
-		mockTracker.getSession.mockReturnValue({
-			id: "s1",
-			spawned: true,
-			displayName: "proj",
-			cwd: "/proj",
-		});
-
-		const res = await request(server, "POST", "/api/link/s1", {
-			windowHandle: 123,
-		});
-
-		expect(res.status).toBe(400);
-		expect(res.body).toEqual({ error: "Session already linked" });
-	});
-
-	it("returns 400 if windowHandle is missing", async () => {
-		mockTracker.getSession.mockReturnValue({
-			id: "s1",
-			spawned: false,
-			displayName: "proj",
-			cwd: "/proj",
-		});
-
-		const res = await request(server, "POST", "/api/link/s1", {});
-
-		expect(res.status).toBe(400);
-		expect(res.body).toEqual({ error: "Missing windowHandle" });
-	});
-
-	it("links session successfully", async () => {
-		mockTracker.getSession.mockReturnValue({
-			id: "s1",
-			spawned: false,
-			displayName: "proj",
-			cwd: "/proj",
-		});
-		renameTerminal.mockResolvedValue(true);
-
-		const res = await request(server, "POST", "/api/link/s1", {
-			windowHandle: 456,
-		});
-
-		expect(res.status).toBe(200);
-		expect(res.body.ok).toBe(true);
-		expect(res.body.terminalTitle).toMatch(/^proj( \d+)?$/);
-		expect(renameTerminal).toHaveBeenCalledWith(456, res.body.terminalTitle);
-		expect(mockTracker.linkSessionById).toHaveBeenCalledWith(
-			"s1",
-			res.body.terminalTitle,
-			456,
-		);
 	});
 });
 
