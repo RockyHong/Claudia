@@ -27,6 +27,8 @@ OK to proceed?
 
 The user always picks the route. If they say "just do it" on something you sized as large, do it. If they want the full pipeline for something small, run it.
 
+**Spec maintenance** — if a commit changes feature behavior, update the relevant spec in `docs/specs/` before committing. Specs are the source of truth for product logic; stale specs are worse than missing ones.
+
 **User instructions override Superpowers defaults** — if something below contradicts a skill, follow what's written here.
 
 ## Project Structure
@@ -81,29 +83,9 @@ Ask "why" before "how." Don't add a library because it's popular — add it beca
 
 ### Separation of Concerns
 
-Each module owns one responsibility:
+Each module owns one responsibility. See `docs/overview.md` → Module Index for the full list, `docs/techstack.md` for key boundaries.
 
-- **Transport** (`server/src/index.js`) — SSE, event/hook endpoints, server lifecycle
-- **API Routes** (`server/src/routes-api.js`) — Projects, avatars, focus, launch
-- **State** (`server/src/session-tracker.js`) — Session registry, state transitions
-- **Transform** (`server/src/hook-transform.js`) — Raw stdin JSON → internal event format
-- **Presentation** (`server/src/personality.js`) — Status message templates
-- **OS Integration** (`server/src/focus.js`) — Terminal focus
-- **CLI Integration** (`server/src/hooks.js`) — Hook config management
-- **Spawning** (`server/src/spawner.js`) — Launch Claude Code sessions from dashboard
-- **Terminal Titles** (`server/src/terminal-title.js`) — Unique terminal title generation
-- **Storage** (`server/src/avatar-storage.js`, `server/src/project-storage.js`) — File I/O for avatars and projects
-- **Upload Parsing** (`server/src/multipart.js`) — Multipart form-data parser
-- **Git** (`server/src/git-status.js`) — Branch/status for session metadata
-- **Usage** (`server/src/usage.js`) — Claude API usage from credentials
-- **Preferences** (`server/src/preferences.js`) — User config read/write (`~/.claudia/config.json`)
-- **Sound Effects** (`server/src/sfx.js`) — SFX file serving and preview
-- **Markdown Files** (`server/src/md-files.js`) — Serves project markdown files
-- **Lifecycle** (`server/src/lifecycle.js`) — Shared lifecycle state for managed distributions
-- **Job Object** (`server/src/job-object.js`) — Windows child process cleanup for standalone
-- **UI** (`packages/web/`) — Renders state
-
-If you find yourself importing across these boundaries in unexpected directions, the design is wrong. Fix the boundary, don't bridge it.
+If you find yourself importing across boundaries in unexpected directions, the design is wrong. Fix the boundary.
 
 ### Atomic, Small Units
 
@@ -117,10 +99,10 @@ Names are documentation. `getSessionDisplayName(cwd)` not `getName(s)`. Booleans
 
 ### Ownership and Boundaries
 
-- Each package owns its dependencies — no reaching into internals
-- Server↔Web contract is the SSE event protocol (see `docs/overview.md`)
-- Claude Code↔Claudia contract is `POST /hook/:type` (primary) and `POST /event` (legacy)
-- Platform-specific code lives exclusively in `focus.js`
+- Each package owns its dependencies
+- Server↔Web contract is the SSE event protocol (see `docs/specs/sessions.md`)
+- Claude Code↔Claudia contract is the hook protocol (see `docs/specs/hooks.md`)
+- Platform-specific code lives exclusively in `focus.js` and `job-object.js`
 
 ## Coding Standards
 
