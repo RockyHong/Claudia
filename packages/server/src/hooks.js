@@ -9,8 +9,8 @@ const CLAUDIA_MARKER = "127.0.0.1:48901/hook";
 
 // Hook commands pipe raw stdin JSON to the server via curl.
 // The server does the field mapping (session_id → session, etc.) — no node cold start.
-function hookCommand(hookType) {
-	return `curl -sfS -X POST -H "Content-Type: application/json" -d @- http://127.0.0.1:48901/hook/${hookType} 2>/dev/null || true`;
+function hookCommand(hookType, extraHeaders = "") {
+	return `curl -sfS -X POST -H "Content-Type: application/json"${extraHeaders} -d @- http://127.0.0.1:48901/hook/${hookType} 2>/dev/null || true`;
 }
 
 // Non-blocking variant: reads stdin eagerly, then POSTs in background.
@@ -19,7 +19,12 @@ function hookCommandAsync(hookType) {
 	return `input=$(cat); (curl -sfS -X POST -H "Content-Type: application/json" -d "$input" http://127.0.0.1:48901/hook/${hookType} 2>/dev/null &) ; true`;
 }
 
-function hookEntry(hookType, matcher = ".*", background = false) {
+function hookEntry(
+	hookType,
+	matcher = ".*",
+	background = false,
+	extraHeaders = "",
+) {
 	return {
 		matcher,
 		hooks: [
@@ -27,14 +32,16 @@ function hookEntry(hookType, matcher = ".*", background = false) {
 				type: "command",
 				command: background
 					? hookCommandAsync(hookType)
-					: hookCommand(hookType),
+					: hookCommand(hookType, extraHeaders),
 			},
 		],
 	};
 }
 
 const CLAUDIA_HOOKS = {
-	SessionStart: [hookEntry("SessionStart")],
+	SessionStart: [
+		hookEntry("SessionStart", ".*", false, ' -H "X-Hook-PID: $$"'),
+	],
 	UserPromptSubmit: [hookEntry("UserPromptSubmit")],
 	PreToolUse: [hookEntry("PreToolUse")],
 	PostToolUse: [hookEntry("PostToolUse")],

@@ -164,6 +164,16 @@ describe("mergeHooks", () => {
 		expect(result.theme).toBe("dark");
 		expect(result.permissions).toEqual({ allow: ["Read"] });
 	});
+
+	it("includes X-Hook-PID header in SessionStart command only", () => {
+		const result = mergeHooks({});
+		const sessionStartCmd = result.hooks.SessionStart[0].hooks[0].command;
+		expect(sessionStartCmd).toContain("X-Hook-PID: $$");
+
+		// Other hooks should NOT have the PID header
+		const preToolCmd = result.hooks.PreToolUse[0].hooks[0].command;
+		expect(preToolCmd).not.toContain("X-Hook-PID");
+	});
 });
 
 describe("removeHooks", () => {
