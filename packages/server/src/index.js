@@ -10,7 +10,6 @@ import { findDeadWindows, focusTerminal } from "./focus.js";
 import { getGitStatus } from "./git-status.js";
 import { transformHookPayload, VALID_HOOK_TYPES } from "./hook-transform.js";
 import { getStatusMessage } from "./personality.js";
-import { resolveTerminalWindow } from "./pid-ancestry.js";
 import { getPreferences } from "./preferences.js";
 import { trackProject } from "./project-storage.js";
 import { registerApiRoutes } from "./routes-api.js";
@@ -173,29 +172,25 @@ app.post("/hook/:type", (req, res) => {
 		broadcastSfx("send");
 	}
 
-	// Auto-link: resolve terminal window from hook shell PID (fire-and-forget)
+	// Auto-link: the SessionStart hook resolves the terminal HWND synchronously
+	// (via inline PowerShell in the hook command) and sends it as a header.
 	if (type === "SessionStart") {
 		const session = tracker.getSession(event.session);
-		if (session && !session.spawned) {
-			const hookPid = parseInt(req.headers["x-hook-pid"], 10);
-			console.log(
-				`[auto-link] pid=${hookPid || "none"} session=${session.displayName}`,
-			);
-			if (hookPid > 0) {
-				resolveTerminalWindow(hookPid)
-					.then((result) => {
-						if (result) {
-							tracker.linkSessionById(event.session, result.title, result.hwnd);
-							console.log(
-								`[auto-link] linked session=${session.displayName} title=${result.title} hwnd=${result.hwnd}`,
-							);
-						} else {
-							console.log(`[auto-link] no terminal found for pid=${hookPid}`);
-						}
-					})
-					.catch((err) => {
-						console.log(`[auto-link] error: ${err.message}`);
-					});
+		const windowHeader = req.headers["x-hook-window"] || "";
+		console.log(
+			`[auto-link] window="${windowHeader}" session=${session?.displayName || "null"} spawned=${session?.spawned}`,
+		);
+		if (session && !session.spawned && windowHeader) {
+			const sep = windowHeader.indexOf("|");
+			if (sep !== -1) {
+				const hwnd = parseInt(windowHeader.slice(0, sep), 10);
+				const title = windowHeader.slice(sep + 1);
+				if (hwnd > 0 && title) {
+					tracker.linkSessionById(event.session, title, hwnd);
+					console.log(
+						`[auto-link] linked session=${session.displayName} title=${title} hwnd=${hwnd}`,
+					);
+				}
 			}
 		}
 	}

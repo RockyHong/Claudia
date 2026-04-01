@@ -38,9 +38,37 @@ function hookEntry(
 	};
 }
 
+// SessionStart uses a special command that resolves the terminal HWND synchronously
+// (while the hook shell and its ancestors are still alive), then sends it as a header.
+const SESSION_START_COMMAND = [
+	// Resolve terminal window from process tree via PowerShell (inline, before curl)
+	"HWND_INFO=$(powershell -NoProfile -Command '",
+	'$names = @("WindowsTerminal","cmd","powershell","pwsh","ConEmuC64","ConEmuC","mintty","Alacritty","kitty","Hyper","Tabby","WezTerm")',
+	"$cur = $PID",
+	"for ($i = 0; $i -lt 20; $i++) {",
+	'  $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $cur" -ErrorAction SilentlyContinue',
+	"  if (-not $proc) { break }",
+	'  $pname = $proc.Name -replace "\\.exe$",""',
+	"  if ($names -contains $pname) {",
+	"    $gp = Get-Process -Id $cur -ErrorAction SilentlyContinue",
+	"    if ($gp -and $gp.MainWindowHandle -ne 0) {",
+	'      "$($gp.MainWindowHandle)|$($gp.MainWindowTitle)"',
+	"      exit",
+	"    }",
+	"  }",
+	"  $cur = $proc.ParentProcessId",
+	"  if ($cur -eq 0) { break }",
+	"}",
+	"' 2>/dev/null)",
+	'curl -sfS -X POST -H "Content-Type: application/json" -H "X-Hook-Window: $HWND_INFO" -d @- http://127.0.0.1:48901/hook/SessionStart 2>/dev/null || true',
+].join("; ");
+
 const CLAUDIA_HOOKS = {
 	SessionStart: [
-		hookEntry("SessionStart", ".*", false, ' -H "X-Hook-PID: $PPID"'),
+		{
+			matcher: ".*",
+			hooks: [{ type: "command", command: SESSION_START_COMMAND }],
+		},
 	],
 	UserPromptSubmit: [hookEntry("UserPromptSubmit")],
 	PreToolUse: [hookEntry("PreToolUse")],

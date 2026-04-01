@@ -165,14 +165,16 @@ describe("mergeHooks", () => {
 		expect(result.permissions).toEqual({ allow: ["Read"] });
 	});
 
-	it("includes X-Hook-PID header in SessionStart command only", () => {
+	it("SessionStart command resolves terminal HWND inline and sends as header", () => {
 		const result = mergeHooks({});
 		const sessionStartCmd = result.hooks.SessionStart[0].hooks[0].command;
-		expect(sessionStartCmd).toContain("X-Hook-PID: $PPID");
+		expect(sessionStartCmd).toContain("X-Hook-Window:");
+		expect(sessionStartCmd).toContain("powershell");
+		expect(sessionStartCmd).toContain("MainWindowHandle");
 
-		// Other hooks should NOT have the PID header
+		// Other hooks should NOT have the window header
 		const preToolCmd = result.hooks.PreToolUse[0].hooks[0].command;
-		expect(preToolCmd).not.toContain("X-Hook-PID");
+		expect(preToolCmd).not.toContain("X-Hook-Window");
 	});
 });
 

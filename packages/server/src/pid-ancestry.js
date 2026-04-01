@@ -33,20 +33,20 @@ export function resolveTerminalWindow(pid) {
 
 	const ps = [
 		`$names = @(${nameList})`,
-		`$pid = ${Math.trunc(Number(pid))}`,
+		`$cur = ${Math.trunc(Number(pid))}`,
 		"for ($i = 0; $i -lt 20; $i++) {",
-		'  $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $pid" -ErrorAction SilentlyContinue',
+		'  $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $cur" -ErrorAction SilentlyContinue',
 		"  if (-not $proc) { break }",
 		"  $pname = $proc.Name -replace '\\.exe$',''",
 		"  if ($names -contains $pname) {",
-		"    $p = Get-Process -Id $pid -ErrorAction SilentlyContinue",
-		"    if ($p -and $p.MainWindowHandle -ne 0) {",
-		'      "$($p.MainWindowHandle)|$($p.MainWindowTitle)"',
+		"    $gp = Get-Process -Id $cur -ErrorAction SilentlyContinue",
+		"    if ($gp -and $gp.MainWindowHandle -ne 0) {",
+		'      "$($gp.MainWindowHandle)|$($gp.MainWindowTitle)"',
 		"      exit",
 		"    }",
 		"  }",
-		"  $pid = $proc.ParentProcessId",
-		"  if ($pid -eq 0) { break }",
+		"  $cur = $proc.ParentProcessId",
+		"  if ($cur -eq 0) { break }",
 		"}",
 	].join("\n");
 
