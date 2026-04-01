@@ -23,6 +23,8 @@ I run multiple Claude Code sessions — different monitors, different terminals,
 
 So I built Claudia — with Claude, building itself, naturally. She watches them all in one tab and dings when something needs me. Claude, every day.
 
+And honestly? The best part isn't the tracking — it's that she feels like someone's there, building with you.
+
 ## Quick Start
 
 ```bash
