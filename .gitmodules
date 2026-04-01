@@ -1,3 +1,0 @@
-[submodule ".claude/skills/shared"]
-	path = .claude/skills/shared
-	url = git@github.com:RockyHong/claude-skills.git
