@@ -225,6 +225,23 @@ export function registerApiRoutes(app, tracker, options = {}) {
 		res.json({ activeSet });
 	});
 
+	app.get("/api/avatars/formats", async (req, res) => {
+		const setPath = await getActiveSetPath();
+		const results = {};
+		try {
+			const files = await fs.readdir(setPath);
+			for (const file of files) {
+				if (!VALID_FILENAMES.has(file)) continue;
+				const [state, ext] = file.split(".");
+				if (!results[state]) results[state] = { webm: false, mp4: false };
+				results[state][ext] = true;
+			}
+		} catch {
+			// Set directory missing — no avatars available
+		}
+		res.json(results);
+	});
+
 	app.put("/api/avatars/active", async (req, res) => {
 		const { set } = req.body;
 		if (!set || typeof set !== "string") {

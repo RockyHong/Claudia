@@ -27,27 +27,15 @@ $effect(() => {
 
 async function checkAvailability() {
 	const bust = cacheBust;
-	const probes = STATES.flatMap((state) => [
-		probe(`/avatar/${state}.webm${bust}`).then((ok) => ({
-			state,
-			fmt: "webm",
-			ok,
-		})),
-		probe(`/avatar/${state}.mp4${bust}`).then((ok) => ({
-			state,
-			fmt: "mp4",
-			ok,
-		})),
-	]);
-	const results = {};
-	const preloads = [];
-
-	for (const { state, fmt, ok } of await Promise.all(probes)) {
-		if (!ok) continue;
-		if (!results[state]) results[state] = { webm: false, mp4: false };
-		results[state][fmt] = true;
+	let results = {};
+	try {
+		const res = await fetch("/api/avatars/formats");
+		if (res.ok) results = await res.json();
+	} catch {
+		// Server unavailable
 	}
 
+	const preloads = [];
 	for (const state of STATES) {
 		if (!results[state]) continue;
 		const src = results[state].webm
@@ -62,15 +50,6 @@ async function checkAvailability() {
 	showA = true;
 	aspectRatio = "";
 	available = Object.keys(results).length > 0 ? results : null;
-}
-
-async function probe(url) {
-	try {
-		const res = await fetch(url, { method: "HEAD" });
-		return res.ok;
-	} catch {
-		return false;
-	}
 }
 
 function preload(src) {
