@@ -19,10 +19,10 @@ Only `SessionStart` gets the PID header. Other hooks stay unchanged.
 curl -sfS -X POST -H "Content-Type: application/json" -d @- http://127.0.0.1:48901/hook/SessionStart 2>/dev/null || true
 
 # After
-curl -sfS -X POST -H "Content-Type: application/json" -H "X-Hook-PID: $$" -d @- http://127.0.0.1:48901/hook/SessionStart 2>/dev/null || true
+curl -sfS -X POST -H "Content-Type: application/json" -H "X-Hook-PID: $PPID" -d @- http://127.0.0.1:48901/hook/SessionStart 2>/dev/null || true
 ```
 
-`$$` is the shell PID. Users need one hook reinstall (existing install button handles this).
+`$PPID` is the parent process PID (the Claude Code node process). Using `$PPID` instead of `$$` because the hook shell exits before the async PID walk completes — the parent process is guaranteed to still be alive. Users need one hook reinstall (existing install button handles this).
 
 ## PID-to-HWND Resolution
 

@@ -40,7 +40,7 @@ function hookEntry(
 
 const CLAUDIA_HOOKS = {
 	SessionStart: [
-		hookEntry("SessionStart", ".*", false, ' -H "X-Hook-PID: $$"'),
+		hookEntry("SessionStart", ".*", false, ' -H "X-Hook-PID: $PPID"'),
 	],
 	UserPromptSubmit: [hookEntry("UserPromptSubmit")],
 	PreToolUse: [hookEntry("PreToolUse")],

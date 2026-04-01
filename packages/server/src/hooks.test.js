@@ -168,7 +168,7 @@ describe("mergeHooks", () => {
 	it("includes X-Hook-PID header in SessionStart command only", () => {
 		const result = mergeHooks({});
 		const sessionStartCmd = result.hooks.SessionStart[0].hooks[0].command;
-		expect(sessionStartCmd).toContain("X-Hook-PID: $$");
+		expect(sessionStartCmd).toContain("X-Hook-PID: $PPID");
 
 		// Other hooks should NOT have the PID header
 		const preToolCmd = result.hooks.PreToolUse[0].hooks[0].command;

@@ -178,17 +178,24 @@ app.post("/hook/:type", (req, res) => {
 		const session = tracker.getSession(event.session);
 		if (session && !session.spawned) {
 			const hookPid = parseInt(req.headers["x-hook-pid"], 10);
+			console.log(
+				`[auto-link] pid=${hookPid || "none"} session=${session.displayName}`,
+			);
 			if (hookPid > 0) {
 				resolveTerminalWindow(hookPid)
 					.then((result) => {
 						if (result) {
 							tracker.linkSessionById(event.session, result.title, result.hwnd);
 							console.log(
-								`[auto-link] session=${session.displayName} title=${result.title} hwnd=${result.hwnd}`,
+								`[auto-link] linked session=${session.displayName} title=${result.title} hwnd=${result.hwnd}`,
 							);
+						} else {
+							console.log(`[auto-link] no terminal found for pid=${hookPid}`);
 						}
 					})
-					.catch(() => {});
+					.catch((err) => {
+						console.log(`[auto-link] error: ${err.message}`);
+					});
 			}
 		}
 	}
