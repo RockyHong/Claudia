@@ -53,7 +53,7 @@ public class JobObject {
   }
   public static void Assign(string jobHandle, int pid) {
     IntPtr job = new IntPtr(long.Parse(jobHandle));
-    IntPtr proc = OpenProcess(0x1F0FFF, false, pid);
+    IntPtr proc = OpenProcess(0x0101, false, pid);
     if (proc != IntPtr.Zero) {
       AssignProcessToJobObject(job, proc);
       CloseHandle(proc);
