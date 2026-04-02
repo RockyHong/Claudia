@@ -75,45 +75,47 @@ $effect(() => {
 });
 </script>
 
-<div class="usage-rings" class:stale class:skeleton={!usage}>
-  <div class="ring-item">
-    <Tooltip text={usage ? tooltipText(usage.fiveHour?.utilization, countdownText5h, fiveHourOutpacing) : ""}>
-      <div class="ring-wrap">
-        <svg viewBox="0 0 24 24">
-          <circle class="ring-bg" cx="12" cy="12" r="9"/>
-          {#if usage}
-            <circle class="ring-fill" cx="12" cy="12" r="9"
-              class:outpacing={fiveHourOutpacing}
-              stroke-dasharray={CIRCUMFERENCE}
-              stroke-dashoffset={dashOffset(usage.fiveHour?.utilization)}
-            />
-          {/if}
-        </svg>
-      </div>
-    </Tooltip>
-    <span class="ring-label">5h</span>
+<Tooltip text={usage ? "" : "Fetching usage data…"}>
+  <div class="usage-rings" class:stale class:skeleton={!usage}>
+    <div class="ring-item">
+      <Tooltip text={usage ? tooltipText(usage.fiveHour?.utilization, countdownText5h, fiveHourOutpacing) : ""}>
+        <div class="ring-wrap">
+          <svg viewBox="0 0 24 24">
+            <circle class="ring-bg" cx="12" cy="12" r="9"/>
+            {#if usage}
+              <circle class="ring-fill" cx="12" cy="12" r="9"
+                class:outpacing={fiveHourOutpacing}
+                stroke-dasharray={CIRCUMFERENCE}
+                stroke-dashoffset={dashOffset(usage.fiveHour?.utilization)}
+              />
+            {/if}
+          </svg>
+        </div>
+      </Tooltip>
+      <span class="ring-label">5h</span>
+    </div>
+    <div class="ring-item">
+      <Tooltip text={usage ? tooltipText(usage.sevenDay?.utilization, countdownText7d, sevenDayOutpacing) : ""}>
+        <div class="ring-wrap">
+          <svg viewBox="0 0 24 24">
+            <circle class="ring-bg" cx="12" cy="12" r="9"/>
+            {#if usage}
+              <circle class="ring-fill" cx="12" cy="12" r="9"
+                class:outpacing={sevenDayOutpacing}
+                stroke-dasharray={CIRCUMFERENCE}
+                stroke-dashoffset={dashOffset(usage.sevenDay?.utilization)}
+              />
+            {/if}
+          </svg>
+        </div>
+      </Tooltip>
+      <span class="ring-label">7d</span>
+    </div>
+    {#if !usage}
+      <span class="ring-hint">waiting…</span>
+    {/if}
   </div>
-  <div class="ring-item">
-    <Tooltip text={usage ? tooltipText(usage.sevenDay?.utilization, countdownText7d, sevenDayOutpacing) : ""}>
-      <div class="ring-wrap">
-        <svg viewBox="0 0 24 24">
-          <circle class="ring-bg" cx="12" cy="12" r="9"/>
-          {#if usage}
-            <circle class="ring-fill" cx="12" cy="12" r="9"
-              class:outpacing={sevenDayOutpacing}
-              stroke-dasharray={CIRCUMFERENCE}
-              stroke-dashoffset={dashOffset(usage.sevenDay?.utilization)}
-            />
-          {/if}
-        </svg>
-      </div>
-    </Tooltip>
-    <span class="ring-label">7d</span>
-  </div>
-  {#if !usage}
-    <span class="ring-hint">waiting…</span>
-  {/if}
-</div>
+</Tooltip>
 
 <style>
   .usage-rings {
@@ -130,8 +132,7 @@ $effect(() => {
 
   .ring-hint {
     font-size: 0.5625rem;
-    color: var(--text-faint);
-    opacity: 0.7;
+    color: var(--text-muted);
   }
 
   .ring-item {
