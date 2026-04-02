@@ -30,10 +30,7 @@ function createSession(id, cwd) {
 		stateChangedAt: Date.now(),
 		pendingMessage: null,
 		permissionRequest: null,
-		spawned: false,
-		terminalTitle: null,
 		windowHandle: null,
-		terminalName: "Unknown",
 		git: null,
 		subagentActivity: 0,
 		activeSubagents: 0,
@@ -53,22 +50,12 @@ export function createSessionTracker({
 	onIdleAlert,
 } = {}) {
 	const sessions = new Map();
-	const spawnedInfo = new Map(); // cwd (normalized) → { terminalTitle, windowHandle }
+	const pendingLinks = new Map(); // cwd (normalized) → { windowHandle, displayName }
 	let pruneInterval = null;
 
 	function deduplicateDisplayName(baseName) {
 		const existing = new Set(
 			Array.from(sessions.values()).map((s) => s.displayName),
-		);
-		if (!existing.has(baseName)) return baseName;
-		let n = 2;
-		while (existing.has(`${baseName} ${n}`)) n++;
-		return `${baseName} ${n}`;
-	}
-
-	function deduplicateTerminalName(baseName) {
-		const existing = new Set(
-			Array.from(sessions.values()).map((s) => s.terminalName),
 		);
 		if (!existing.has(baseName)) return baseName;
 		let n = 2;
@@ -131,17 +118,14 @@ export function createSessionTracker({
 			const session = createSession(sessionId, cwd);
 			// Attach window handle if this cwd was spawned by Claudia
 			const normalizedCwd = cwd ? cwd.replace(/\\/g, "/") : null;
-			if (normalizedCwd && spawnedInfo.has(normalizedCwd)) {
-				const info = spawnedInfo.get(normalizedCwd);
-				session.spawned = true;
-				session.terminalTitle = info.terminalTitle;
-				session.windowHandle = info.windowHandle;
-				session.terminalName = info.terminalTitle;
+			if (normalizedCwd && pendingLinks.has(normalizedCwd)) {
+				const link = pendingLinks.get(normalizedCwd);
+				session.windowHandle = link.windowHandle;
+				if (link.displayName) session.displayName = link.displayName;
 				// Consume so next spawn of same cwd gets its own entry
-				spawnedInfo.delete(normalizedCwd);
+				pendingLinks.delete(normalizedCwd);
 			}
 			session.displayName = deduplicateDisplayName(session.displayName);
-			session.terminalName = deduplicateTerminalName(session.terminalName);
 			sessions.set(sessionId, session);
 		}
 
@@ -188,7 +172,7 @@ export function createSessionTracker({
 				session.activeSubagents = 0;
 				if (
 					prevState !== State.IDLE &&
-					!session.terminalName.startsWith("Unknown") &&
+					session.windowHandle != null &&
 					onIdleAlert
 				) {
 					onIdleAlert(session);
@@ -201,7 +185,7 @@ export function createSessionTracker({
 				session.permissionRequest = permissionRequest || null;
 				if (
 					prevState !== State.PENDING &&
-					!session.terminalName.startsWith("Unknown") &&
+					session.windowHandle != null &&
 					onPendingAlert
 				) {
 					onPendingAlert(session);
@@ -242,10 +226,7 @@ export function createSessionTracker({
 			stateChangedAt: s.stateChangedAt,
 			pendingMessage: s.pendingMessage,
 			permissionRequest: s.permissionRequest,
-			spawned: s.spawned,
-			terminalTitle: s.terminalTitle,
 			windowHandle: s.windowHandle,
-			terminalName: s.terminalName,
 			git: s.git,
 			subagentActivity: s.subagentActivity,
 			activeSubagents: s.activeSubagents,
@@ -289,39 +270,37 @@ export function createSessionTracker({
 		sessions.clear();
 	}
 
-	function storeSpawnedInfo(cwd, terminalTitle, windowHandle) {
+	function storeWindowHandle(cwd, windowHandle, displayName = null) {
 		const normalized = cwd.replace(/\\/g, "/");
-		spawnedInfo.set(normalized, { terminalTitle, windowHandle });
+		pendingLinks.set(normalized, { windowHandle, displayName });
 
-		// Retroactively mark the most recent unlinked session with this cwd
+		// Retroactively link the most recent unlinked session with this cwd
 		// (handles race where SessionStart hook fires before spawn returns).
 		// Only match ONE session — others with the same cwd are independent instances.
 		let newest = null;
 		for (const session of sessions.values()) {
 			const sessionCwd = session.cwd ? session.cwd.replace(/\\/g, "/") : null;
-			if (sessionCwd === normalized && !session.spawned) {
+			if (sessionCwd === normalized && session.windowHandle == null) {
 				if (!newest || session.lastEvent > newest.lastEvent) {
 					newest = session;
 				}
 			}
 		}
 		if (newest) {
-			newest.spawned = true;
-			newest.terminalTitle = terminalTitle;
 			newest.windowHandle = windowHandle;
-			newest.terminalName = terminalTitle;
+			if (displayName) {
+				newest.displayName = deduplicateDisplayName(displayName);
+			}
 			// Consume — the entry was matched, don't let new-session path double-match
-			spawnedInfo.delete(normalized);
+			pendingLinks.delete(normalized);
 			notify();
 		}
 	}
 
-	function linkSessionById(sessionId, terminalTitle, windowHandle) {
+	function linkSessionById(sessionId, windowHandle) {
 		const session = sessions.get(sessionId);
 		if (!session) return false;
-		session.terminalTitle = terminalTitle;
 		session.windowHandle = windowHandle;
-		session.terminalName = terminalTitle;
 		notify();
 		return true;
 	}
@@ -339,10 +318,7 @@ export function createSessionTracker({
 			stateChangedAt: s.stateChangedAt,
 			pendingMessage: s.pendingMessage,
 			permissionRequest: s.permissionRequest,
-			spawned: s.spawned,
-			terminalTitle: s.terminalTitle,
 			windowHandle: s.windowHandle,
-			terminalName: s.terminalName,
 			git: s.git,
 			subagentActivity: s.subagentActivity,
 			activeSubagents: s.activeSubagents,
@@ -365,7 +341,7 @@ export function createSessionTracker({
 		getSession,
 		getAggregateState,
 		getSessionDisplayName,
-		storeSpawnedInfo,
+		storeWindowHandle,
 		linkSessionById,
 		getLinkedHandles,
 		pruneStale,

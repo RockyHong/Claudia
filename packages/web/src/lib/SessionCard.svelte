@@ -72,19 +72,6 @@ function formatElapsed(timestamp) {
 
 let config = $derived(stateConfig[session.state] || stateConfig.idle);
 
-// Strip displayName prefix from terminalName to avoid redundancy
-// e.g. displayName="my-app", terminalName="my-app claudia 1" → "claudia 1"
-// Handles both fresh spawns and re-links after server restart
-let terminalLabel = $derived(() => {
-	const tn = session.terminalName || "Unknown";
-	const dn = session.displayName || "";
-	if (dn && tn.toLowerCase().startsWith(dn.toLowerCase())) {
-		const rest = tn.slice(dn.length).trim();
-		if (rest) return rest;
-	}
-	return tn;
-});
-
 async function handleClick() {
 	if (!session.windowHandle) return;
 	try {
@@ -164,7 +151,7 @@ function openDocs(e) {
     <div class="card-left">
       <span class="dot {config.dot}"></span>
       <span class="name">
-        {session.displayName} &middot; {terminalLabel()}
+        {session.displayName}
       </span>
     </div>
     <span class="card-state">

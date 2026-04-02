@@ -83,7 +83,7 @@ CLI: `npx @rockyhong/claudia` / `npx @rockyhong/claudia uninstall`
 | `personality.js` | Status message templates per state transition |
 | `focus.js` | Terminal focus, flash, window enumeration — platform shell commands |
 | `spawner.js` | Launch Claude Code sessions, folder browsing, open folder/terminal/URL |
-| `terminal-title.js` | Unique terminal title generation for spawned sessions |
+| `terminal-title.js` | Opaque terminal title generation for HWND discovery |
 | `avatar-storage.js` | Avatar set CRUD (`~/.claudia/avatars/`) |
 | `multipart.js` | Multipart form-data parser (hand-rolled) |
 | `project-storage.js` | Known project paths cache (`~/.claudia/projects.json`) |

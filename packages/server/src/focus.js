@@ -283,24 +283,6 @@ export function findDeadWindows(handles) {
 	});
 }
 
-/**
- * Rename a terminal window by setting its title via SetWindowText.
- * Windows-only — returns false on other platforms.
- */
-export function renameTerminal(windowHandle, newTitle) {
-	if (currentPlatform !== "win32") {
-		return Promise.resolve(false);
-	}
-
-	const escaped = newTitle.replace(/'/g, "''");
-	const ps = [
-		'Add-Type -Language CSharp @"\nusing System; using System.Runtime.InteropServices;\npublic class WinTitle { [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern bool SetWindowText(IntPtr hWnd, string lpString); }\n"@',
-		`[WinTitle]::SetWindowText([IntPtr]${Math.trunc(Number(windowHandle))}, '${escaped}')`,
-	].join("\n");
-
-	return runFile("powershell", ["-NoProfile", "-Command", ps]);
-}
-
 // Allowlist: only keep characters safe for window title matching
 function sanitize(str) {
 	return str.replace(/[^a-zA-Z0-9\-_. ]/g, "");

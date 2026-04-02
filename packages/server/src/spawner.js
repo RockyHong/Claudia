@@ -20,8 +20,9 @@ export function getManaged() {
 
 /**
  * Spawn a terminal running `claude` in the given directory.
- * Returns { terminalTitle, windowHandle } — a unique title set on the terminal
- * window for display, and the HWND found by polling for that title.
+ * Returns { windowHandle, displayName } — HWND and the terminal title
+ * (e.g. "Claudia 7f3a") used as both tab title and session display name.
+ * Non-Windows platforms return nulls for both.
  */
 export async function spawnSession(cwd) {
 	const strategy = strategies[currentPlatform];
@@ -132,7 +133,7 @@ async function spawnWindows(cwd) {
 		}
 	}
 
-	return { terminalTitle, windowHandle };
+	return { windowHandle, displayName: terminalTitle };
 }
 
 function runPowerShell(command) {
@@ -161,7 +162,7 @@ async function spawnMac(cwd) {
 	});
 	if (!managed) child.unref();
 
-	return { terminalTitle: null, windowHandle: null };
+	return { windowHandle: null, displayName: null };
 }
 
 async function spawnLinux(cwd) {
@@ -205,7 +206,7 @@ function trySpawn(cmd, args, cwd) {
 		child.on("error", () => resolve(null));
 		setTimeout(() => {
 			if (!managed) child.unref();
-			resolve({ terminalTitle: null, windowHandle: null });
+			resolve({ windowHandle: null, displayName: null });
 		}, 500);
 	});
 }

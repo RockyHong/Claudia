@@ -26,28 +26,18 @@ This prevents the dashboard from flashing idle/busy/idle as subagents finish one
 
 ## Naming
 
-Session cards always show `{displayName} · {terminalName}`.
+Session cards show `{displayName}` — the project folder name from `cwd`, deduped at session registration (`my-app`, `my-app 2`). Updates if cwd changes mid-session.
 
-- **displayName** — project folder name from `cwd`, deduped at session registration (`my-app`, `my-app 2`). Updates if cwd changes mid-session.
-- **terminalName** — identifies the terminal window. Set by auto-link or spawn, deduped for "Unknown" values.
+### Window linking
 
-### Terminal names by source
+Sessions can be linked to a terminal window via `windowHandle` (HWND). Two paths:
 
-| Source | terminalName | Card display | How |
-|---|---|---|---|
-| Spawned by Claudia | `my-app claudia 1` | `my-app · claudia 1` | Set at spawn time (global counter) |
-| Auto-linked (standalone terminal) | Window title (e.g. `Windows PowerShell`) | `my-app · Windows PowerShell` | Inline PowerShell walk on SessionStart |
-| Unlinked (VS Code, macOS, etc.) | `Unknown`, `Unknown 2` | `my-app · Unknown` | Default, deduped |
-
-Card display uses `terminalLabel` — a frontend derived that strips the `displayName` prefix from `terminalName` to avoid redundancy (e.g. `my-app claudia 1` → `claudia 1`).
-
-### Auto-link flow
-
-On `SessionStart`, the hook command runs an inline PowerShell process tree walk (synchronously, before curl) to resolve the terminal HWND and title. The result is sent via `X-Hook-Window: HWND|title` header. The server parses this and links the session. Windows-only; other platforms send an empty header and stay unlinked as "Unknown".
+- **Spawned by Claudia** — at spawn time, a temporary opaque title is set on the terminal to discover the HWND via polling. The HWND is stored; the title is not retained.
+- **Auto-linked** — on `SessionStart`, the hook command runs an inline PowerShell process tree walk to resolve the terminal HWND. Sent via `X-Hook-Window: HWND|title` header. The server stores the HWND. Windows-only; other platforms send an empty header.
 
 ### Alert gating
 
-Notifications (`onPendingAlert`, `onIdleAlert`) only fire for linked sessions — those where `terminalName` does not start with "Unknown". This prevents alerts for sessions where we can't focus a terminal window.
+Notifications (`onPendingAlert`, `onIdleAlert`) only fire for linked sessions — those with a non-null `windowHandle`. This prevents alerts for sessions where we can't focus a terminal window.
 
 ## Lifecycle
 
@@ -64,7 +54,7 @@ Every state change broadcasts to all connected dashboards:
 ```json
 {
   "type": "state_update",
-  "sessions": [{ "id", "state", "displayName", "cwd", "lastTool", "lastEvent", "stateChangedAt", "git", "spawned", ... }],
+  "sessions": [{ "id", "state", "displayName", "cwd", "lastTool", "lastEvent", "stateChangedAt", "windowHandle", "git", ... }],
   "aggregateState": "pending",
   "statusMessage": "1 awaiting your response."
 }

@@ -54,7 +54,6 @@ async function importFocus(platformName) {
 	return {
 		focusTerminal: mod.focusTerminal,
 		findDeadWindows: mod.findDeadWindows,
-		renameTerminal: mod.renameTerminal,
 	};
 }
 
@@ -64,13 +63,11 @@ async function importFocus(platformName) {
 describe("win32 platform", () => {
 	let focusTerminal;
 	let findDeadWindows;
-	let renameTerminal;
 
 	beforeEach(async () => {
 		vi.clearAllMocks();
 		vi.resetModules();
-		({ focusTerminal, findDeadWindows, renameTerminal } =
-			await importFocus("win32"));
+		({ focusTerminal, findDeadWindows } = await importFocus("win32"));
 	});
 
 	it("calls execFile with 'powershell' on win32", async () => {
@@ -192,26 +189,6 @@ describe("win32 platform", () => {
 		const result = await findDeadWindows([111, 222]);
 		expect(result).toEqual(new Set());
 	});
-
-	// ── renameTerminal ──────────────────────────────────────────────────────
-
-	it("calls SetWindowText via powershell with the new title", async () => {
-		succeedExecFile();
-		const result = await renameTerminal(12345, "myproject-01");
-		expect(mockExecFile).toHaveBeenCalledOnce();
-		expect(mockExecFile.mock.calls[0][0]).toBe("powershell");
-		const psScript = mockExecFile.mock.calls[0][1][2];
-		expect(psScript).toContain("[IntPtr]12345");
-		expect(psScript).toContain("myproject-01");
-		expect(psScript).toContain("SetWindowText");
-		expect(result).toBe(true);
-	});
-
-	it("returns false when powershell fails", async () => {
-		failExecFile();
-		const result = await renameTerminal(12345, "test-01");
-		expect(result).toBe(false);
-	});
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -317,13 +294,11 @@ describe("linux platform", () => {
 describe("unknown platform (fallback)", () => {
 	let focusTerminal;
 	let findDeadWindows;
-	let renameTerminal;
 
 	beforeEach(async () => {
 		vi.clearAllMocks();
 		vi.resetModules();
-		({ focusTerminal, findDeadWindows, renameTerminal } =
-			await importFocus("freebsd"));
+		({ focusTerminal, findDeadWindows } = await importFocus("freebsd"));
 	});
 
 	it("returns false without calling any shell command", async () => {
@@ -336,12 +311,6 @@ describe("unknown platform (fallback)", () => {
 	it("findDeadWindows returns empty Set on non-win32 platform", async () => {
 		const result = await findDeadWindows([111, 222]);
 		expect(result).toEqual(new Set());
-		expect(mockExecFile).not.toHaveBeenCalled();
-	});
-
-	it("renameTerminal returns false on non-win32 platform", async () => {
-		const result = await renameTerminal(12345, "test-01");
-		expect(result).toBe(false);
 		expect(mockExecFile).not.toHaveBeenCalled();
 	});
 });

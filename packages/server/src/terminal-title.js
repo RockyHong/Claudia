@@ -1,13 +1,18 @@
-let spawnCounter = 0;
+import { randomBytes } from "node:crypto";
 
-function sanitize(str) {
-	return str.replace(/[^a-zA-Z0-9\-_. ]/g, "").trim() || "session";
+/**
+ * Generate a terminal title for a spawned session.
+ * Format: "{projectName} {4-char hex}" — e.g. "Claudia 7f3a"
+ * Used as both the Windows Terminal tab title and the session displayName.
+ */
+export function generateTerminalTitle(cwd) {
+	const name = extractName(cwd);
+	const hex = randomBytes(2).toString("hex");
+	return `${name} ${hex}`;
 }
 
-export function generateTerminalTitle(cwd) {
-	const name = sanitize(
-		cwd.replace(/\\/g, "/").split("/").filter(Boolean).pop() || "",
-	);
-	const n = ++spawnCounter;
-	return `${name} claudia ${n}`;
+function extractName(cwd) {
+	if (!cwd) return "session";
+	const normalized = cwd.replace(/\\/g, "/");
+	return normalized.split("/").filter(Boolean).pop() || "session";
 }

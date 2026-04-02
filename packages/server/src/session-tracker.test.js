@@ -368,25 +368,12 @@ describe("session-tracker", () => {
 			});
 		});
 
-		it("assigns terminalName 'Unknown' to unlinked sessions", () => {
+		it("links windowHandle from storeWindowHandle for spawned sessions", () => {
+			tracker.storeWindowHandle("/proj", 123, "proj 7f3a");
 			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
 			const session = tracker.getSessions()[0];
-			expect(session.terminalName).toBe("Unknown");
-		});
-
-		it("deduplicates Unknown terminalName for multiple unlinked sessions", () => {
-			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj-a" });
-			tracker.handleEvent({ session: "s2", state: "idle", cwd: "/proj-b" });
-			const sessions = tracker.getSessions();
-			const names = sessions.map((s) => s.terminalName).sort();
-			expect(names).toEqual(["Unknown", "Unknown 2"]);
-		});
-
-		it("assigns terminalTitle as terminalName for spawned sessions", () => {
-			tracker.storeSpawnedInfo("/proj", "Claudia", 123);
-			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
-			const session = tracker.getSessions()[0];
-			expect(session.terminalName).toBe("Claudia");
+			expect(session.windowHandle).toBe(123);
+			expect(session.displayName).toBe("proj 7f3a");
 		});
 	});
 
@@ -440,7 +427,7 @@ describe("session-tracker", () => {
 
 		it("skips linked sessions (dead-window pruning handles those)", () => {
 			tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
-			tracker.linkSessionById("s1", "MyTerminal", 12345);
+			tracker.linkSessionById("s1", 12345);
 
 			vi.advanceTimersByTime(STALE_SESSION_TIMEOUT_MS + 1);
 			tracker.pruneStale();
@@ -530,13 +517,13 @@ describe("session-tracker", () => {
 
 		it("returns set of all non-null window handles", () => {
 			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj-a" });
-			tracker.storeSpawnedInfo("/proj-a", "proj-a-01", 111);
+			tracker.storeWindowHandle("/proj-a", 111, "proj-a ab12");
 
 			tracker.handleEvent({ session: "s2", state: "idle", cwd: "/proj-b" });
 			// s2 remains unlinked
 
 			tracker.handleEvent({ session: "s3", state: "idle", cwd: "/proj-c" });
-			tracker.storeSpawnedInfo("/proj-c", "proj-c-01", 222);
+			tracker.storeWindowHandle("/proj-c", 222, "proj-c cd34");
 
 			const handles = tracker.getLinkedHandles();
 			expect(handles).toEqual(new Set([111, 222]));
@@ -551,7 +538,7 @@ describe("session-tracker", () => {
 			});
 
 			alertTracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
-			alertTracker.linkSessionById("s1", "Windows PowerShell", 123);
+			alertTracker.linkSessionById("s1", 123);
 
 			alertTracker.handleEvent({
 				session: "s1",
@@ -585,7 +572,7 @@ describe("session-tracker", () => {
 			});
 
 			alertTracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
-			alertTracker.linkSessionById("s1", "Windows PowerShell", 123);
+			alertTracker.linkSessionById("s1", 123);
 
 			alertTracker.handleEvent({ session: "s1", state: "idle" });
 			expect(idleAlerts).toContain("s1");

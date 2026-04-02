@@ -178,17 +178,16 @@ app.post("/hook/:type", (req, res) => {
 		const session = tracker.getSession(event.session);
 		const windowHeader = req.headers["x-hook-window"] || "";
 		console.log(
-			`[auto-link] window="${windowHeader}" session=${session?.displayName || "null"} spawned=${session?.spawned}`,
+			`[auto-link] window="${windowHeader}" session=${session?.displayName || "null"} hwnd=${session?.windowHandle}`,
 		);
-		if (session && !session.spawned && windowHeader) {
+		if (session && !session.windowHandle && windowHeader) {
 			const sep = windowHeader.indexOf("|");
 			if (sep !== -1) {
 				const hwnd = parseInt(windowHeader.slice(0, sep), 10);
-				const title = windowHeader.slice(sep + 1);
-				if (hwnd > 0 && title) {
-					tracker.linkSessionById(event.session, title, hwnd);
+				if (hwnd > 0) {
+					tracker.linkSessionById(event.session, hwnd);
 					console.log(
-						`[auto-link] linked session=${session.displayName} title=${title} hwnd=${hwnd}`,
+						`[auto-link] linked session=${session.displayName} hwnd=${hwnd}`,
 					);
 				}
 			}

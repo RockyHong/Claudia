@@ -154,7 +154,7 @@ function requestRaw(server, method, urlPath, body, headers = {}) {
 
 const mockTracker = {
 	getSession: vi.fn(),
-	storeSpawnedInfo: vi.fn(),
+	storeWindowHandle: vi.fn(),
 };
 
 let server;
@@ -229,8 +229,8 @@ describe("POST /api/launch", () => {
 	it("spawns session successfully", async () => {
 		fs.access.mockResolvedValue(undefined);
 		spawnSession.mockResolvedValue({
-			terminalTitle: "my-project",
 			windowHandle: 42,
+			displayName: "my-project ab12",
 		});
 		trackProject.mockResolvedValue(undefined);
 
@@ -241,10 +241,10 @@ describe("POST /api/launch", () => {
 		expect(res.status).toBe(200);
 		expect(res.body).toEqual({ ok: true });
 		expect(spawnSession).toHaveBeenCalledWith("/home/user/my-project");
-		expect(mockTracker.storeSpawnedInfo).toHaveBeenCalledWith(
+		expect(mockTracker.storeWindowHandle).toHaveBeenCalledWith(
 			"/home/user/my-project",
-			"my-project",
 			42,
+			"my-project ab12",
 		);
 		expect(trackProject).toHaveBeenCalledWith("/home/user/my-project");
 	});

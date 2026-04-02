@@ -142,11 +142,9 @@ describe("spawnSession — win32", () => {
 		expect(secondCall[0]).toBe("powershell");
 	});
 
-	it("returns terminalTitle and windowHandle", async () => {
+	it("returns windowHandle", async () => {
 		const result = await spawnSession("C:\\Users\\user\\myproject");
-		expect(result).toHaveProperty("terminalTitle");
 		expect(result).toHaveProperty("windowHandle");
-		expect(typeof result.terminalTitle).toBe("string");
 	});
 
 	it("returns null windowHandle when findWindowByTitle returns empty", async () => {
@@ -184,9 +182,9 @@ describe("spawnSession — darwin", () => {
 		expect(mockSpawn.mock.calls[0][0]).toBe("osascript");
 	});
 
-	it("returns terminalTitle null and windowHandle null", async () => {
+	it("returns null windowHandle", async () => {
 		const result = await spawnSession("/Users/user/project");
-		expect(result).toEqual({ terminalTitle: null, windowHandle: null });
+		expect(result.windowHandle).toBeNull();
 	});
 
 	it("calls unref() on the spawned child", async () => {
@@ -231,7 +229,7 @@ describe("spawnSession — linux", () => {
 		expect(["gnome-terminal", "xterm", "x-terminal-emulator"]).toContain(cmd);
 	});
 
-	it("returns terminalTitle null and windowHandle null", async () => {
+	it("returns null windowHandle", async () => {
 		const child = createMockChild();
 		mockSpawn.mockReturnValue(child);
 
@@ -239,7 +237,7 @@ describe("spawnSession — linux", () => {
 		await vi.advanceTimersByTimeAsync(500);
 		const result = await promise;
 
-		expect(result).toEqual({ terminalTitle: null, windowHandle: null });
+		expect(result.windowHandle).toBeNull();
 	});
 
 	it("falls back to the next terminal if the first emits an error", async () => {
@@ -287,55 +285,7 @@ describe("spawnSession — linux", () => {
 	});
 });
 
-// ---------------------------------------------------------------------------
-// generateTerminalTitle — tested indirectly via spawnSession on win32
-// ---------------------------------------------------------------------------
-
-describe("generateTerminalTitle", () => {
-	// Use win32 so spawnSession returns the terminalTitle in its result.
-	beforeEach(async () => {
-		vi.resetModules();
-		vi.clearAllMocks();
-		mockPlatform.mockReturnValue("win32");
-	});
-
-	it("includes project name and claudia with number", async () => {
-		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
-		const { spawnSession } = await import("./spawner.js");
-		const { terminalTitle } = await spawnSession("/home/user/myproject");
-		expect(terminalTitle).toMatch(/^myproject claudia \d+$/);
-	});
-
-	it("extracts project name from Windows paths", async () => {
-		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
-		const { spawnSession } = await import("./spawner.js");
-		const { terminalTitle } = await spawnSession("C:\\Users\\user\\winproject");
-		expect(terminalTitle).toMatch(/^winproject claudia \d+$/);
-	});
-
-	it("produces different titles on consecutive calls (incrementing counter)", async () => {
-		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
-		const { spawnSession } = await import("./spawner.js");
-		const { terminalTitle: t1 } = await spawnSession("/home/user/proj");
-		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "2" }));
-		const { terminalTitle: t2 } = await spawnSession("/home/user/proj");
-		expect(t1).not.toBe(t2);
-	});
-
-	it("title format is '{project} claudia {n}'", async () => {
-		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
-		const { spawnSession } = await import("./spawner.js");
-		const { terminalTitle } = await spawnSession("/home/user/myapp");
-		expect(terminalTitle).toMatch(/^myapp claudia \d+$/);
-	});
-
-	it("falls back to 'session' for empty cwd", async () => {
-		mockExecFile.mockImplementation(makeExecFileMock({ hwnd: "1" }));
-		const { spawnSession } = await import("./spawner.js");
-		const { terminalTitle } = await spawnSession("");
-		expect(terminalTitle).toMatch(/^session claudia \d+$/);
-	});
-});
+// generateTerminalTitle is tested in terminal-title.test.js
 
 // ---------------------------------------------------------------------------
 // browseFolder — unsupported platform

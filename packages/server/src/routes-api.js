@@ -204,11 +204,11 @@ export function registerApiRoutes(app, tracker, options = {}) {
 		}
 
 		try {
-			const { terminalTitle, windowHandle } = await spawnSession(cwd);
+			const { windowHandle, displayName } = await spawnSession(cwd);
 			console.log(
-				`[spawn] cwd=${cwd} title=${terminalTitle} hwnd=${windowHandle}`,
+				`[spawn] cwd=${cwd} hwnd=${windowHandle} name=${displayName}`,
 			);
-			tracker.storeSpawnedInfo(cwd, terminalTitle, windowHandle);
+			tracker.storeWindowHandle(cwd, windowHandle, displayName);
 			await trackProject(cwd);
 
 			res.json({ ok: true });
@@ -496,7 +496,7 @@ export function registerApiRoutes(app, tracker, options = {}) {
 			return res.status(404).json({ error: "Session not found" });
 		}
 		console.log(
-			`[focus] session=${session.displayName} spawned=${session.spawned} hwnd=${session.windowHandle}`,
+			`[focus] session=${session.displayName} hwnd=${session.windowHandle}`,
 		);
 		const focused = await focusTerminal(
 			session.displayName,
