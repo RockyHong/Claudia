@@ -25,7 +25,7 @@ OK to proceed?
 
 The user always picks the route. If they say "just do it" on something you sized as large, do it. If they want the full pipeline for something small, run it.
 
-**Spec maintenance** — if a commit changes feature behavior, update the relevant spec in `docs/specs/` before committing. Specs are the source of truth for product logic; stale specs are worse than missing ones.
+**Doc staleness check** — before committing, scan `docs/` for files that describe behavior touched by the diff (specs, overview, techstack, building, help). If any doc is potentially stale, **report it to the user** with the doc path, what looks outdated, and the relevant diff context — then ask whether they want to resolve it now. Don't silently fix or silently skip. Stale docs are worse than missing ones.
 
 **User instructions override Superpowers defaults** — if something below contradicts a skill, follow what's written here.
 
