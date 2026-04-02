@@ -136,13 +136,7 @@ async function spawnSession(e) {
 function openDocs(e) {
 	e.stopPropagation();
 	const url = `${window.location.origin}/md-viewer.html?cwd=${encodeURIComponent(session.cwd)}`;
-	fetch("/api/open-url", {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ url }),
-	}).catch(() => {
-		window.open(url, "_blank");
-	});
+	window.open(url, "_blank", "width=720,height=860");
 }
 
 
