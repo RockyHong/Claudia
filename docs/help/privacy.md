@@ -47,7 +47,7 @@ Express server on `127.0.0.1:48901`. Claude Code hooks POST session events to it
 
 To support click-to-focus, Claudia needs to find which terminal window belongs to which session and bring it to the foreground. This requires process-level access that goes beyond just reading window titles:
 
-- **Windows** — `Get-Process` to list running processes, `Get-CimInstance Win32_Process` to walk the process tree (parent→child) and match a Claude Code session to its terminal window. This gives Claudia visibility into your full process tree, not just terminals. `SetWindowText` renames terminal windows of sessions launched from the dashboard so they can be identified later.
+- **Windows** — `Get-Process` to list running processes, `Get-CimInstance Win32_Process` to walk the process tree (parent→child) and match a Claude Code session to its terminal window. This gives Claudia visibility into your full process tree, not just terminals. `SetWindowText` renames terminal windows of linked sessions (both dashboard-launched and auto-detected) to align the tab title with the session card name.
 - **macOS** — AppleScript (`osascript`) to find and focus Terminal/iTerm windows.
 - **Linux** — `xdotool` to search window titles and activate the match.
 
