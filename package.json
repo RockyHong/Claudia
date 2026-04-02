@@ -1,17 +1,22 @@
 {
-  "name": "cldi",
+  "name": "@rockyhong/claudia",
   "version": "0.2.0",
   "description": "A personal receptionist for all your Claude Code agents",
-  "private": true,
   "type": "module",
   "workspaces": [
     "packages/server",
     "packages/web"
   ],
   "bin": {
-    "cldi": "./bin/cli.js",
-    "claudia-standalone": "./bin/standalone.js"
+    "cldi": "./bin/cli.js"
   },
+  "files": [
+    "bin/cli.js",
+    "packages/server/src/**/*.js",
+    "!packages/server/src/**/*.test.js",
+    "packages/server/package.json",
+    "packages/web/dist/"
+  ],
   "scripts": {
     "prepare": "git config core.hooksPath .githooks",
     "dev": "npm run dev --workspace=packages/server",
@@ -41,6 +46,10 @@
     "receptionist",
     "session-monitor"
   ],
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "express": "^5.2.1"
+  },
   "devDependencies": {
     "@biomejs/biome": "^2.4.10",
     "@tauri-apps/cli": "^2.10.1",
