@@ -1,6 +1,8 @@
 {
   "enabledPlugins": {
-    "superpowers@claude-plugins-official": true
+    "superpowers@claude-plugins-official": true,
+    "fullstack-dev-skills@fullstack-dev-skills": false,
+    "rust-analyzer-lsp@claude-plugins-official": false
   },
   "hooks": {
     "PostToolUse": [
