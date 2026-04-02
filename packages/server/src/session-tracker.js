@@ -299,15 +299,27 @@ export function createSessionTracker({
 		}
 	}
 
-	function linkSessionById(sessionId, windowHandle) {
+	function linkSessionById(sessionId, windowHandle, windowTitle = "") {
 		const session = sessions.get(sessionId);
-		if (!session) return false;
+		if (!session) return null;
 		session.windowHandle = windowHandle;
+
 		const baseName = extractDisplayName(session.cwd);
+		// If the terminal already has a valid Claudia title, reuse it
+		// (e.g. reconnect in a spawned terminal whose title is locked)
+		const titlePattern = new RegExp(
+			`^${baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} [0-9a-f]{4}$`,
+		);
+		if (windowTitle && titlePattern.test(windowTitle)) {
+			session.displayName = deduplicateDisplayName(windowTitle);
+			notify();
+			return { displayName: session.displayName, renamed: false };
+		}
+
 		const hex = randomBytes(2).toString("hex");
 		session.displayName = deduplicateDisplayName(`${baseName} ${hex}`);
 		notify();
-		return session.displayName;
+		return { displayName: session.displayName, renamed: true };
 	}
 
 	function getSession(id) {

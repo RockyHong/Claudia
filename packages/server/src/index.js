@@ -184,12 +184,19 @@ app.post("/hook/:type", (req, res) => {
 			const sep = windowHeader.indexOf("|");
 			if (sep !== -1) {
 				const hwnd = parseInt(windowHeader.slice(0, sep), 10);
+				const windowTitle = windowHeader.slice(sep + 1);
 				if (hwnd > 0) {
-					const newName = tracker.linkSessionById(event.session, hwnd);
-					if (newName) {
-						renameTerminal(hwnd, newName);
+					const result = tracker.linkSessionById(
+						event.session,
+						hwnd,
+						windowTitle,
+					);
+					if (result?.renamed) {
+						renameTerminal(hwnd, result.displayName);
 					}
-					console.log(`[auto-link] linked session=${newName} hwnd=${hwnd}`);
+					console.log(
+						`[auto-link] linked session=${result?.displayName} hwnd=${hwnd} renamed=${result?.renamed}`,
+					);
 				}
 			}
 		}

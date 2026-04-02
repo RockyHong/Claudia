@@ -427,9 +427,30 @@ describe("session-tracker", () => {
 
 		it("linkSessionById sets displayName to projectName + hex", () => {
 			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
-			const name = tracker.linkSessionById("s1", 123);
-			expect(name).toMatch(/^proj [0-9a-f]{4}$/);
-			expect(tracker.getSessions()[0].displayName).toBe(name);
+			const result = tracker.linkSessionById("s1", 123);
+			expect(result.displayName).toMatch(/^proj [0-9a-f]{4}$/);
+			expect(result.renamed).toBe(true);
+			expect(tracker.getSessions()[0].displayName).toBe(result.displayName);
+		});
+
+		it("linkSessionById reuses valid window title instead of generating new hex", () => {
+			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
+			const result = tracker.linkSessionById("s1", 123, "proj 7f3a");
+			expect(result.displayName).toBe("proj 7f3a");
+			expect(result.renamed).toBe(false);
+			expect(tracker.getSessions()[0].displayName).toBe("proj 7f3a");
+		});
+
+		it("linkSessionById generates new hex when window title doesn't match format", () => {
+			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
+			const result = tracker.linkSessionById("s1", 123, "Command Prompt");
+			expect(result.displayName).toMatch(/^proj [0-9a-f]{4}$/);
+			expect(result.renamed).toBe(true);
+		});
+
+		it("linkSessionById returns null for unknown session", () => {
+			const result = tracker.linkSessionById("nope", 123);
+			expect(result).toBeNull();
 		});
 
 		it("skips linked sessions (dead-window pruning handles those)", () => {
