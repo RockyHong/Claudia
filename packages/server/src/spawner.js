@@ -1,5 +1,6 @@
-import { execFile, spawn } from "node:child_process";
-import { platform } from "node:os";
+import { execFile, execFileSync, spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import { homedir, platform } from "node:os";
 import path from "node:path";
 import { generateTerminalTitle } from "./terminal-title.js";
 
@@ -34,6 +35,50 @@ const strategies = {
 	linux: spawnLinux,
 };
 
+/**
+ * Resolve the full path to the `claude` binary.
+ * Checks well-known install locations first, then falls back to PATH lookup.
+ * Returns bare "claude" as last resort (lets the shell try).
+ */
+function resolveClaudeBinary() {
+	const home = homedir();
+	const candidates =
+		currentPlatform === "win32"
+			? [
+					path.join(home, ".local", "bin", "claude.exe"),
+					path.join(
+						home,
+						"AppData",
+						"Local",
+						"Programs",
+						"claude-code",
+						"claude.exe",
+					),
+				]
+			: [
+					path.join(home, ".local", "bin", "claude"),
+					path.join(home, ".npm-global", "bin", "claude"),
+					"/usr/local/bin/claude",
+				];
+
+	for (const p of candidates) {
+		if (existsSync(p)) return p;
+	}
+
+	// Try the system PATH via `where` (win32) or `which`
+	try {
+		const cmd = currentPlatform === "win32" ? "where" : "which";
+		return execFileSync(cmd, ["claude"], {
+			encoding: "utf-8",
+			timeout: 3000,
+		})
+			.trim()
+			.split(/\r?\n/)[0];
+	} catch {
+		return "claude";
+	}
+}
+
 async function spawnWindows(cwd) {
 	const terminalTitle = generateTerminalTitle(cwd);
 	const fwdCwd = cwd.replace(/\\/g, "/");
@@ -52,7 +97,7 @@ async function spawnWindows(cwd) {
 		fwdCwd,
 		"cmd",
 		"/k",
-		"claude",
+		resolveClaudeBinary(),
 	];
 	const wtArgLine = wtArgs
 		.map((a) => (/[\s"]/.test(a) ? `"${a.replace(/"/g, '`"')}"` : a))
@@ -71,7 +116,6 @@ async function spawnWindows(cwd) {
 			const { getJobHandle } = await import("./lifecycle.js");
 			const jobHandle = getJobHandle();
 			if (jobHandle) {
-				const { execFileSync } = await import("node:child_process");
 				const pid = execFileSync(
 					"powershell",
 					[
@@ -108,7 +152,7 @@ async function spawnMac(cwd) {
 	const escapedCwd = cwd.replace(/'/g, "'\\''");
 	const script = `tell application "Terminal"
     activate
-    do script "cd '${escapeAppleScript(escapedCwd)}' && claude"
+    do script "cd '${escapeAppleScript(escapedCwd)}' && '${escapeAppleScript(resolveClaudeBinary())}'"
   end tell`;
 
 	const child = spawn("osascript", ["-e", script], {
@@ -122,15 +166,24 @@ async function spawnMac(cwd) {
 
 async function spawnLinux(cwd) {
 	const escapedCwd = cwd.replace(/'/g, "'\\''");
+	const claudeBin = resolveClaudeBinary().replace(/'/g, "'\\''");
 	const terminals = [
 		{
 			cmd: "gnome-terminal",
-			args: ["--", "bash", "-c", `cd '${escapedCwd}' && claude; exec bash`],
+			args: [
+				"--",
+				"bash",
+				"-c",
+				`cd '${escapedCwd}' && '${claudeBin}'; exec bash`,
+			],
 		},
-		{ cmd: "xterm", args: ["-e", `cd '${escapedCwd}' && claude; exec bash`] },
+		{
+			cmd: "xterm",
+			args: ["-e", `cd '${escapedCwd}' && '${claudeBin}'; exec bash`],
+		},
 		{
 			cmd: "x-terminal-emulator",
-			args: ["-e", `cd '${escapedCwd}' && claude; exec bash`],
+			args: ["-e", `cd '${escapedCwd}' && '${claudeBin}'; exec bash`],
 		},
 	];
 

@@ -5,15 +5,26 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // vi.mock() calls are hoisted to the top of the file by Vitest.
 const mockSpawn = vi.fn();
 const mockExecFile = vi.fn();
+const mockExecFileSync = vi.fn(() => {
+	throw new Error("not found");
+});
 const mockPlatform = vi.fn();
+const mockHomedir = vi.fn(() => "/mock/home");
+const mockExistsSync = vi.fn(() => false);
 
 vi.mock("node:child_process", () => ({
 	spawn: mockSpawn,
 	execFile: mockExecFile,
+	execFileSync: mockExecFileSync,
 }));
 
 vi.mock("node:os", () => ({
 	platform: mockPlatform,
+	homedir: mockHomedir,
+}));
+
+vi.mock("node:fs", () => ({
+	existsSync: mockExistsSync,
 }));
 
 // ---------------------------------------------------------------------------
@@ -66,6 +77,15 @@ function makeExecFileMock({
 		}
 	});
 }
+
+// Reset resolveClaudeBinary deps after vi.clearAllMocks() wipes implementations
+beforeEach(() => {
+	mockHomedir.mockReturnValue("/mock/home");
+	mockExistsSync.mockReturnValue(false);
+	mockExecFileSync.mockImplementation(() => {
+		throw new Error("not found");
+	});
+});
 
 // ---------------------------------------------------------------------------
 // spawnSession — unsupported platform
