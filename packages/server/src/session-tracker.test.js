@@ -375,6 +375,20 @@ describe("session-tracker", () => {
 			expect(session.windowHandle).toBe(123);
 			expect(session.displayName).toBe("proj 7f3a");
 		});
+
+		it("storeWindowHandle deletes stale pendingLink when HWND already assigned by auto-link", () => {
+			// Simulate auto-link winning the race: session created and linked before spawn returns
+			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
+			tracker.linkSessionById("s1", 123);
+			// Spawn returns late — storeWindowHandle should NOT leave a stale pendingLink
+			tracker.storeWindowHandle("/proj", 123, "proj 7f3a");
+
+			// Next session for same cwd should NOT pick up the stale pendingLink
+			tracker.handleEvent({ session: "s2", state: "idle", cwd: "/proj" });
+			const s2 = tracker.getSessions().find((s) => s.id === "s2");
+			expect(s2.windowHandle).toBeNull();
+			expect(s2.displayName).not.toBe("proj 7f3a");
+		});
 	});
 
 	describe("display name extraction", () => {
@@ -445,6 +459,19 @@ describe("session-tracker", () => {
 			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
 			const result = tracker.linkSessionById("s1", 123, "Command Prompt");
 			expect(result.displayName).toMatch(/^proj [0-9a-f]{4}$/);
+			expect(result.renamed).toBe(true);
+		});
+
+		it("linkSessionById generates new hex when reused title is taken by another session", () => {
+			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
+			tracker.linkSessionById("s1", 100, "proj 7f3a");
+			// S1 now has displayName "proj 7f3a"
+
+			tracker.handleEvent({ session: "s2", state: "idle", cwd: "/proj" });
+			const result = tracker.linkSessionById("s2", 200, "proj 7f3a");
+			// Should generate new hex, not append " 2"
+			expect(result.displayName).toMatch(/^proj [0-9a-f]{4}$/);
+			expect(result.displayName).not.toBe("proj 7f3a");
 			expect(result.renamed).toBe(true);
 		});
 

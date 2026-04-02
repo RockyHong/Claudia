@@ -296,6 +296,16 @@ export function createSessionTracker({
 			// Consume — the entry was matched, don't let new-session path double-match
 			pendingLinks.delete(normalized);
 			notify();
+		} else {
+			// No unlinked session found. If this HWND is already assigned
+			// (auto-link won the race), the pendingLink is stale — delete it
+			// to prevent contaminating the next session with this cwd.
+			const hwndTaken = Array.from(sessions.values()).some(
+				(s) => s.windowHandle === windowHandle,
+			);
+			if (hwndTaken) {
+				pendingLinks.delete(normalized);
+			}
 		}
 	}
 
@@ -311,9 +321,13 @@ export function createSessionTracker({
 			`^${baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} [0-9a-f]{4}$`,
 		);
 		if (windowTitle && titlePattern.test(windowTitle)) {
-			session.displayName = deduplicateDisplayName(windowTitle);
-			notify();
-			return { displayName: session.displayName, renamed: false };
+			const deduped = deduplicateDisplayName(windowTitle);
+			if (deduped === windowTitle) {
+				session.displayName = windowTitle;
+				notify();
+				return { displayName: session.displayName, renamed: false };
+			}
+			// Name taken by another session — fall through to generate new hex
 		}
 
 		const hex = randomBytes(2).toString("hex");
