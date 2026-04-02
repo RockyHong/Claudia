@@ -4,7 +4,7 @@ Pick how you're running Claudia, then follow the steps.
 
 | How you run it | Jump to |
 |---|---|
-| `npx cldi` | [npx](#npx) |
+| `npx @rockyhong/claudia` | [npx](#npx) |
 | Desktop app (Claudia.exe / Claudia.app) | [Standalone](#standalone) |
 | Cloned the repo / developing | [Dev](#dev) |
 
@@ -14,10 +14,10 @@ Pick how you're running Claudia, then follow the steps.
 
 ### Server disconnected
 
-The terminal running `npx cldi` was closed or crashed. Restart it:
+The terminal running `npx @rockyhong/claudia` was closed or crashed. Restart it:
 
 ```bash
-npx cldi
+npx @rockyhong/claudia
 ```
 
 If it fails to start, check if something else is using the port:
@@ -40,7 +40,7 @@ Hooks may need reinstalling. The dashboard prompts you automatically, but you ca
 claude config list hooks
 ```
 
-Look for entries pointing to `localhost:48901/hook/`. If missing, stop and restart `npx cldi` — it re-registers hooks on startup.
+Look for entries pointing to `localhost:48901/hook/`. If missing, stop and restart `npx @rockyhong/claudia` — it re-registers hooks on startup.
 
 ---
 

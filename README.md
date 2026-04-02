@@ -2,20 +2,11 @@
 
 **Your Claude keeper.**
 
-*Claude + día — Claude Code every day?*
+**Claud**e + d**ía** — Claude Code every day!
 
-```
-  ┌──────────────────────────────────┐
-  │  Claudia              localhost  │
-  │                                  │
-  │  ● api-server          Busy  3s │
-  │  ◉ frontend      Needs you  12s │
-  │  ○ pipeline           Idle  2m  │
-  │                                  │
-  │  "The frontend team needs your   │
-  │   sign-off."                     │
-  └──────────────────────────────────┘
-```
+<p align="center">
+  <img src="docs/assets/demo.gif" alt="Claudia dashboard demo" width="800">
+</p>
 
 ## Why
 
@@ -28,7 +19,7 @@ And honestly, who doesn't like some company?
 ## Quick Start
 
 ```bash
-npx cldi         # Start the CLauDIa!
+npx @rockyhong/claudia
 ```
 
 First run prompts you to install hooks. That's it — run your Claude sessions and Claudia picks them up.
@@ -75,7 +66,7 @@ See [docs/help/privacy.md](docs/help/privacy.md) for exactly what Claudia reads,
 ## Uninstall
 
 ```bash
-npx cldi uninstall   # remove hooks + delete all Claudia data
+npx @rockyhong/claudia uninstall   # remove hooks + delete all Claudia data
 ```
 
 ## Requirements

@@ -20,13 +20,13 @@ Solo developer or power user running 2+ Claude Code sessions simultaneously. Alr
 
 ## User Flow
 
-1. `npx cldi` — starts server on `localhost:48901`, opens browser dashboard
+1. `npx @rockyhong/claudia` — starts server on `localhost:48901`, opens browser dashboard
 2. Dashboard prompts hook installation on first run (one-time)
 3. User works in their terminals as usual — hooks fire automatically
 4. Dashboard shows all sessions: state, elapsed time, current tool, project name
 5. Session enters pending → avatar changes, sound plays, personality message appears
 6. User clicks session card → terminal focus jumps to that window
-7. `npx cldi uninstall` — removes hooks and data cleanly
+7. `npx @rockyhong/claudia uninstall` — removes hooks and data cleanly
 
 Hooks fail silently when the server is down — Claude Code keeps working normally.
 
@@ -65,7 +65,7 @@ Two entry points, same server code. Build details in `docs/building.md`.
 | `bin/cli.js` | Browser tab | Node.js (npx) |
 | `bin/standalone.js` | Tauri native window | Node SEA 64-bit + Tauri |
 
-CLI: `npx cldi` / `npx cldi uninstall`
+CLI: `npx @rockyhong/claudia` / `npx @rockyhong/claudia uninstall`
 
 ---
 

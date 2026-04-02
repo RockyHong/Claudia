@@ -30,7 +30,7 @@ Claude Code → stdin JSON → curl POST /hook/:type → hook-transform.js → s
 
 1. **First run** — HookGate overlay blocks the dashboard until hooks are installed. One button, one action.
 2. **Merge strategy** — `mergeHooks()` adds Claudia's hooks to `~/.claude/settings.json`, preserving other tools' hooks. Each hook type gets its own array entry.
-3. **Removal** — `removeHooks()` strips only Claudia entries. `npx cldi uninstall` does full cleanup.
+3. **Removal** — `removeHooks()` strips only Claudia entries. `npx @rockyhong/claudia uninstall` does full cleanup.
 4. **Silent failure** — hooks are fire-and-forget. `curl` exits cleanly whether the server is up or down, so Claude Code always keeps working.
 
 ## Design Decisions

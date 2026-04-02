@@ -33,7 +33,7 @@ The user always picks the route. If they say "just do it" on something you sized
 
 ```
 claudia/
-  bin/cli.js                     CLI entry point (npx cldi, cldi uninstall)
+  bin/cli.js                     CLI entry point (npx @rockyhong/claudia, cldi uninstall)
   packages/
     server/src/                  Express event server, session tracking, hooks
     web/src/                     Svelte 5 browser dashboard

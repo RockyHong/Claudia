@@ -14,7 +14,7 @@ Two distributions, one codebase. Pick the one you need.
 ```bash
 npm install
 npm run build        # build the web UI
-npx cldi          # start
+npx @rockyhong/claudia          # start
 ```
 
 That's it. No build step beyond the web UI.
@@ -95,7 +95,7 @@ All builds are clean builds — `build:sea` and `build:tauri` run `npm run clean
 | Command | What it removes |
 |---------|----------------|
 | `npm run clean` | Build output: `dist/`, `packages/web/dist/`, `.svelte-kit/`, `src-tauri/target/`, sidecar binaries |
-| `npx cldi uninstall` | Hooks, `~/.claudia/` data dir, and SEA runtime temp (with confirmation prompt) |
+| `npx @rockyhong/claudia uninstall` | Hooks, `~/.claudia/` data dir, and SEA runtime temp (with confirmation prompt) |
 
 ---
 

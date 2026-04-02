@@ -35,7 +35,7 @@ All stored under `~/.claudia/`. Nothing is written outside this directory (excep
 | `config.json` | Your preferences: theme, sound effects, immersive mode, usage monitoring, auto-focus. |
 | `projects.json` | Maps session working directories to display names you set. |
 | `avatars/` | Custom avatar video sets (`.webm`, `.mp4`) uploaded through Settings. |
-| `shutdown-token` | Random token for graceful instance replacement when a new `npx cldi` starts. |
+| `shutdown-token` | Random token for graceful instance replacement when a new `npx @rockyhong/claudia` starts. |
 
 ## System Access
 
@@ -73,4 +73,4 @@ Claudia touches two places outside its own data folder. Here's how to remove the
 | Hook entries | `~/.claude/settings.json` | **Settings > Remove hooks** in the dashboard, or manually delete any hook whose `command` contains `127.0.0.1:48901/hook` |
 | Data folder | `~/.claudia/` (config, project names, avatars) | Delete the directory: `rm -rf ~/.claudia/` (macOS/Linux) or `Remove-Item -Recurse -Force "$env:USERPROFILE\.claudia"` (PowerShell) |
 
-Both are also handled by `npx cldi uninstall`, which walks you through it interactively.
+Both are also handled by `npx @rockyhong/claudia uninstall`, which walks you through it interactively.
