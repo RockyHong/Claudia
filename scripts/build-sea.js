@@ -102,6 +102,11 @@ execSync(
 	{ cwd: root, stdio: "inherit" },
 );
 
+// Ensure executable permission on non-Windows
+if (process.platform !== "win32") {
+	fs.chmodSync(outputPath, 0o755);
+}
+
 console.log(`\nSEA built: ${outputPath}`);
 
 // Auto-copy to Tauri sidecar directories with correct target triple
@@ -124,8 +129,14 @@ if (!triple) {
 	];
 	for (const dir of tauriDirs) {
 		if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-		fs.copyFileSync(outputPath, path.join(dir, sidecarName));
-		fs.copyFileSync(outputPath, path.join(dir, `claudia-server${ext}`));
+		const dest1 = path.join(dir, sidecarName);
+		const dest2 = path.join(dir, `claudia-server${ext}`);
+		fs.copyFileSync(outputPath, dest1);
+		fs.copyFileSync(outputPath, dest2);
+		if (process.platform !== "win32") {
+			fs.chmodSync(dest1, 0o755);
+			fs.chmodSync(dest2, 0o755);
+		}
 	}
 	console.log(`Copied to Tauri sidecar directories as ${sidecarName}`);
 }

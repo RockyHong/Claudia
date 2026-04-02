@@ -19,21 +19,11 @@ jobs:
           node-version: "22"
       - uses: dtolnay/rust-toolchain@stable
       - run: npm ci
-      - run: npm run build:tauri
-      # Portable zip (extract and run, no installer)
-      - run: |
-          mkdir -p dist-standalone/binaries
-          cp src-tauri/target/release/Claudia.exe dist-standalone/
-          cp src-tauri/binaries/claudia-server-x86_64-pc-windows-msvc.exe dist-standalone/binaries/claudia-server.exe
-        shell: bash
-      - shell: pwsh
-        run: Compress-Archive -Path dist-standalone/* -DestinationPath Claudia-Windows.zip
+      - run: npm run build:sea && npx tauri build --no-bundle
       - uses: actions/upload-artifact@v4
         with:
-          name: standalone-win
-          path: |
-            Claudia-Windows.zip
-            src-tauri/target/release/bundle/nsis/*.exe
+          name: windows-exe
+          path: src-tauri/target/release/claudia.exe
 
   build-macos:
     name: Build (macOS)
@@ -48,7 +38,7 @@ jobs:
       - run: npm run build:tauri
       - uses: actions/upload-artifact@v4
         with:
-          name: standalone-mac
+          name: macos-dmg
           path: src-tauri/target/release/bundle/dmg/*.dmg
 
   release:
@@ -63,7 +53,6 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/standalone-win/Claudia-Windows.zip
-            artifacts/standalone-win/src-tauri/target/release/bundle/nsis/*.exe
-            artifacts/standalone-mac/*.dmg
+            artifacts/windows-exe/claudia.exe
+            artifacts/macos-dmg/*.dmg
           generate_release_notes: true
