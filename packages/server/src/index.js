@@ -172,14 +172,18 @@ app.post("/hook/:type", (req, res) => {
 		broadcastSfx("send");
 	}
 
-	// Auto-link: the SessionStart hook resolves the terminal HWND synchronously
-	// (via inline PowerShell in the hook command) and sends it as a header.
-	if (type === "SessionStart") {
+	// Auto-link: SessionStart and UserPromptSubmit hooks resolve the terminal
+	// HWND via inline PowerShell and send it as X-Hook-Window header.
+	// SessionStart handles fresh sessions; UserPromptSubmit handles sessions
+	// that pre-existed before Claudia started (server restart pickup).
+	if (type === "SessionStart" || type === "UserPromptSubmit") {
 		const session = tracker.getSession(event.session);
 		const windowHeader = req.headers["x-hook-window"] || "";
-		console.log(
-			`[auto-link] window="${windowHeader}" session=${session?.displayName || "null"} hwnd=${session?.windowHandle}`,
-		);
+		if (type === "SessionStart" || (windowHeader && !session?.windowHandle)) {
+			console.log(
+				`[auto-link] window="${windowHeader}" session=${session?.displayName || "null"} hwnd=${session?.windowHandle}`,
+			);
+		}
 		if (session && !session.windowHandle && windowHeader) {
 			const sep = windowHeader.indexOf("|");
 			if (sep !== -1) {

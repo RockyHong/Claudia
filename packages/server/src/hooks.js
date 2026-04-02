@@ -38,10 +38,11 @@ function hookEntry(
 	};
 }
 
-// SessionStart uses a special command that resolves the terminal HWND synchronously
-// (while the hook shell and its ancestors are still alive), then sends it as a header.
-const SESSION_START_COMMAND = [
-	// Resolve terminal window from process tree via PowerShell (inline, before curl)
+// PowerShell preamble that resolves the terminal HWND from the process tree.
+// Shared by SessionStart and UserPromptSubmit hooks — both need the HWND
+// for auto-linking (SessionStart for fresh sessions, UserPromptSubmit for
+// sessions that pre-existed before Claudia started).
+const HWND_PREAMBLE = [
 	"HWND_INFO=$(powershell -NoProfile -Command '",
 	'$names = @("WindowsTerminal","cmd","powershell","pwsh","ConEmuC64","ConEmuC","mintty","Alacritty","kitty","Hyper","Tabby","WezTerm")',
 	"$cur = $PID",
@@ -60,17 +61,32 @@ const SESSION_START_COMMAND = [
 	"  if ($cur -eq 0) { break }",
 	"}",
 	"' 2>/dev/null)",
-	'curl -sfS -X POST -H "Content-Type: application/json" -H "X-Hook-Window: $HWND_INFO" -d @- http://127.0.0.1:48901/hook/SessionStart 2>/dev/null || true',
 ].join("; ");
+
+function hookCommandWithWindow(hookType) {
+	return `${HWND_PREAMBLE}; curl -sfS -X POST -H "Content-Type: application/json" -H "X-Hook-Window: $HWND_INFO" -d @- http://127.0.0.1:48901/hook/${hookType} 2>/dev/null || true`;
+}
 
 const CLAUDIA_HOOKS = {
 	SessionStart: [
 		{
 			matcher: ".*",
-			hooks: [{ type: "command", command: SESSION_START_COMMAND }],
+			hooks: [
+				{ type: "command", command: hookCommandWithWindow("SessionStart") },
+			],
 		},
 	],
-	UserPromptSubmit: [hookEntry("UserPromptSubmit")],
+	UserPromptSubmit: [
+		{
+			matcher: ".*",
+			hooks: [
+				{
+					type: "command",
+					command: hookCommandWithWindow("UserPromptSubmit"),
+				},
+			],
+		},
+	],
 	PreToolUse: [hookEntry("PreToolUse")],
 	PostToolUse: [hookEntry("PostToolUse")],
 	PermissionRequest: [hookEntry("PermissionRequest")],

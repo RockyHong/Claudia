@@ -165,12 +165,14 @@ describe("mergeHooks", () => {
 		expect(result.permissions).toEqual({ allow: ["Read"] });
 	});
 
-	it("SessionStart command resolves terminal HWND inline and sends as header", () => {
+	it("SessionStart and UserPromptSubmit resolve terminal HWND inline and send as header", () => {
 		const result = mergeHooks({});
-		const sessionStartCmd = result.hooks.SessionStart[0].hooks[0].command;
-		expect(sessionStartCmd).toContain("X-Hook-Window:");
-		expect(sessionStartCmd).toContain("powershell");
-		expect(sessionStartCmd).toContain("MainWindowHandle");
+		for (const hookType of ["SessionStart", "UserPromptSubmit"]) {
+			const cmd = result.hooks[hookType][0].hooks[0].command;
+			expect(cmd).toContain("X-Hook-Window:");
+			expect(cmd).toContain("powershell");
+			expect(cmd).toContain("MainWindowHandle");
+		}
 
 		// Other hooks should NOT have the window header
 		const preToolCmd = result.hooks.PreToolUse[0].hooks[0].command;
