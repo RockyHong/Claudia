@@ -136,7 +136,15 @@ async function spawnSession(e) {
 function openDocs(e) {
 	e.stopPropagation();
 	const url = `${window.location.origin}/md-viewer.html?cwd=${encodeURIComponent(session.cwd)}`;
-	window.open(url, "_blank", "width=720,height=860");
+	const win = window.open(url, "_blank", "width=720,height=860");
+	if (!win) {
+		// Popup blocked (e.g. Tauri WebView) — open in system browser
+		fetch("/api/open-url", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ url }),
+		}).catch(() => {});
+	}
 }
 
 
