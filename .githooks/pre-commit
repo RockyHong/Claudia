@@ -1,7 +1,7 @@
 #!/bin/sh
 # Pre-commit hook: auto-fix lint and formatting on staged files.
 
-STAGED=$(git diff --cached --name-only --diff-filter=ACMR -- '*.js' '*.json' '*.jsonc')
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR -- '*.js' '*.json' '*.jsonc' ':!.claude/')
 
 if [ -z "$STAGED" ]; then
   exit 0
