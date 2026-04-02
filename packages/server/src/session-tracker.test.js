@@ -425,6 +425,13 @@ describe("session-tracker", () => {
 			expect(tracker.getSessions()).toHaveLength(1);
 		});
 
+		it("linkSessionById sets displayName to projectName + hex", () => {
+			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
+			const name = tracker.linkSessionById("s1", 123);
+			expect(name).toMatch(/^proj [0-9a-f]{4}$/);
+			expect(tracker.getSessions()[0].displayName).toBe(name);
+		});
+
 		it("skips linked sessions (dead-window pruning handles those)", () => {
 			tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
 			tracker.linkSessionById("s1", 12345);

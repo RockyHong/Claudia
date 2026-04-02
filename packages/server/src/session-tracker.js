@@ -1,3 +1,5 @@
+import { randomBytes } from "node:crypto";
+
 /**
  * Session state machine.
  *
@@ -301,8 +303,11 @@ export function createSessionTracker({
 		const session = sessions.get(sessionId);
 		if (!session) return false;
 		session.windowHandle = windowHandle;
+		const baseName = extractDisplayName(session.cwd);
+		const hex = randomBytes(2).toString("hex");
+		session.displayName = deduplicateDisplayName(`${baseName} ${hex}`);
 		notify();
-		return true;
+		return session.displayName;
 	}
 
 	function getSession(id) {

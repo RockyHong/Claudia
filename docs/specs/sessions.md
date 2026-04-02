@@ -26,14 +26,17 @@ This prevents the dashboard from flashing idle/busy/idle as subagents finish one
 
 ## Naming
 
-Session cards show `{displayName}` — the project folder name from `cwd`, deduped at session registration (`my-app`, `my-app 2`). Updates if cwd changes mid-session.
+Session cards show `{displayName}`:
+
+- **Linked sessions** — `{projectName} {4-char hex}` (e.g. `Claudia 7f3a`). Matches the terminal tab title. Locked via `--suppressApplicationTitle` (spawned) or `SetWindowText` (auto-linked).
+- **Unlinked sessions** — project folder name from `cwd`, deduped (`my-app`, `my-app 2`).
 
 ### Window linking
 
 Sessions can be linked to a terminal window via `windowHandle` (HWND). Two paths:
 
-- **Spawned by Claudia** — at spawn time, a temporary opaque title is set on the terminal to discover the HWND via polling. The HWND is stored; the title is not retained.
-- **Auto-linked** — on `SessionStart`, the hook command runs an inline PowerShell process tree walk to resolve the terminal HWND. Sent via `X-Hook-Window: HWND|title` header. The server stores the HWND. Windows-only; other platforms send an empty header.
+- **Spawned by Claudia** — terminal title is set to `{projectName} {hex}` at spawn time. HWND discovered by polling for that title. Both HWND and displayName are stored.
+- **Auto-linked** — on `SessionStart`, the hook command runs an inline PowerShell process tree walk to resolve the terminal HWND. Sent via `X-Hook-Window: HWND|title` header. The server stores the HWND, generates a `{projectName} {hex}` displayName, and renames the terminal tab to match. Windows-only; other platforms send an empty header.
 
 ### Alert gating
 

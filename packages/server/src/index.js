@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import express from "express";
 import { ensureDefaults } from "./avatar-storage.js";
 import { startStatusPolling, stopStatusPolling } from "./claude-status.js";
-import { findDeadWindows, focusTerminal } from "./focus.js";
+import { findDeadWindows, focusTerminal, renameTerminal } from "./focus.js";
 import { getGitStatus } from "./git-status.js";
 import { transformHookPayload, VALID_HOOK_TYPES } from "./hook-transform.js";
 import { getStatusMessage } from "./personality.js";
@@ -185,10 +185,11 @@ app.post("/hook/:type", (req, res) => {
 			if (sep !== -1) {
 				const hwnd = parseInt(windowHeader.slice(0, sep), 10);
 				if (hwnd > 0) {
-					tracker.linkSessionById(event.session, hwnd);
-					console.log(
-						`[auto-link] linked session=${session.displayName} hwnd=${hwnd}`,
-					);
+					const newName = tracker.linkSessionById(event.session, hwnd);
+					if (newName) {
+						renameTerminal(hwnd, newName);
+					}
+					console.log(`[auto-link] linked session=${newName} hwnd=${hwnd}`);
 				}
 			}
 		}
