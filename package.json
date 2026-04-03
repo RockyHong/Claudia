@@ -18,6 +18,7 @@
     "packages/web/dist/"
   ],
   "scripts": {
+    "prepack": "npm run build",
     "prepare": "git config core.hooksPath .githooks",
     "dev": "npm run dev --workspace=packages/server",
     "build": "npm run build --workspace=packages/web",
