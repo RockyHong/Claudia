@@ -14,6 +14,7 @@
     "bin/cli.js",
     "packages/server/src/**/*.js",
     "!packages/server/src/**/*.test.js",
+    "packages/server/assets/**",
     "packages/server/package.json",
     "packages/web/dist/"
   ],
