@@ -207,10 +207,10 @@ export function createAvatarStorage(baseDir) {
 
 		const defaultPath = path.join(avatarsDir, "default");
 		try {
-			await fs.access(defaultPath);
-			return; // default set exists, nothing to do
+			const entries = await fs.readdir(defaultPath);
+			if (entries.some((f) => VALID_FILENAMES.has(f))) return;
 		} catch {
-			// default set missing — recreate it
+			// default set missing or unreadable — recreate it
 		}
 
 		await fs.mkdir(defaultPath, { recursive: true });
