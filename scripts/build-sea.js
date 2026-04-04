@@ -82,25 +82,36 @@ const outputPath = path.join(root, "dist", outputName);
 
 const nodeExe = process.env.NODE_EXE || process.execPath;
 fs.copyFileSync(nodeExe, outputPath);
+fs.chmodSync(outputPath, 0o755);
 
-// Remove signature (Windows requires this before injection)
-try {
-	execSync(`signtool remove /s "${outputPath}"`, { stdio: "ignore" });
-} catch {
-	// signtool may not be available — not critical
+// Remove signature before injection (required on macOS and Windows)
+if (process.platform === "darwin") {
+	execSync(`codesign --remove-signature "${outputPath}"`);
+} else {
+	try {
+		execSync(`signtool remove /s "${outputPath}"`, { stdio: "ignore" });
+	} catch {
+		// signtool may not be available — not critical
+	}
 }
 
 // Inject blob via postject
-execSync(
-	[
-		"npx postject",
-		`"${outputPath}"`,
-		"NODE_SEA_BLOB",
-		`"${path.join(root, "dist/sea-prep.blob")}"`,
-		"--sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2",
-	].join(" "),
-	{ cwd: root, stdio: "inherit" },
-);
+const postjectArgs = [
+	"npx postject",
+	`"${outputPath}"`,
+	"NODE_SEA_BLOB",
+	`"${path.join(root, "dist/sea-prep.blob")}"`,
+	"--sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2",
+];
+if (process.platform === "darwin") {
+	postjectArgs.push("--macho-segment-name NODE_SEA");
+}
+execSync(postjectArgs.join(" "), { cwd: root, stdio: "inherit" });
+
+// Re-sign with ad-hoc signature on macOS (required after injection)
+if (process.platform === "darwin") {
+	execSync(`codesign --sign - "${outputPath}"`);
+}
 
 // Ensure executable permission on non-Windows
 if (process.platform !== "win32") {
