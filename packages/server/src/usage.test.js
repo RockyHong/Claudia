@@ -1,7 +1,9 @@
+import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("node:fs/promises", () => ({ default: { readFile: vi.fn() } }));
+vi.mock("node:child_process", () => ({ execFile: vi.fn() }));
 
 // Must import after mock
 const { createUsageClient } = await import("./usage.js");
@@ -24,6 +26,9 @@ describe("createUsageClient", () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
 		fs.readFile.mockResolvedValue(VALID_CREDENTIALS);
+		execFile.mockImplementation((_cmd, _args, _opts, cb) => {
+			cb(new Error("not found"), "", "");
+		});
 		fetchMock = vi.fn().mockResolvedValue({
 			ok: true,
 			json: () => Promise.resolve(VALID_RESPONSE),
@@ -52,14 +57,14 @@ describe("createUsageClient", () => {
 		expect(client.getUsage()).toEqual(result);
 	});
 
-	it("respects 10-minute cooldown", async () => {
+	it("respects 5-minute cooldown", async () => {
 		await client.refreshUsage();
 		fetchMock.mockClear();
 
 		await client.refreshUsage();
 		expect(fetchMock).not.toHaveBeenCalled();
 
-		vi.advanceTimersByTime(10 * 60 * 1000 + 1);
+		vi.advanceTimersByTime(5 * 60 * 1000 + 1);
 		await client.refreshUsage();
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 	});
@@ -70,13 +75,13 @@ describe("createUsageClient", () => {
 		await client.refreshUsage();
 		fetchMock.mockClear();
 
-		// Should not fetch again within backoff (10min * 2 = 20min)
-		vi.advanceTimersByTime(10 * 60 * 1000 + 1);
+		// Should not fetch again within backoff (5min * 2 = 10min)
+		vi.advanceTimersByTime(5 * 60 * 1000 + 1);
 		await client.refreshUsage();
 		expect(fetchMock).not.toHaveBeenCalled();
 
-		// Should fetch after 20min backoff
-		vi.advanceTimersByTime(10 * 60 * 1000);
+		// Should fetch after 10min backoff
+		vi.advanceTimersByTime(5 * 60 * 1000);
 		await client.refreshUsage();
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 	});
@@ -85,17 +90,17 @@ describe("createUsageClient", () => {
 		fetchMock.mockResolvedValueOnce({ ok: false, status: 429 });
 		await client.refreshUsage();
 
-		// Wait out the 20min backoff
-		vi.advanceTimersByTime(20 * 60 * 1000 + 1);
+		// Wait out the 10min backoff
+		vi.advanceTimersByTime(10 * 60 * 1000 + 1);
 		fetchMock.mockResolvedValueOnce({
 			ok: true,
 			json: () => Promise.resolve(VALID_RESPONSE),
 		});
 		await client.refreshUsage();
 
-		// Back to normal 10min cooldown
+		// Back to normal 5min cooldown
 		fetchMock.mockClear();
-		vi.advanceTimersByTime(10 * 60 * 1000 + 1);
+		vi.advanceTimersByTime(5 * 60 * 1000 + 1);
 		fetchMock.mockResolvedValueOnce({
 			ok: true,
 			json: () => Promise.resolve(VALID_RESPONSE),
@@ -112,22 +117,37 @@ describe("createUsageClient", () => {
 		expect(result).toBe(null);
 	});
 
+	it("falls back to macOS Keychain when credentials file is missing", async () => {
+		fs.readFile.mockRejectedValue(new Error("ENOENT"));
+		execFile.mockImplementation((_cmd, _args, _opts, cb) => {
+			cb(null, VALID_CREDENTIALS, "");
+		});
+		client = createUsageClient();
+
+		const result = await client.refreshUsage();
+		expect(result).toEqual({
+			fiveHour: { utilization: 42.0, resetsAt: "2026-03-28T14:59:59Z" },
+			sevenDay: { utilization: 68.0, resetsAt: "2026-03-31T03:59:59Z" },
+			fetchedAt: expect.any(Number),
+		});
+	});
+
 	it("returns cached data when fetch fails", async () => {
 		await client.refreshUsage();
 		const cached = client.getUsage();
 
-		vi.advanceTimersByTime(10 * 60 * 1000 + 1);
+		vi.advanceTimersByTime(5 * 60 * 1000 + 1);
 		fetchMock.mockRejectedValue(new Error("network"));
 		const result = await client.refreshUsage();
 		expect(result).toEqual(cached);
 	});
 
 	it("caps backoff at 60 minutes", async () => {
-		// Trigger 429 four times: 10m -> 20m -> 40m -> 60m (capped)
+		// Trigger 429 four times: 5m -> 10m -> 20m -> 40m -> 60m (capped)
 		for (let i = 0; i < 4; i++) {
 			fetchMock.mockResolvedValueOnce({ ok: false, status: 429 });
 			const waitMs =
-				i === 0 ? 0 : Math.min(10 * 60 * 1000 * 2 ** i, 60 * 60 * 1000) + 1;
+				i === 0 ? 0 : Math.min(5 * 60 * 1000 * 2 ** i, 60 * 60 * 1000) + 1;
 			vi.advanceTimersByTime(waitMs);
 			await client.refreshUsage();
 		}

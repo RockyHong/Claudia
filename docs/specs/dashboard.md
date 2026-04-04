@@ -56,6 +56,16 @@ SSE client auto-reconnects on disconnect. If down for more than a few seconds, a
 | SpawnPopover | Spawn button | Project picker for launching sessions |
 | ConfirmDialog | Destructive actions | Generic confirmation |
 
+## Focus on Click
+
+Clicking a session card sends `POST /focus/:sessionId`. The server calls `focusTerminal()` which uses platform-specific logic (AppleScript on macOS, PowerShell on Windows, xdotool on Linux) to raise and flash the terminal window.
+
+### Known Issues (to build)
+
+- **macOS Accessibility permission**: `osascript` with System Events requires Accessibility access. If the terminal (or Tauri app) isn't in System Settings → Privacy & Security → Accessibility, focus silently fails with error `-25211`. Need to detect this and surface it to the user — either a one-time setup prompt or a visible error when focus fails.
+- **Silent failure**: Frontend ignores the `/focus` response. Should show brief feedback when focus fails (e.g., toast or card flash).
+- **Orphan session fallback**: Sessions without a `windowHandle` rely on displayName title matching, which is fragile — wrong window may be focused, or no match found. macOS fallback flashes the front window of any running terminal, which can be misleading.
+
 ## Sound
 
 Aggregate state changes trigger synth tones via Web Audio API — defaults are generated in real-time. Custom MP3s can be placed in avatar set directories. Ambience layer plays subtle typing sounds while sessions are busy (opt-in via preferences). Browser autoplay policy handled gracefully — sounds activate after first user interaction.

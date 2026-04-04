@@ -120,7 +120,7 @@ async function loadUsage() {
 	}
 }
 
-const USAGE_POLL_MS = 10 * 60 * 1000; // 10 minutes
+const USAGE_POLL_MS = 5 * 60 * 1000; // 5 minutes
 let usagePollInterval = null;
 
 function startUsagePolling() {

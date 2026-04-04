@@ -1,3 +1,4 @@
+import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -8,17 +9,46 @@ const CREDENTIALS_PATH = path.join(
 	".credentials.json",
 );
 const API_URL = "https://api.anthropic.com/api/oauth/usage";
-const COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
+const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_BACKOFF_MS = 60 * 60 * 1000; // 60 minutes
 
-async function readToken() {
+function extractToken(json) {
 	try {
-		const raw = await fs.readFile(CREDENTIALS_PATH, "utf-8");
-		const creds = JSON.parse(raw);
+		const creds = JSON.parse(json);
 		return creds?.claudeAiOauth?.accessToken || null;
 	} catch {
 		return null;
 	}
+}
+
+function readTokenFromKeychain() {
+	return new Promise((resolve) => {
+		execFile(
+			"security",
+			["find-generic-password", "-s", "Claude Code-credentials", "-w"],
+			{ timeout: 5000 },
+			(err, stdout) => {
+				if (err) return resolve(null);
+				resolve(extractToken(stdout.trim()));
+			},
+		);
+	});
+}
+
+async function readToken() {
+	// File-based credentials (Windows / Linux)
+	try {
+		const raw = await fs.readFile(CREDENTIALS_PATH, "utf-8");
+		const token = extractToken(raw);
+		if (token) return token;
+	} catch {
+		// fall through
+	}
+	// macOS: credentials stored in Keychain
+	if (os.platform() === "darwin") {
+		return readTokenFromKeychain();
+	}
+	return null;
 }
 
 async function fetchUsage(token) {
