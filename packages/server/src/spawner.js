@@ -348,7 +348,7 @@ function browseMac() {
 		const child = execFile("osascript", ["-e", script], (err, stdout) => {
 			activeBrowseProcess = null;
 			if (err) return resolve(null);
-			const selected = stdout.trim();
+			const selected = stdout.trim().replace(/\/+$/, "");
 			resolve(selected || null);
 		});
 		activeBrowseProcess = child;
