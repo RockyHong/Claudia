@@ -73,7 +73,6 @@ function formatElapsed(timestamp) {
 let config = $derived(stateConfig[session.state] || stateConfig.idle);
 
 async function handleClick() {
-	if (!session.windowHandle) return;
 	try {
 		await fetch(`/focus/${session.id}`, { method: "POST" });
 	} catch {
@@ -141,11 +140,11 @@ function openDocs(e) {
 <div
   class="card {session.state}"
   class:immersive
-  class:clickable={session.windowHandle}
+  class:clickable={true}
   onclick={handleClick}
   onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), handleClick())}
-  tabindex={session.windowHandle ? 0 : -1}
-  role={session.windowHandle ? "button" : undefined}
+  tabindex="0"
+  role="button"
 >
   <div class="card-row">
     <div class="card-left">
