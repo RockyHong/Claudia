@@ -136,6 +136,12 @@ function stopUsagePolling() {
 	}
 }
 
+document.addEventListener("visibilitychange", () => {
+	if (document.visibilityState === "visible" && usageMonitoring) {
+		loadUsage();
+	}
+});
+
 loadPreferences();
 initTauriBridge();
 
