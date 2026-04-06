@@ -286,6 +286,92 @@ describe("session-tracker", () => {
 			expect(tracker.getSessions()[0].activeSubagents).toBe(0);
 		});
 
+		it("transitions to idle when SubagentStop fires after Stop (background agents)", () => {
+			// Background agent: Stop fires for parent turn, SubagentStop fires later
+			tracker.handleEvent({
+				session: "s1",
+				state: "busy",
+				cwd: "/proj",
+				tool: "Agent",
+				hookType: "PreToolUse",
+			});
+			// Stop fires — parent turn done, but subagent still running
+			tracker.handleEvent({ session: "s1", state: "idle" });
+			expect(tracker.getSessions()[0].state).toBe(State.BUSY);
+
+			// SubagentStop fires — last subagent finishes
+			tracker.handleEvent({
+				session: "s1",
+				state: "busy",
+				hookType: "SubagentStop",
+			});
+			expect(tracker.getSessions()[0].state).toBe(State.IDLE);
+			expect(tracker.getSessions()[0].activeSubagents).toBe(0);
+			expect(tracker.getSessions()[0].subagentActivity).toBe(0);
+		});
+
+		it("stays busy when SubagentStop fires but more subagents remain after deferred Stop", () => {
+			tracker.handleEvent({
+				session: "s1",
+				state: "busy",
+				cwd: "/proj",
+				tool: "Agent",
+				hookType: "PreToolUse",
+			});
+			tracker.handleEvent({
+				session: "s1",
+				state: "busy",
+				tool: "Agent",
+				hookType: "PreToolUse",
+			});
+			// Stop fires — 2 subagents still running
+			tracker.handleEvent({ session: "s1", state: "idle" });
+			expect(tracker.getSessions()[0].state).toBe(State.BUSY);
+
+			// First subagent finishes — 1 remains
+			tracker.handleEvent({
+				session: "s1",
+				state: "busy",
+				hookType: "SubagentStop",
+			});
+			expect(tracker.getSessions()[0].state).toBe(State.BUSY);
+
+			// Last subagent finishes
+			tracker.handleEvent({
+				session: "s1",
+				state: "busy",
+				hookType: "SubagentStop",
+			});
+			expect(tracker.getSessions()[0].state).toBe(State.IDLE);
+		});
+
+		it("clears turnComplete flag when new work starts after deferred Stop", () => {
+			tracker.handleEvent({
+				session: "s1",
+				state: "busy",
+				cwd: "/proj",
+				tool: "Agent",
+				hookType: "PreToolUse",
+			});
+			// Stop fires while subagent running
+			tracker.handleEvent({ session: "s1", state: "idle" });
+
+			// New user prompt starts a new turn before subagent finishes
+			tracker.handleEvent({
+				session: "s1",
+				state: "busy",
+				hookType: "UserPromptSubmit",
+			});
+
+			// SubagentStop fires — but new turn is active, should NOT go idle
+			tracker.handleEvent({
+				session: "s1",
+				state: "busy",
+				hookType: "SubagentStop",
+			});
+			expect(tracker.getSessions()[0].state).toBe(State.BUSY);
+		});
+
 		it("resets activeSubagents to 0 when session goes idle", () => {
 			tracker.handleEvent({
 				session: "s1",

@@ -36,6 +36,7 @@ function createSession(id, cwd) {
 		git: null,
 		subagentActivity: 0,
 		activeSubagents: 0,
+		turnComplete: false,
 	};
 }
 
@@ -159,11 +160,17 @@ export function createSessionTracker({
 				session.lastTool = tool || session.lastTool;
 				session.pendingMessage = null;
 				session.permissionRequest = null;
+				// Don't clear turnComplete on SubagentStop — it maps to "busy"
+				// but we need the flag to survive for the deferred idle check
+				if (hookType !== "SubagentStop") {
+					session.turnComplete = false;
+				}
 				break;
 
 			case "idle":
 				// Don't transition to idle if subagents are still running
 				if (session.activeSubagents > 0) {
+					session.turnComplete = true;
 					break;
 				}
 				session.state = State.IDLE;
@@ -172,6 +179,7 @@ export function createSessionTracker({
 				session.permissionRequest = null;
 				session.subagentActivity = 0;
 				session.activeSubagents = 0;
+				session.turnComplete = false;
 				if (
 					prevState !== State.IDLE &&
 					session.windowHandle != null &&
@@ -200,6 +208,29 @@ export function createSessionTracker({
 		}
 
 		if (hookType === "SubagentStop") session.subagentActivity++;
+
+		// Deferred idle: if Stop fired while subagents were running (turnComplete),
+		// and the last subagent just finished, transition to idle now.
+		if (
+			hookType === "SubagentStop" &&
+			session.activeSubagents === 0 &&
+			session.turnComplete
+		) {
+			session.state = State.IDLE;
+			session.lastTool = null;
+			session.pendingMessage = null;
+			session.permissionRequest = null;
+			session.subagentActivity = 0;
+			session.turnComplete = false;
+			if (
+				prevState !== State.IDLE &&
+				session.windowHandle != null &&
+				onIdleAlert
+			) {
+				onIdleAlert(session);
+			}
+		}
+
 		if (session.state !== prevState) {
 			session.stateChangedAt = Date.now();
 		}
