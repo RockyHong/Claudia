@@ -1,16 +1,15 @@
 # .claude/skills/.catalog
 # Managed by /resolve-claude-config. Records served skills + rationale.
 # Do not edit manually — run /resolve-claude-config to update.
+# Device-wide skills (commit, merge, release, resolve-claude-config, sp-bootstrap)
+# live in ~/.claude/skills/ — NOT duplicated here.
 
 ## Must-have (auto-included)
-resolve-claude-config
-commit
-merge
-release
+todo
 rename-refactor
 user-journey-simulation
-sp-bootstrap
-todo
+check-docs-consistency
+frontend-soc-scan
 
 ## Project picks
 javascript-pro        # Primary language (Node.js + Svelte)
