@@ -14,20 +14,40 @@ OK to proceed?
 ### Routes
 
 **Small** — Single file, clear intent, no design decisions (typo fix, config tweak, style adjustment)
-→ Just do it → `/commit`
+→ implement → user review → doc sync → `/commit`
 
 **Medium** — Multi-file, some design choices, completable in one session (new component, bug fix with investigation, refactor)
-→ Brainstorm (quick, inline — no spec file) → implement → `/commit`
+→ Brainstorm (quick, inline — no spec file) → implement → user review → doc sync → `/commit`
 
 **Large** — Multi-session, architectural, unclear scope, or user explicitly requests it
-→ Full superpowers pipeline: brainstorm → spec → plan → execute → review → finish
+→ Full pipeline: brainstorm → spec → plan → execute → user review → doc sync → `/commit`
 → Specs go to `docs/superpowers/specs/`, plans to `docs/superpowers/plans/` (temporal — delete after merge)
 
 The user always picks the route. If they say "just do it" on something you sized as large, do it. If they want the full pipeline for something small, run it.
 
-**Doc staleness check** — before committing, scan `docs/` for files that describe behavior touched by the diff (specs, overview, techstack, building, help). If any doc is potentially stale, **report it to the user** with the doc path, what looks outdated, and the relevant diff context — then ask whether they want to resolve it now. Don't silently fix or silently skip. Stale docs are worse than missing ones.
-
 **User instructions override Superpowers defaults** — if something below contradicts a skill, follow what's written here.
+
+### Doc Sync (non-negotiable)
+
+This is a named pipeline step — every route includes it between user review and commit.
+
+**Before every commit**, scan `docs/` for files that describe behavior touched by the diff (specs, overview, techstack, building, help). If any doc is potentially stale:
+
+1. Report it to the user — doc path, what looks outdated, relevant diff context
+2. Resolve together — update the doc or acknowledge it's still accurate
+3. Never silently fix. Never silently skip. Stale docs are worse than missing ones.
+
+**Temporal cleanup:** If the current work completes a feature branch, delete its spec and plan files from `docs/superpowers/specs/` and `docs/superpowers/plans/`. These are work orders — once merged, they're noise.
+
+## Solo Dev Assumptions
+
+This project is operated by a single developer across multiple Claude Code sessions.
+
+- **No PR self-review** — commit directly to working branch
+- **Simple branching** — `main` + feature branches, no rebasing
+- **No force push** — every commit is sacred, no rewriting history
+- **Session isolation** — each Claude session commits only its own changes
+- **No merge conflicts expected** — if one occurs, stop and ask the user
 
 ## Project Structure
 
@@ -163,6 +183,8 @@ SSE stream at `GET /events` pushes state updates to the browser. See `docs/overv
 ## Git Notes
 
 - **Only commit current session's changes** — When committing, only stage files changed in this session. If unrelated uncommitted changes exist from prior work, leave them alone. Separation of concerns applies to commits too.
+- **Atomic commits** — one logical change per commit
+- **Conventional commits** — `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`
 - **No Git LFS** — This repo does not use LFS.
 
 ## Planning
@@ -173,3 +195,5 @@ SSE stream at `GET /events` pushes state updates to the browser. See `docs/overv
 - `docs/building.md` — Build instructions for both distributions (npx, Tauri)
 - `docs/superpowers/specs/` — Design specs from brainstorming sessions (temporal — deleted after merge)
 - `docs/superpowers/plans/` — Implementation plans for execution (temporal — deleted after merge)
+
+> **Two kinds of specs:** `docs/specs/` = permanent source of truth (updated as features evolve). `docs/superpowers/specs/` = temporal work orders (deleted after merge).
