@@ -153,6 +153,8 @@ export function createSFXController() {
 		/** Play a sound triggered by SSE. Respects mute/volume + cooldown. */
 		play(name) {
 			if (muted) return;
+			const ctx = getContext();
+			if (ctx.state !== "running") return;
 			const now = performance.now();
 			if (now - lastPlayTime < SFX_COOLDOWN_MS) return;
 			lastPlayTime = now;
