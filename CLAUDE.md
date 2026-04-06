@@ -35,8 +35,11 @@ The user always picks the route. If they say "just do it" on something you sized
 claudia/
   bin/cli.js                     CLI entry point (npx @rockyhong/claudia, claudia uninstall)
   packages/
-    server/src/                  Express event server, session tracking, hooks
+    server/
+      src/                       Express event server, session tracking, hooks
+      assets/                    Bundled static assets (sound files, etc.)
     web/src/                     Svelte 5 browser dashboard
+  src-tauri/                     Tauri desktop distribution (Rust shell, icons, capabilities)
   docs/
     overview.md                  Product context, data flow, module index
     techstack.md                 Tech choices, architecture rules
@@ -47,6 +50,8 @@ claudia/
       privacy.md                 What Claudia accesses, removal options
       troubleshooting.md         Common issues + fixes by distribution
     specs/                       Feature specs — source of truth per feature
+      index.md                   Spec catalog
+      avatars.md, dashboard.md, hooks.md, sessions.md, spawning.md
     superpowers/
       specs/                     Design specs (from brainstorming, temporal)
       plans/                     Implementation plans (temporal)
@@ -134,6 +139,7 @@ npm run build        # Build web UI for production
 npm test             # Run all tests
 npm run lint         # Check with Biome
 npm run lint:fix     # Auto-fix lint issues
+npm run format       # Auto-format with Biome
 ```
 
 ## Event Protocol (Quick Reference)
@@ -151,7 +157,7 @@ SSE stream at `GET /events` pushes state updates to the browser. See `docs/overv
 
 ## Shell Notes
 
-- **Never use `cd`** — The cd-guard hook blocks `cd` commands. Use `git -C <path>` for git commands, and absolute paths for everything else. Never `cd D:/Git/Claudia && ...`.
+- **Never use `cd`** — Use `git -C <path>` for git commands, and absolute paths for everything else. Never `cd D:/Git/Claudia && ...`.
 - **Always use dedicated tools** — `Glob` for file search, `Grep` for content search, `Read` for reading files. Never use `find`, `ls`, `grep`, `rg`, `cat`, `head`, or `tail` via Bash.
 
 ## Git Notes
