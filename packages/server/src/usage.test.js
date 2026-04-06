@@ -1,9 +1,20 @@
 import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
+import os from "node:os";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("node:fs/promises", () => ({ default: { readFile: vi.fn() } }));
 vi.mock("node:child_process", () => ({ execFile: vi.fn() }));
+vi.mock("node:os", async (importOriginal) => {
+	const actual = await importOriginal();
+	return {
+		...actual,
+		default: {
+			...actual.default,
+			platform: vi.fn(() => actual.default.platform()),
+		},
+	};
+});
 
 // Must import after mock
 const { createUsageClient } = await import("./usage.js");
@@ -118,6 +129,7 @@ describe("createUsageClient", () => {
 	});
 
 	it("falls back to macOS Keychain when credentials file is missing", async () => {
+		os.platform.mockReturnValue("darwin");
 		fs.readFile.mockRejectedValue(new Error("ENOENT"));
 		execFile.mockImplementation((_cmd, _args, _opts, cb) => {
 			cb(null, VALID_CREDENTIALS, "");
