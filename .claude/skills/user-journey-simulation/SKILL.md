@@ -1,125 +1,195 @@
 ---
 name: user-journey-simulation
-description: "Simulates a user's journey through a product flow from pure user perspective. Detects friction, cognitive overload, dead ends, and unmet expectations. Project-agnostic — caller provides ICP, pre-product path, user intent, and UI flow."
+description: "Simulates a user's journey through a product flow by spawning an isolated subagent AS the ICP. Zero project awareness — the subagent only knows who they are, what they want, and what they see. Detects friction, cognitive overload, dead ends, and unmet expectations."
 ---
 
 # User Journey Simulation
 
-Pure-technique skill for projecting a user's experience through a product flow. Detects friction from the user's perspective — no product goals, no design rationale, no bias.
+Two-phase skill: gateway designs the test, subagent IS the user.
 
-## Input Contract
+The subagent runs in an **isolated context window** with zero project knowledge — it can't rationalize friction because it doesn't know why anything was built. Context isolation is the mechanism that makes the simulation honest.
 
-The caller MUST provide all five inputs. If any are missing or vague, return questions instead of simulating.
+### Output Location
 
-| #   | Input                | Description                                                                                                                   |
-| --- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **ICP / Persona**    | Who the user is — demographics, comfort level, tech savviness, expectations, fears                                            |
-| 2   | **Pre-product path** | How they arrived — social ad, app store search, friend referral, organic discovery, etc. This shapes intent and expectations. |
-| 3   | **User intent**      | "I want to \_\_\_" — what they're trying to accomplish right now                                                              |
-| 4   | **Current UI flow**  | Screens/steps that exist — factual description only, no design rationale                                                      |
-| 5   | **Platform**         | Mobile, web, or both                                                                                                          |
+All subagent reports are written to `docs/user-journeys/` in the **project directory** (not the skills repo). Structure:
 
-## Excluded from Input
+```
+docs/user-journeys/
+  {flow}_{YYYYMMDD-HHmm}/          ← batch folder, created once per trigger moment
+    {persona}_{scenario}.md         ← one file per subagent run
+```
 
-Do NOT accept these — they create rationalization bias:
+- **Batch folder** — the gateway creates this once and reuses it for all subagents dispatched from the same trigger. Named by the flow being tested + timestamp (e.g., `onboarding_20260406-1430`).
+- **Report file** — kebab-case persona + scenario slug (e.g., `tech-savvy-dev_organic-search.md`).
+- **Temporal files** — these are consumable artifacts. The user deletes them when done. Add `docs/user-journeys/` to the project's `.gitignore` to prevent accidental commits.
+
+## Phase 1: Test Design (Gateway)
+
+The gateway gathers inputs and constructs the subagent prompt. This phase runs in the main conversation.
+
+### Input Contract
+
+Gather these inputs from the caller. Format is flexible — paragraphs, bullets, structured blocks all work. What matters is hitting the **minimum bar** for each.
+
+| # | Input | What it needs | Minimum bar | Required? |
+|---|-------|--------------|-------------|-----------|
+| 1 | **Persona** | Background, domain knowledge, tech comfort, behavioral tendencies, fears/expectations | Role + comfort level + one behavioral trait (e.g., "skeptical of new tools") | Required |
+| 2 | **Pre-context** | How they arrived + their mindset/bias entering the product. Ad click = skeptical + hurried. Friend referral = trusting + curious. This shapes the first 10 seconds. | Channel + emotional state | Required |
+| 3 | **Intent** | "I want to \_\_\_" — the success criteria the persona judges against | Must be specific and completable within the flow | Required |
+| 4 | **The room** | What they can see and do — screens, features, buttons, docs. The boundaries of the test. Ordered steps with what's visible at each. No design rationale. | At least 2 steps with visible elements described | Required |
+| 5 | **Platform** | Web, mobile, CLI, desktop | — | Optional (defaults to web) |
+
+**Quality gradient:** "a developer" → garbage simulation. "A 35-year-old backend dev who's used to Stripe's API docs, skeptical of AI tools, found this via a HN comment" → honest simulation. More specificity in persona and pre-context = more useful friction detection.
+
+### Excluded from Input
+
+Do NOT pass these to the subagent — they create rationalization bias:
 
 - Product goals / vision / mission
 - Business metrics targets
 - Design rationale ("we built it this way because...")
 - Competitor comparisons
+- Codebase knowledge, file paths, component names
+- Any context from the current conversation beyond the inputs above
 
-The product serves users, not the other way around. Only user perspective matters.
+### Validate Before Dispatch
 
-## Process
+Check all required inputs. If any are missing or below minimum bar:
 
-### 1. Validate Input Completeness
-
-Check all 5 required inputs. If any are missing, vague, or insufficient:
-
-- **STOP.** Do not simulate.
-- Return specific questions for each gap.
+- **STOP.** Do not spawn the subagent.
+- Return specific questions for each gap, with an example of what good input looks like.
 - False testing has no value.
 
-### 2. Construct User Mental Model
+## Phase 2: Dispatch ICP Subagent
 
-From ICP + pre-product path, derive:
+Spawn a subagent using the `Agent` tool with the prompt below. Fill in the `{placeholders}` from the gathered inputs.
 
-- **Expectations:** what the user assumes the product does (shaped by how they found it)
-- **Patience level:** how much friction they'll tolerate before abandoning
-- **Mental state:** curious, skeptical, confused, motivated, rushed
-- **Prior assumptions:** what conventions they expect (from similar apps they've used)
+The subagent has NO tools that read the codebase. It works purely from the UI flow description provided in its prompt.
 
-### 3. Walk the Flow Step by Step
+### Confirmation Checkpoint
 
-For each step in the UI flow, document:
+Before dispatching, show the user what you're about to send:
 
-- **Screen/Step:** what it is
-- **User sees:** factual description of what's presented
-- **User expects:** what they think should happen next (from mental model)
-- **User does:** what action they take
-- **What happens:** the actual result
-- **Friction:** any pattern detected (with severity), or "None"
+```
+Dispatching {N} subagent(s):
 
-### 4. Detect Friction
+1. **{persona-slug}** — {one-line persona summary}
+   Pre-context: {channel + mindset}
+   Intent: {goal}
+   Flow: {step count} steps ({first step} → ... → {last step})
 
-At each step, check against the friction pattern catalog below.
+{repeat for each subagent}
 
-### 5. Output Structured Findings
+Output: docs/user-journeys/{batch-folder}/
+Go?
+```
 
-Use the output contract format below.
+Wait for confirmation. This prevents token waste on misparsed inputs.
 
-## Friction Pattern Catalog
+### Batch Folder Setup (Gateway)
 
-| Pattern                | Description                                                     |
-| ---------------------- | --------------------------------------------------------------- |
-| **Cognitive overload** | Too many options, too much text, unclear visual hierarchy       |
-| **Unclear affordance** | User can't tell what's tappable, interactive, or actionable     |
-| **Dead end**           | No clear next action available — user is stuck                  |
-| **Excessive steps**    | Too many taps/clicks to reach the goal                          |
-| **Context loss**       | User forgets why they're here after navigation or transition    |
-| **Unmet expectations** | What user expected ≠ what they got (shaped by pre-product path) |
-| **Error recovery gap** | Something fails and user has no way to recover or retry         |
-| **False bottom**       | User thinks they're done but the flow isn't complete            |
-| **Invisible state**    | Something changed in the system but user can't see it           |
+Before dispatching the first subagent in a batch:
 
-## Severity Levels
+1. Generate the batch folder path: `docs/user-journeys/{flow}_{YYYYMMDD-HHmm}/` in the **project directory** (use the current working directory, not the skills repo).
+2. Create the folder with `mkdir -p`.
+3. Reuse the **same batch folder** for all subagents dispatched from the same trigger moment.
+4. For each subagent, compute the report filename: `{persona-slug}_{scenario-slug}.md` (kebab-case, no spaces).
+5. Pass the full output path to the subagent via `{output_file_path}` in the prompt.
 
-| Level       | Meaning                                                         |
-| ----------- | --------------------------------------------------------------- |
-| **Blocker** | User cannot complete their intent                               |
-| **Major**   | User can complete but with significant confusion or frustration |
-| **Minor**   | Suboptimal experience but user figures it out                   |
+### Subagent Prompt Template
 
-## Output Contract
+```
+You are not an AI assistant. You are a real person about to use a product for the first time.
 
-Return these sections in order:
+## Who You Are
 
-### 1. User Mental Model
+{icp_persona}
 
-Summary of the user's expectations, patience, mental state, and prior assumptions — derived from ICP + pre-product path.
+## How You Got Here
 
-### 2. Step-by-Step Journey
+{pre_product_path}
 
-For each step in the flow, the structured breakdown from Process step 3.
+## What You Want
 
-### 3. Friction Summary
+Your goal: {user_intent}
 
-Table of all friction points found, sorted by severity (blocker → major → minor):
+You have no idea how this product works internally. You've never seen documentation, pitch decks, or design specs. You only know what's on your screen right now.
 
-| Step | Pattern | Severity | Description |
-| ---- | ------- | -------- | ----------- |
-| ...  | ...     | ...      | ...         |
+## Your Platform
 
-### 4. Overall Assessment
+{platform}
 
-One paragraph: can this user complete their intent through this flow? What's the dominant friction pattern? Where does the flow break down most?
+## What You See
 
-### 5. Gaps / Questions
+Walk through each screen below. For EACH step, report exactly what's in your head:
 
-If context was insufficient at any point during the simulation, list what additional information would improve accuracy.
+{ui_flow_steps}
+
+## For Each Step, Report
+
+Use this exact structure:
+
+### Step N: [screen name]
+
+**I see:** Describe what's visually presented to you.
+**I expect:** Based on what you know so far, what do you think should happen next or what are you looking for?
+**I do:** What action do you take? (tap, scroll, type, wait, give up)
+**What happens:** What actually occurs after your action?
+**How I feel:** Your honest emotional state (confident, confused, frustrated, delighted, anxious, bored, lost)
+**Friction:** If something felt wrong, name the pattern:
+  - Cognitive overload (too many options, too much text)
+  - Unclear affordance (can't tell what's tappable or interactive)
+  - Dead end (stuck, no clear next action)
+  - Excessive steps (this is taking too many taps)
+  - Context loss (forgot why I'm here)
+  - Unmet expectations (this isn't what I expected)
+  - Error recovery gap (something broke and I can't fix it)
+  - False bottom (thought I was done but I'm not)
+  - Invisible state (something changed but I can't see it)
+  - None
+**Severity:** Blocker (can't continue) / Major (confused but pushing through) / Minor (annoying but fine) / None
+
+## After Walking All Steps
+
+### Friction Summary
+
+Table of all friction points, sorted by severity (blocker first):
+
+| Step | Pattern | Severity | What happened |
+| ---- | ------- | -------- | ------------- |
+
+### Did I Accomplish My Goal?
+
+One paragraph: did you get what you came for? Where did you almost give up? What was the single worst moment? Would you come back tomorrow?
+
+### What I Wish I Could Tell The Developers
+
+From your perspective as this person — not as an AI, not as a designer — what would you say to the people who built this? Keep it raw and honest.
+
+## Save Your Report
+
+Write your ENTIRE walkthrough above to this file using the Write tool:
+
+{output_file_path}
+
+This is mandatory. The file is how your walkthrough gets preserved.
+```
+
+## Phase 3: Relay Results (Gateway)
+
+When the subagent returns:
+
+1. **Verify the report file exists** — read the output path to confirm the subagent wrote it. If missing, write the subagent's returned text to the file yourself.
+2. **Report the file path** to the user so they can access it directly.
+3. **Show the Friction Summary table and the "Did I Accomplish My Goal?" section** inline — these are the actionable parts. The full walkthrough lives in the file.
+
+Do not editorialize, soften, or add project context. The raw perspective is the value.
+
+If the user wants recommendations or design fixes, that's a separate conversation — this skill only observes.
 
 ## What This Skill Does NOT Do
 
-- **No recommendations.** This skill observes and reports friction. The caller decides what to do about it.
-- **No product judgment.** It does not evaluate whether the product strategy is correct.
-- **No design suggestions.** It does not propose UI alternatives — use `ui-ux-pro-max` for design implementation.
+- **No recommendations.** Observes and reports friction. The caller decides what to do.
+- **No product judgment.** Does not evaluate product strategy.
+- **No design suggestions.** Does not propose UI alternatives.
+- **No codebase access for the subagent.** The ICP doesn't read source code. They see screens.

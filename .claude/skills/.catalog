@@ -1,14 +1,16 @@
 # .claude/skills/.catalog
-# Managed by /resolve-skills. Records served skills + rationale.
-# Do not edit manually — run /resolve-skills to update.
+# Managed by /resolve-claude-config. Records served skills + rationale.
+# Do not edit manually — run /resolve-claude-config to update.
 
 ## Must-have (auto-included)
-resolve-skills
+resolve-claude-config
 commit
 merge
 release
 rename-refactor
 user-journey-simulation
+sp-bootstrap
+todo
 
 ## Project picks
 javascript-pro        # Primary language (Node.js + Svelte)
