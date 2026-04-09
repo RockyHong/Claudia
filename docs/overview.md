@@ -65,7 +65,16 @@ Two entry points, same server code. Build details in `docs/building.md`.
 | `bin/cli.js` | Browser tab | Node.js (npx) |
 | `bin/standalone.js` | Tauri native window | Node SEA 64-bit + Tauri |
 
-CLI: `npx @rockyhong/claudia` / `npx @rockyhong/claudia md` / `npx @rockyhong/claudia uninstall`
+### CLI commands
+
+After `npm i -g @rockyhong/claudia` (or via `npx @rockyhong/claudia ...`):
+
+| Command | What it does |
+|---|---|
+| `claudia` | Starts the server on `localhost:48901` and opens the dashboard. Replaces any existing instance. |
+| `claudia md` | Opens the markdown viewer in your browser for the current working directory. Requires Claudia to be running. |
+| `claudia shutdown` | Stops the running instance. |
+| `claudia uninstall` | Removes hooks, `~/.claudia/` data, and SEA runtime temp (interactive). |
 
 ---
 
