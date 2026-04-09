@@ -63,11 +63,16 @@ All access is local. The only network call is the opt-in Anthropic usage API.
 
 See [docs/help/privacy.md](docs/help/privacy.md) for exactly what Claudia reads, and how to remove every trace.
 
-## Uninstall
+## Commands
 
 ```bash
-npx @rockyhong/claudia uninstall   # remove hooks + delete all Claudia data
+claudia              # start the server, open the dashboard
+claudia md           # open the markdown viewer for the current directory
+claudia shutdown     # stop the running instance
+claudia uninstall    # remove hooks + delete all Claudia data
 ```
+
+Install globally with `npm i -g @rockyhong/claudia`, or prefix any command with `npx @rockyhong/claudia`.
 
 ## Requirements
 

@@ -53,7 +53,7 @@ This project is operated by a single developer across multiple Claude Code sessi
 
 ```
 claudia/
-  bin/cli.js                     CLI entry point (npx @rockyhong/claudia, claudia uninstall)
+  bin/cli.js                     CLI entry point (claudia, claudia md, claudia shutdown, claudia uninstall)
   packages/
     server/
       src/                       Express event server, session tracking, hooks
