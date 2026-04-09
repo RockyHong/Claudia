@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("node:child_process", () => ({
-	execFile: vi.fn(),
-}));
 vi.mock("node:fs/promises", () => ({
 	default: {
 		readFile: vi.fn(),
@@ -11,20 +8,31 @@ vi.mock("node:fs/promises", () => ({
 	},
 }));
 
-import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import { buildMdTree, readMdFile } from "./md-files.js";
+
+function dirent(name, isDir) {
+	return {
+		name,
+		isDirectory: () => isDir,
+		isFile: () => !isDir,
+	};
+}
 
 describe("buildMdTree", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
 
-	it("returns nested tree from git ls-files output", async () => {
-		execFile.mockImplementation((_cmd, _args, _opts, cb) => {
-			cb(null, {
-				stdout: "README.md\ndocs/overview.md\ndocs/building.md\n",
-			});
+	it("returns nested tree from recursive scan", async () => {
+		fs.readdir.mockImplementation(async (dir) => {
+			if (dir === "/projects/claudia") {
+				return [dirent("README.md", false), dirent("docs", true)];
+			}
+			if (dir.endsWith("docs")) {
+				return [dirent("overview.md", false), dirent("building.md", false)];
+			}
+			return [];
 		});
 
 		const tree = await buildMdTree("/projects/claudia");
@@ -42,8 +50,18 @@ describe("buildMdTree", () => {
 	});
 
 	it("sorts folders before files, alphabetically within each", async () => {
-		execFile.mockImplementation((_cmd, _args, _opts, cb) => {
-			cb(null, { stdout: "z.md\na.md\nlib/c.md\nlib/a.md\n" });
+		fs.readdir.mockImplementation(async (dir) => {
+			if (dir === "/projects/test") {
+				return [
+					dirent("z.md", false),
+					dirent("a.md", false),
+					dirent("lib", true),
+				];
+			}
+			if (dir.endsWith("lib")) {
+				return [dirent("c.md", false), dirent("a.md", false)];
+			}
+			return [];
 		});
 
 		const tree = await buildMdTree("/projects/test");
@@ -61,27 +79,17 @@ describe("buildMdTree", () => {
 		]);
 	});
 
-	it("falls back to recursive scan when git fails", async () => {
-		execFile.mockImplementation((_cmd, _args, _opts, cb) => {
-			cb(new Error("not a git repo"));
-		});
-
-		fs.readdir.mockImplementation(async (dir, _opts) => {
+	it("skips ignored directories like node_modules", async () => {
+		fs.readdir.mockImplementation(async (dir) => {
 			if (dir === "/projects/nogit") {
 				return [
-					{ name: "README.md", isDirectory: () => false, isFile: () => true },
-					{
-						name: "node_modules",
-						isDirectory: () => true,
-						isFile: () => false,
-					},
-					{ name: "docs", isDirectory: () => true, isFile: () => false },
+					dirent("README.md", false),
+					dirent("node_modules", true),
+					dirent("docs", true),
 				];
 			}
 			if (dir.endsWith("docs")) {
-				return [
-					{ name: "guide.md", isDirectory: () => false, isFile: () => true },
-				];
+				return [dirent("guide.md", false)];
 			}
 			return [];
 		});

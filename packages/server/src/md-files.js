@@ -1,9 +1,5 @@
-import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { promisify } from "node:util";
-
-const execFileAsync = promisify(execFile);
 
 const IGNORED_DIRS = new Set([
 	"node_modules",
@@ -18,21 +14,7 @@ const IGNORED_DIRS = new Set([
 ]);
 
 export async function buildMdTree(cwd) {
-	let files;
-	try {
-		const [tracked, untracked] = await Promise.all([
-			execFileAsync("git", ["ls-files", "*.md"], { cwd, timeout: 5000 }),
-			execFileAsync(
-				"git",
-				["ls-files", "--others", "--exclude-standard", "*.md"],
-				{ cwd, timeout: 5000 },
-			),
-		]);
-		const all = `${tracked.stdout}\n${untracked.stdout}`;
-		files = [...new Set(all.trim().split("\n").filter(Boolean))];
-	} catch {
-		files = await scanMdFiles(cwd, "");
-	}
+	const files = await scanMdFiles(cwd, "");
 	return filesToTree(files);
 }
 
