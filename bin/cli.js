@@ -25,6 +25,9 @@ switch (command) {
 	case "shutdown":
 		await runShutdown();
 		break;
+	case "md":
+		await runMd();
+		break;
 	default:
 		await runStart();
 		break;
@@ -118,6 +121,27 @@ async function runUninstall() {
 	if (hasTemp) console.log("Temp files removed.");
 
 	console.log("\nClaudia has been uninstalled.");
+}
+
+// --- md (open markdown viewer for current directory) ---
+
+async function runMd() {
+	const port = process.env.CLAUDIA_PORT || 48901;
+	let running = false;
+	try {
+		const res = await fetch(`http://127.0.0.1:${port}/md-viewer.html`, {
+			method: "HEAD",
+		});
+		running = res.ok;
+	} catch {}
+	if (!running) {
+		console.error(`Claudia isn't running on port ${port}. Start it first.`);
+		process.exit(1);
+	}
+	const cwd = process.cwd();
+	const url = `http://localhost:${port}/md-viewer.html?cwd=${encodeURIComponent(cwd)}`;
+	console.log(`Opening md viewer for ${cwd}`);
+	openBrowser(url);
 }
 
 // --- shutdown ---

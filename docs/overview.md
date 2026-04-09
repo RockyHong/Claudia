@@ -65,7 +65,7 @@ Two entry points, same server code. Build details in `docs/building.md`.
 | `bin/cli.js` | Browser tab | Node.js (npx) |
 | `bin/standalone.js` | Tauri native window | Node SEA 64-bit + Tauri |
 
-CLI: `npx @rockyhong/claudia` / `npx @rockyhong/claudia uninstall`
+CLI: `npx @rockyhong/claudia` / `npx @rockyhong/claudia md` / `npx @rockyhong/claudia uninstall`
 
 ---
 
