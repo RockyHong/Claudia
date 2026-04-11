@@ -55,6 +55,31 @@ const tracker = createSessionTracker({
 	},
 });
 
+// Map<sessionId, Array<{ id, res, permissionRequest }>> — FIFO queue of held
+// PermissionRequest hook responses. Head of the array is what the dashboard
+// currently displays. Append on new PermissionRequest, shift on user decision.
+
+function getPermissionQueue(sessionId) {
+	let queue = heldPermissionResponses.get(sessionId);
+	if (!queue) {
+		queue = [];
+		heldPermissionResponses.set(sessionId, queue);
+	}
+	return queue;
+}
+
+function syncPermissionHead(sessionId) {
+	const queue = heldPermissionResponses.get(sessionId);
+	const head = queue && queue.length > 0 ? queue[0] : null;
+	tracker.setPermissionRequest(sessionId, head ? head.permissionRequest : null);
+}
+
+let permissionRequestSeq = 0;
+function nextPermissionId() {
+	permissionRequestSeq += 1;
+	return `pr-${Date.now()}-${permissionRequestSeq}`;
+}
+
 const sfx = createSFX();
 
 function broadcast(update) {
@@ -206,44 +231,61 @@ app.post("/hook/:type", (req, res) => {
 		}
 	}
 
-	// Release held permission response if session was removed (stopped)
+	// Release held permission responses when session is removed (stopped).
+	// Drain the entire queue with plain {ok: true} — the session is gone and
+	// Claude Code won't wait on us anymore.
 	if (event.state === "stopped" && heldPermissionResponses.has(event.session)) {
-		const held = heldPermissionResponses.get(event.session);
+		const queue = heldPermissionResponses.get(event.session);
 		heldPermissionResponses.delete(event.session);
-		held.json({ ok: true });
+		for (const entry of queue) {
+			entry.res.json({ ok: true });
+		}
 	}
 
-	// Hold PermissionRequest responses — resolve when user decides in dashboard
+	// Hold PermissionRequest responses in a FIFO queue per session.
+	// The dashboard displays the head; the user decides one at a time.
 	if (type === "PermissionRequest") {
-		// Clean up any previous held response for this session
-		const prev = heldPermissionResponses.get(event.session);
-		if (prev) prev.json({ ok: true });
-		heldPermissionResponses.set(event.session, res);
+		const queue = getPermissionQueue(event.session);
+		const id = nextPermissionId();
+		const entry = {
+			id,
+			res,
+			permissionRequest: {
+				...event.permissionRequest,
+				id,
+			},
+		};
+		queue.push(entry);
 
-		// Clean up if Claude Code disconnects before a decision is made
+		// If this is now the head, push it to the tracker so the dashboard updates.
+		// If the queue already had items, the head is unchanged — current view stays.
+		if (queue[0] === entry) {
+			syncPermissionHead(event.session);
+		}
+
+		// Remove this entry if the curl connection closes before a decision is made.
 		res.on("close", () => {
-			if (heldPermissionResponses.get(event.session) === res) {
+			const q = heldPermissionResponses.get(event.session);
+			if (!q) return;
+			const idx = q.indexOf(entry);
+			if (idx === -1) return;
+			const wasHead = idx === 0;
+			q.splice(idx, 1);
+			if (q.length === 0) {
 				heldPermissionResponses.delete(event.session);
 			}
+			if (wasHead) {
+				syncPermissionHead(event.session);
+			}
 		});
-		return; // Don't respond yet
-	}
 
-	// For non-PermissionRequest hooks: if the session state changed away from pending,
-	// release any held response (the user handled it in the terminal)
-	if (event.session && heldPermissionResponses.has(event.session)) {
-		const session = tracker.getSession(event.session);
-		if (!session || session.state !== "pending") {
-			const held = heldPermissionResponses.get(event.session);
-			heldPermissionResponses.delete(event.session);
-			held.json({ ok: true });
-		}
+		return; // Don't respond yet — held until decision or close
 	}
 
 	res.json({ ok: true });
 });
 
-// Decision endpoint — resolves a held PermissionRequest response
+// Decision endpoint — resolves the head of the session's permission queue
 app.post("/api/permission/:sessionId", (req, res) => {
 	const { decision } = req.body || {};
 	if (decision !== "allow" && decision !== "deny") {
@@ -252,14 +294,17 @@ app.post("/api/permission/:sessionId", (req, res) => {
 			.json({ error: "Invalid decision, must be 'allow' or 'deny'" });
 	}
 
-	const held = heldPermissionResponses.get(req.params.sessionId);
-	if (!held) {
+	const queue = heldPermissionResponses.get(req.params.sessionId);
+	if (!queue || queue.length === 0) {
 		return res
 			.status(404)
 			.json({ error: "No pending permission request for this session" });
 	}
 
-	heldPermissionResponses.delete(req.params.sessionId);
+	const entry = queue.shift();
+	if (queue.length === 0) {
+		heldPermissionResponses.delete(req.params.sessionId);
+	}
 
 	const hookOutput = {
 		hookSpecificOutput: {
@@ -271,10 +316,18 @@ app.post("/api/permission/:sessionId", (req, res) => {
 		},
 	};
 
-	held.json(hookOutput);
+	entry.res.json(hookOutput);
 
-	// Immediately transition session to busy so the dashboard reflects the decision
-	tracker.handleEvent({ session: req.params.sessionId, state: "busy" });
+	// If there's a next permission waiting, surface it to the dashboard.
+	// Otherwise clear the field and transition session to busy so state reflects
+	// the decision (mirrors the prior single-slot behavior).
+	const remaining = heldPermissionResponses.get(req.params.sessionId);
+	if (remaining && remaining.length > 0) {
+		syncPermissionHead(req.params.sessionId);
+	} else {
+		tracker.setPermissionRequest(req.params.sessionId, null);
+		tracker.handleEvent({ session: req.params.sessionId, state: "busy" });
+	}
 
 	res.json({ ok: true });
 });
