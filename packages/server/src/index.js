@@ -55,10 +55,6 @@ const tracker = createSessionTracker({
 	},
 });
 
-// Map<sessionId, Array<{ id, res, permissionRequest }>> — FIFO queue of held
-// PermissionRequest hook responses. Head of the array is what the dashboard
-// currently displays. Append on new PermissionRequest, shift on user decision.
-
 function getPermissionQueue(sessionId) {
 	let queue = heldPermissionResponses.get(sessionId);
 	if (!queue) {
