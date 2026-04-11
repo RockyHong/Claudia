@@ -14,10 +14,8 @@ const stateConfig = {
 let elapsed = $state("");
 let approveLoading = $state(false);
 let flashClass = $state("");
-let decisionMade = $state(false);
 let lastPermissionId = $state(null);
 let toolContextExpanded = $state(false);
-let flashTimer = null;
 
 async function handleDecision(decision) {
 	approveLoading = true;
@@ -31,28 +29,20 @@ async function handleDecision(decision) {
 	} catch {
 		// best-effort — if server is down, hook will timeout and fallback
 	}
-	if (flashTimer) clearTimeout(flashTimer);
-	flashTimer = setTimeout(() => {
+	// Cosmetic flash clear — decoupled from state so it can't race the queue shift
+	setTimeout(() => {
 		flashClass = "";
-		approveLoading = false;
-		decisionMade = true;
-		flashTimer = null;
 	}, 300);
 }
 
-// Reset decision state when the displayed permission changes identity
-// (new request arrived, or queue shifted to the next one after user decided).
+// Reset button state when the displayed permission changes identity
+// (new request arrived, or queue shifted to the next head after a decision).
+// Card visibility is driven by session.permissionRequest alone — no decisionMade flag.
 $effect(() => {
 	const currentId = session.permissionRequest?.id ?? null;
 	if (currentId !== lastPermissionId) {
 		lastPermissionId = currentId;
-		if (flashTimer) {
-			clearTimeout(flashTimer);
-			flashTimer = null;
-		}
-		flashClass = "";
 		approveLoading = false;
-		decisionMade = false;
 	}
 });
 
@@ -194,7 +184,7 @@ function openDocs(e) {
     </div>
   {/if}
 
-  {#if session.permissionRequest && !decisionMade}
+  {#if session.permissionRequest}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="tool-context" class:expanded={toolContextExpanded} onclick={() => toolContextExpanded = !toolContextExpanded} role="button" tabindex="0" onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), toolContextExpanded = !toolContextExpanded)}>
       {session.permissionRequest.toolName}{session.permissionRequest.toolInput ? `: ${session.permissionRequest.toolInput}` : ''}
