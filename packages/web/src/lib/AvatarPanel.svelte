@@ -48,7 +48,6 @@ async function checkAvailability() {
 	srcA = "";
 	srcB = "";
 	showA = true;
-	aspectRatio = "";
 	available = Object.keys(results).length > 0 ? results : null;
 }
 
@@ -71,7 +70,6 @@ function getSrc(state) {
 	return null;
 }
 
-let aspectRatio = $state("");
 let usePixelated = $state(true);
 let panelEl = $state(null);
 
@@ -81,13 +79,6 @@ function updatePixelated(el) {
 	const displayW = panelEl.getBoundingClientRect().width;
 	if (!nativeW || !displayW) return;
 	usePixelated = nativeW / displayW <= 0.5;
-}
-
-function captureAspect(el) {
-	if (!el || aspectRatio) return;
-	const w = el.videoWidth;
-	const h = el.videoHeight;
-	if (w && h) aspectRatio = `${w} / ${h}`;
 }
 
 $effect(() => {
@@ -113,7 +104,6 @@ $effect(() => {
 		srcB = src;
 		requestAnimationFrame(() => {
 			videoB?.play().catch(() => {});
-			captureAspect(videoB);
 			updatePixelated(videoB);
 			showA = false;
 		});
@@ -121,7 +111,6 @@ $effect(() => {
 		srcA = src;
 		requestAnimationFrame(() => {
 			videoA?.play().catch(() => {});
-			captureAspect(videoA);
 			updatePixelated(videoA);
 			showA = true;
 		});
@@ -135,7 +124,6 @@ $effect(() => {
     class="avatar-panel"
     class:bg-mode={background}
     class:hoverable={!background && onimmersive}
-    style:aspect-ratio={background ? undefined : aspectRatio}
   >
     <!-- svelte-ignore a11y_media_has_caption -->
     <video
@@ -144,7 +132,7 @@ $effect(() => {
       class="slot"
       class:visible={showA}
       class:pixelated={usePixelated}
-      onloadedmetadata={() => { captureAspect(videoA); updatePixelated(videoA); }}
+      onloadedmetadata={() => updatePixelated(videoA)}
       autoplay
       loop
       muted
@@ -157,7 +145,7 @@ $effect(() => {
       class="slot"
       class:visible={!showA}
       class:pixelated={usePixelated}
-      onloadedmetadata={() => { captureAspect(videoB); updatePixelated(videoB); }}
+      onloadedmetadata={() => updatePixelated(videoB)}
       autoplay
       loop
       muted
@@ -184,11 +172,12 @@ $effect(() => {
   .avatar-panel {
     position: relative;
     margin: 32px 0 0;
+    width: 100%;
+    height: 360px;
     border-radius: 16px;
     overflow: hidden;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    max-height: 360px;
   }
 
   .avatar-panel.bg-mode {
