@@ -15,6 +15,7 @@ let elapsed = $state("");
 let approveLoading = $state(false);
 let flashClass = $state("");
 let decisionMade = $state(false);
+let lastPermissionId = $state(null);
 let toolContextExpanded = $state(false);
 let flashTimer = null;
 
@@ -39,10 +40,12 @@ async function handleDecision(decision) {
 	}, 300);
 }
 
-// Reset when a new permission request arrives for this session
+// Reset decision state when the displayed permission changes identity
+// (new request arrived, or queue shifted to the next one after user decided).
 $effect(() => {
-	if (session.permissionRequest) {
-		// Cancel any in-flight flash timer from a previous decision
+	const currentId = session.permissionRequest?.id ?? null;
+	if (currentId !== lastPermissionId) {
+		lastPermissionId = currentId;
 		if (flashTimer) {
 			clearTimeout(flashTimer);
 			flashTimer = null;
