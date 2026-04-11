@@ -732,4 +732,54 @@ describe("session-tracker", () => {
 			alertTracker.stop();
 		});
 	});
+
+	describe("setPermissionRequest", () => {
+		it("updates session.permissionRequest without changing state or stateChangedAt", () => {
+			const tracker = createSessionTracker();
+			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/p", ts: 1 });
+			tracker.handleEvent({
+				session: "s1",
+				state: "pending",
+				permissionRequest: { toolName: "Bash", toolInput: "ls", id: "p1" },
+				ts: 2,
+			});
+			const before = tracker.getSession("s1");
+			const changedAt = before.stateChangedAt;
+
+			tracker.setPermissionRequest("s1", {
+				toolName: "WebSearch",
+				toolInput: "query",
+				id: "p2",
+			});
+
+			const after = tracker.getSession("s1");
+			expect(after.state).toBe("pending");
+			expect(after.stateChangedAt).toBe(changedAt);
+			expect(after.permissionRequest.toolName).toBe("WebSearch");
+			expect(after.permissionRequest.id).toBe("p2");
+		});
+
+		it("clears the permission when passed null without transitioning state", () => {
+			const tracker = createSessionTracker();
+			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/p", ts: 1 });
+			tracker.handleEvent({
+				session: "s1",
+				state: "pending",
+				permissionRequest: { toolName: "Bash", toolInput: "ls", id: "p1" },
+				ts: 2,
+			});
+
+			tracker.setPermissionRequest("s1", null);
+
+			const s = tracker.getSession("s1");
+			expect(s.permissionRequest).toBe(null);
+			// State machine unchanged by this helper — it's the caller's job to transition
+			expect(s.state).toBe("pending");
+		});
+
+		it("is a no-op for unknown sessions", () => {
+			const tracker = createSessionTracker();
+			expect(() => tracker.setPermissionRequest("unknown", null)).not.toThrow();
+		});
+	});
 });

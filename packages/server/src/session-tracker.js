@@ -397,6 +397,13 @@ export function createSessionTracker({
 		return handles;
 	}
 
+	function setPermissionRequest(sessionId, permissionRequest) {
+		const session = sessions.get(sessionId);
+		if (!session) return;
+		session.permissionRequest = permissionRequest || null;
+		notify();
+	}
+
 	return {
 		handleEvent,
 		getSessions,
@@ -407,6 +414,7 @@ export function createSessionTracker({
 		linkSessionById,
 		getLinkedHandles,
 		pruneStale,
+		setPermissionRequest,
 		start,
 		stop,
 	};
