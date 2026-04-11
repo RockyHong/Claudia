@@ -175,15 +175,13 @@ describe("GET /api/sessions", () => {
 	});
 });
 
-describe("POST /hook/PermissionRequest (held response)", () => {
-	it("holds the response and returns decision JSON when resolved via /api/permission/:sessionId", async () => {
-		// First create a session
+describe("POST /hook/PermissionRequest (queue)", () => {
+	it("holds a single response and returns decision JSON when resolved", async () => {
 		await request("POST", "/hook/SessionStart", {
 			session_id: "perm-sess-1",
 			cwd: "/proj",
 		});
 
-		// Send PermissionRequest — this will hang until resolved
 		const permPromise = request("POST", "/hook/PermissionRequest", {
 			session_id: "perm-sess-1",
 			tool_name: "Bash",
@@ -191,17 +189,14 @@ describe("POST /hook/PermissionRequest (held response)", () => {
 			cwd: "/proj",
 		});
 
-		// Wait a tick for the server to register the held response
 		await new Promise((r) => setTimeout(r, 50));
 
-		// Resolve via decision endpoint
 		const decisionRes = await request("POST", "/api/permission/perm-sess-1", {
 			decision: "allow",
 		});
 		expect(decisionRes.status).toBe(200);
 		expect(decisionRes.body.ok).toBe(true);
 
-		// The held hook response should now complete with decision JSON
 		const hookRes = await permPromise;
 		expect(hookRes.status).toBe(200);
 		expect(hookRes.body.hookSpecificOutput.decision.behavior).toBe("allow");
@@ -221,15 +216,109 @@ describe("POST /hook/PermissionRequest (held response)", () => {
 
 		await new Promise((r) => setTimeout(r, 50));
 
-		await request("POST", "/api/permission/perm-sess-2", {
-			decision: "deny",
-		});
+		await request("POST", "/api/permission/perm-sess-2", { decision: "deny" });
 
 		const hookRes = await permPromise;
 		expect(hookRes.body.hookSpecificOutput.decision.behavior).toBe("deny");
 		expect(hookRes.body.hookSpecificOutput.decision.message).toBe(
 			"Denied from Claudia dashboard",
 		);
+	});
+
+	it("queues multiple PermissionRequests and resolves them in FIFO order", async () => {
+		await request("POST", "/hook/SessionStart", {
+			session_id: "perm-sess-queue",
+			cwd: "/proj",
+		});
+
+		const p1 = request("POST", "/hook/PermissionRequest", {
+			session_id: "perm-sess-queue",
+			tool_name: "WebSearch",
+			tool_input: { query: "first" },
+			cwd: "/proj",
+		});
+		await new Promise((r) => setTimeout(r, 20));
+
+		const p2 = request("POST", "/hook/PermissionRequest", {
+			session_id: "perm-sess-queue",
+			tool_name: "WebSearch",
+			tool_input: { query: "second" },
+			cwd: "/proj",
+		});
+		await new Promise((r) => setTimeout(r, 20));
+
+		const p3 = request("POST", "/hook/PermissionRequest", {
+			session_id: "perm-sess-queue",
+			tool_name: "WebSearch",
+			tool_input: { query: "third" },
+			cwd: "/proj",
+		});
+		await new Promise((r) => setTimeout(r, 20));
+
+		await request("POST", "/api/permission/perm-sess-queue", {
+			decision: "allow",
+		});
+		const r1 = await p1;
+		expect(r1.body.hookSpecificOutput.decision.behavior).toBe("allow");
+
+		await new Promise((r) => setTimeout(r, 20));
+		await request("POST", "/api/permission/perm-sess-queue", {
+			decision: "deny",
+		});
+		const r2 = await p2;
+		expect(r2.body.hookSpecificOutput.decision.behavior).toBe("deny");
+
+		await new Promise((r) => setTimeout(r, 20));
+		await request("POST", "/api/permission/perm-sess-queue", {
+			decision: "allow",
+		});
+		const r3 = await p3;
+		expect(r3.body.hookSpecificOutput.decision.behavior).toBe("allow");
+	});
+
+	it("never resolves a queued response until the user decides it", async () => {
+		// Regression test for the dead-loop bug: previously the second
+		// PermissionRequest silently resolved the first with {ok: true}.
+		await request("POST", "/hook/SessionStart", {
+			session_id: "perm-sess-hold",
+			cwd: "/proj",
+		});
+
+		let p1Resolved = false;
+		const p1 = request("POST", "/hook/PermissionRequest", {
+			session_id: "perm-sess-hold",
+			tool_name: "Bash",
+			tool_input: { command: "first" },
+			cwd: "/proj",
+		}).then((r) => {
+			p1Resolved = true;
+			return r;
+		});
+
+		await new Promise((r) => setTimeout(r, 30));
+
+		const p2 = request("POST", "/hook/PermissionRequest", {
+			session_id: "perm-sess-hold",
+			tool_name: "Bash",
+			tool_input: { command: "second" },
+			cwd: "/proj",
+		});
+
+		await new Promise((r) => setTimeout(r, 100));
+		expect(p1Resolved).toBe(false);
+
+		await request("POST", "/api/permission/perm-sess-hold", {
+			decision: "allow",
+		});
+		const r1 = await p1;
+		expect(r1.body.hookSpecificOutput.decision.behavior).toBe("allow");
+
+		await new Promise((r) => setTimeout(r, 20));
+		await request("POST", "/api/permission/perm-sess-hold", {
+			decision: "allow",
+		});
+		const r2 = await p2;
+		expect(r2.body.hookSpecificOutput.decision.behavior).toBe("allow");
 	});
 
 	it("returns 404 when no held response exists for session", async () => {
@@ -246,29 +335,38 @@ describe("POST /hook/PermissionRequest (held response)", () => {
 		expect(res.status).toBe(400);
 	});
 
-	it("releases held response when session ends", async () => {
+	it("drains the queue with {ok: true} when session ends", async () => {
 		await request("POST", "/hook/SessionStart", {
 			session_id: "perm-sess-end",
 			cwd: "/proj",
 		});
 
-		const permPromise = request("POST", "/hook/PermissionRequest", {
+		const p1 = request("POST", "/hook/PermissionRequest", {
 			session_id: "perm-sess-end",
 			tool_name: "Bash",
 			cwd: "/proj",
 		});
+		await new Promise((r) => setTimeout(r, 20));
 
-		await new Promise((r) => setTimeout(r, 50));
+		const p2 = request("POST", "/hook/PermissionRequest", {
+			session_id: "perm-sess-end",
+			tool_name: "Bash",
+			cwd: "/proj",
+		});
+		await new Promise((r) => setTimeout(r, 20));
 
-		// End the session — should release the held response
 		await request("POST", "/hook/SessionEnd", {
 			session_id: "perm-sess-end",
 			cwd: "/proj",
 		});
 
-		const hookRes = await permPromise;
-		// Should get a plain ok response (not a decision), meaning it was released
-		expect(hookRes.status).toBe(200);
+		const r1 = await p1;
+		const r2 = await p2;
+		expect(r1.status).toBe(200);
+		expect(r2.status).toBe(200);
+		// Plain {ok: true}, no decision payload
+		expect(r1.body.hookSpecificOutput).toBeUndefined();
+		expect(r2.body.hookSpecificOutput).toBeUndefined();
 	});
 });
 
