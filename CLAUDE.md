@@ -49,49 +49,6 @@ This project is operated by a single developer across multiple Claude Code sessi
 - **Session isolation** — each Claude session commits only its own changes
 - **No merge conflicts expected** — if one occurs, stop and ask the user
 
-## Project Structure
-
-```
-claudia/
-  bin/cli.js                     CLI entry point (claudia, claudia md, claudia shutdown, claudia uninstall)
-  packages/
-    server/
-      src/                       Express event server, session tracking, hooks
-      assets/                    Bundled static assets (sound files, etc.)
-    web/src/                     Svelte 5 browser dashboard
-  src-tauri/                     Tauri desktop distribution (Rust shell, icons, capabilities)
-  docs/
-    overview.md                  Product context, data flow, module index
-    techstack.md                 Tech choices, architecture rules
-    design-system.html           Component catalog + design rules
-    product-mock.html            Assembled dashboard + immersive mode
-    building.md                  Build instructions (npx, Tauri)
-    help/                        User-facing guides
-      privacy.md                 What Claudia accesses, removal options
-      troubleshooting.md         Common issues + fixes by distribution
-    specs/                       Feature specs — source of truth per feature
-      index.md                   Spec catalog
-      avatars.md, dashboard.md, hooks.md, sessions.md, spawning.md
-    superpowers/
-      specs/                     Design specs (from brainstorming, temporal)
-      plans/                     Implementation plans (temporal)
-```
-
-Monorepo using npm workspaces. `packages/server` is the backend, `packages/web` is the frontend. They are independent packages with a clear boundary — the server serves the built web assets and exposes an SSE stream. The web app consumes that stream. No shared code between them beyond the event protocol.
-
-## Tech Stack
-
-- **Runtime**: Node.js 18+, ES modules (`"type": "module"`)
-- **Server**: Express 5, SSE (no WebSocket)
-- **Frontend**: Svelte 5, Vite
-- **Testing**: Vitest
-- **Linting**: Biome
-- **Package manager**: npm (no pnpm/yarn)
-
-Production has two dependencies: `express` and `adm-zip`. This is intentional — hand-roll before reaching for a library.
-
-See `docs/techstack.md` for full reasoning behind each choice.
-
 ## Design Principles
 
 These are non-negotiable. Every line of code should reflect them.
@@ -161,19 +118,6 @@ npm run lint         # Check with Biome
 npm run lint:fix     # Auto-fix lint issues
 npm run format       # Auto-format with Biome
 ```
-
-## Event Protocol (Quick Reference)
-
-Hooks pipe raw Claude Code stdin JSON to the server, which transforms it:
-
-```
-POST /hook/:type    (primary — used by hooks, raw stdin JSON, server transforms via hook-transform.js)
-POST /event         (legacy — pre-formatted {session, state, tool, cwd, message, ts})
-```
-
-Hook types: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PermissionRequest`, `Stop`, `SessionEnd`, `SubagentStop`, `PreCompact`
-
-SSE stream at `GET /events` pushes state updates to the browser. See `docs/overview.md` for the full protocol.
 
 ## Shell Notes
 
