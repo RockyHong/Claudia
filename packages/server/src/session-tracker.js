@@ -11,6 +11,13 @@ import { randomBytes } from "node:crypto";
  * Busy spans from the first PreToolUse until Stop (turn complete).
  * PostToolUse also signals busy — Claude is still working between tools.
  * Only Stop and SessionStart produce idle.
+ *
+ * Idle gating for in-flight subagents uses event.pendingAgents — derived from
+ * the transcript JSONL by transcript-scan.js — instead of a hook-counted
+ * integer. Counter-based tracking drifted when hooks were dropped (server
+ * downtime, killed subagents). The transcript is Claude Code's own ground
+ * truth so the count is always accurate at the moment Stop or SubagentStop
+ * fires.
  */
 
 const State = Object.freeze({
@@ -35,7 +42,6 @@ function createSession(id, cwd) {
 		windowHandle: null,
 		git: null,
 		subagentActivity: 0,
-		activeSubagents: 0,
 		turnComplete: false,
 	};
 }
@@ -100,6 +106,7 @@ export function createSessionTracker({
 			ts,
 			hookType,
 			permissionRequest,
+			pendingAgents,
 		} = event;
 
 		if (!sessionId || !state) return;
@@ -142,34 +149,34 @@ export function createSessionTracker({
 		}
 
 		const prevState = session.state;
+		const pending = pendingAgents || 0;
 
-		// Track active subagents
-		if (
-			hookType === "PreToolUse" &&
-			(tool === "Agent" || event.tool === "Agent")
-		) {
-			session.activeSubagents = (session.activeSubagents || 0) + 1;
-		}
-		if (hookType === "SubagentStop") {
-			session.activeSubagents = Math.max(0, (session.activeSubagents || 0) - 1);
-		}
+		// Stale SubagentStop guard: a late SubagentStop must not revive an
+		// idle session when the transcript confirms no pending Agent
+		// invocations. Hook reordering or retries can otherwise bounce a
+		// finished session back to busy and leave the badge showing.
+		const isStaleSubagentStop =
+			hookType === "SubagentStop" && prevState === State.IDLE && pending === 0;
 
 		switch (state) {
 			case "busy":
+				if (isStaleSubagentStop) break;
 				session.state = State.BUSY;
 				session.lastTool = tool || session.lastTool;
 				session.pendingMessage = null;
 				session.permissionRequest = null;
-				// Don't clear turnComplete on SubagentStop — it maps to "busy"
-				// but we need the flag to survive for the deferred idle check
+				// Don't clear turnComplete on SubagentStop — Stop may have already
+				// gated and we need the flag to survive for the deferred idle check
 				if (hookType !== "SubagentStop") {
 					session.turnComplete = false;
 				}
 				break;
 
 			case "idle":
-				// Don't transition to idle if subagents are still running
-				if (session.activeSubagents > 0) {
+				// Don't transition to idle if subagents are still running.
+				// pending count comes from the transcript, not a local counter,
+				// so it's resilient to dropped hooks.
+				if (pending > 0) {
 					session.turnComplete = true;
 					break;
 				}
@@ -178,7 +185,6 @@ export function createSessionTracker({
 				session.pendingMessage = null;
 				session.permissionRequest = null;
 				session.subagentActivity = 0;
-				session.activeSubagents = 0;
 				session.turnComplete = false;
 				if (
 					prevState !== State.IDLE &&
@@ -207,13 +213,16 @@ export function createSessionTracker({
 				return;
 		}
 
-		if (hookType === "SubagentStop") session.subagentActivity++;
+		if (hookType === "SubagentStop" && !isStaleSubagentStop) {
+			session.subagentActivity++;
+		}
 
 		// Deferred idle: if Stop fired while subagents were running (turnComplete),
-		// and the last subagent just finished, transition to idle now.
+		// and the transcript now shows no pending invocations, transition to idle.
 		if (
 			hookType === "SubagentStop" &&
-			session.activeSubagents === 0 &&
+			!isStaleSubagentStop &&
+			pending === 0 &&
 			session.turnComplete
 		) {
 			session.state = State.IDLE;
@@ -262,7 +271,6 @@ export function createSessionTracker({
 			windowHandle: s.windowHandle,
 			git: s.git,
 			subagentActivity: s.subagentActivity,
-			activeSubagents: s.activeSubagents,
 		}));
 	}
 
@@ -383,7 +391,6 @@ export function createSessionTracker({
 			windowHandle: s.windowHandle,
 			git: s.git,
 			subagentActivity: s.subagentActivity,
-			activeSubagents: s.activeSubagents,
 		};
 	}
 

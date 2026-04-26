@@ -20,9 +20,11 @@ Three user-visible states, ordered by attention urgency (how much the user can/s
 
 ## Subagent Awareness
 
-Sessions track active subagent count. Key behavior: **a session stays busy while subagents are running**. `Stop` hook fires when the parent turn ends, but if `activeSubagents > 0`, the session stays `busy` until all `SubagentStop` hooks decrement the count to zero.
+Sessions stay busy while subagents are running. `Stop` hook fires when the parent turn ends, but if any Agent invocations remain pending, the session stays `busy` until the next `SubagentStop` confirms all are done.
 
-This prevents the dashboard from flashing idle/busy/idle as subagents finish one by one.
+The pending count is derived from the parent's transcript JSONL on every `Stop` and `SubagentStop` hook (`packages/server/src/transcript-scan.js`) — it counts Agent `tool_use` entries that have no matching `tool_result`. The transcript is Claude Code's own ground truth, so this count is immune to dropped hook deliveries (server downtime, killed subagents, curl failures) that would otherwise leave a hook-counted integer stuck above zero.
+
+This prevents the dashboard from flashing idle/busy/idle as subagents finish one by one, and prevents the prior bug where a missed `SubagentStop` left a session permanently busy.
 
 ## Naming
 

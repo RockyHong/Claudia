@@ -15,6 +15,7 @@ import { trackProject } from "./project-storage.js";
 import { registerApiRoutes } from "./routes-api.js";
 import { createSessionTracker } from "./session-tracker.js";
 import { createSFX } from "./sfx.js";
+import { countPendingAgentInvocations } from "./transcript-scan.js";
 import { createUsageClient } from "./usage.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -177,6 +178,15 @@ app.post("/hook/:type", (req, res) => {
 	const event = transformHookPayload(type, req.body);
 	if (!event) {
 		return res.status(400).json({ error: "Invalid payload" });
+	}
+
+	// Stop and SubagentStop are the points where idle gating decisions happen.
+	// Derive pending Agent invocations from the transcript — authoritative,
+	// survives dropped hooks and server downtime.
+	if (type === "Stop" || type === "SubagentStop") {
+		event.pendingAgents = countPendingAgentInvocations(
+			req.body.transcript_path,
+		);
 	}
 
 	if (
