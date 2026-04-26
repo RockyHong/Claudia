@@ -123,7 +123,7 @@ describe("parseMultipart", () => {
 	});
 
 	it("rejects when upload exceeds MAX_UPLOAD_SIZE", async () => {
-		const MAX = 20 * 1024 * 1024;
+		const MAX = 80 * 1024 * 1024;
 
 		const req = new EventEmitter();
 		req.headers = { "content-type": CONTENT_TYPE };

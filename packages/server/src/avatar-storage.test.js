@@ -178,7 +178,7 @@ describe("createSet", () => {
 	it("rejects files over size limit", async () => {
 		const bigFile = {
 			name: "pending.webm",
-			data: Buffer.alloc(6 * 1024 * 1024),
+			data: Buffer.alloc(26 * 1024 * 1024),
 		};
 		await expect(
 			storage.createSet("big", [
@@ -573,8 +573,8 @@ describe("importSet", () => {
 		);
 	});
 
-	it("rejects file exceeding 5MB", async () => {
-		const bigFile = fakeFile("pending.webm", 6 * 1024 * 1024);
+	it("rejects file exceeding size limit", async () => {
+		const bigFile = fakeFile("pending.webm", 26 * 1024 * 1024);
 		const zipBuf = makeZipBuffer([
 			fakeFile("idle.webm"),
 			fakeFile("busy.webm"),
@@ -582,7 +582,7 @@ describe("importSet", () => {
 		]);
 
 		await expect(storage.importSet("too-big", zipBuf)).rejects.toThrow(
-			"One or more files exceed the 5MB limit",
+			"One or more files exceed the size limit",
 		);
 	});
 

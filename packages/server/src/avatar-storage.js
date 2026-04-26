@@ -15,8 +15,8 @@ export const VALID_FILENAMES = new Set([
 	"pending.webm",
 	"pending.mp4",
 ]);
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const MAX_ZIP_SIZE = 20 * 1024 * 1024;
+const MAX_FILE_SIZE = 25 * 1024 * 1024;
+const MAX_ZIP_SIZE = 80 * 1024 * 1024;
 const REQUIRED_STATES = ["idle", "busy", "pending"];
 
 // Magic bytes for video format validation
@@ -271,7 +271,7 @@ export function createAvatarStorage(baseDir) {
 		for (const entry of validEntries) {
 			const data = entry.getData();
 			if (data.length > MAX_FILE_SIZE) {
-				throw new Error("One or more files exceed the 5MB limit");
+				throw new Error("One or more files exceed the size limit");
 			}
 			if (!hasValidMagicBytes(data, entry.entryName)) {
 				throw new Error("One or more files aren't valid video files");

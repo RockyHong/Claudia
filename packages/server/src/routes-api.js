@@ -356,7 +356,7 @@ export function registerApiRoutes(app, tracker, options = {}) {
 	app.post("/api/avatars/import", async (req, res) => {
 		const chunks = [];
 		let totalSize = 0;
-		const MAX_IMPORT_SIZE = 20 * 1024 * 1024;
+		const MAX_IMPORT_SIZE = 80 * 1024 * 1024;
 
 		req.on("data", (chunk) => {
 			totalSize += chunk.length;
