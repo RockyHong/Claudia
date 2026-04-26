@@ -102,11 +102,23 @@ fn main() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            // Kill server when the window is destroyed (app closing)
-            if let tauri::WindowEvent::Destroyed = event {
-                kill_server(window.app_handle());
+            // Red-cross / Cmd-W: kill server and force full app exit.
+            // macOS keeps the process alive after the last window closes by
+            // default, which would strand the child server — so we exit explicitly.
+            if let tauri::WindowEvent::CloseRequested { .. } = event {
+                let app = window.app_handle();
+                kill_server(app);
+                app.exit(0);
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error running Claudia");
+        .build(tauri::generate_context!())
+        .expect("error running Claudia")
+        .run(|app_handle, event| match event {
+            // Safety net: Cmd+Q, SIGTERM, or any other exit path.
+            // kill_server is idempotent (guard.take() leaves None), so double-calls are safe.
+            tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit => {
+                kill_server(app_handle);
+            }
+            _ => {}
+        });
 }

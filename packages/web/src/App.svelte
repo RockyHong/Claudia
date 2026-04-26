@@ -405,6 +405,14 @@ function updateFavicon(state) {
     --gray: #a39a91;
   }
 
+  :global(html) {
+    background: var(--bg);
+  }
+
+  :global(html, body) {
+    overscroll-behavior: none;
+  }
+
   :global(body) {
     font-family: var(--font-body);
     font-size: 0.9375rem;
