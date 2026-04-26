@@ -86,8 +86,9 @@ After `npm i -g @rockyhong/claudia` (or via `npx @rockyhong/claudia ...`):
 |---|---|
 | `index.js` | Express app, SSE broadcast, `/hook/:type`, `/event`, server lifecycle |
 | `routes-api.js` | REST endpoints: projects, avatars, usage, focus, launch, terminals, hooks, preferences, claude-status |
-| `session-tracker.js` | Session registry, state machine, display names, stale pruning, subagent tracking |
+| `session-tracker.js` | Session registry, state machine, display names, stale pruning, subagent gating |
 | `hook-transform.js` | Raw stdin JSON → internal event format |
+| `transcript-scan.js` | Count pending Agent invocations from a session's transcript JSONL — drives subagent gating |
 | `hooks.js` | Read/write `~/.claude/settings.json` hook config |
 | `personality.js` | Status message templates per state transition |
 | `focus.js` | Terminal focus, flash, window enumeration — platform shell commands |
