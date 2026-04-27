@@ -184,6 +184,8 @@ $effect(() => {
     position: fixed;
     inset: 0;
     margin: 0;
+    width: auto;
+    height: auto;
     border-radius: 0;
     max-height: none;
     border: none;
