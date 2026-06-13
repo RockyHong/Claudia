@@ -8,7 +8,7 @@ Ground rules for technology choices, patterns, and architecture.
 
 | Layer | Choice | Config/Entry |
 |---|---|---|
-| Runtime | Node.js 18+, ES modules | `"type": "module"` in all package.json |
+| Runtime | Node.js 20.19+ (or 22.12+), ES modules | `"type": "module"` in all package.json |
 | Package manager | npm, workspaces | Root `package.json` → `packages/*` |
 | Server | Express 5 | `packages/server/src/index.js` |
 | Real-time | SSE (Server-Sent Events) | `res.write()` on held response, `GET /events` |
