@@ -114,7 +114,14 @@ For details on each feature's data and API surface, see [docs/specs/](specs/inde
 | `npm run build:sea:x64` | `dist/claudia-server-x64.exe` | Node SEA 64-bit |
 | `npm run build:tauri` | Tauri app + SEA sidecar | Needs Rust toolchain |
 
-CI: `.github/workflows/build.yml` — triggered by version tag push.
+CI: `.github/workflows/build.yml` — triggered by version tag push. CI installs with `npm ci` (exact lockfile, no resolution drift).
+
+### Dependency overrides (`package.json` → `overrides`)
+
+Load-bearing — do not remove without re-verifying `npm ci` on both npm 10 and 11.
+
+- **`@emnapi/core` / `@emnapi/runtime` / `@emnapi/wasi-threads`** pinned to one consistent version. Vite 8 is rolldown-based; `rolldown` lists `@rolldown/binding-wasm32-wasi` as an optional dep that pins `@emnapi/*` *exactly* while its own `@napi-rs/wasm-runtime` floats the same packages (`^1.7.1`). That conflict lives inside a wasm binding **never installed on any real platform** (native bindings win), so npm can't serialize a stable lock and different npm majors demand different versions from `npm ci`. Pinning collapses the conflict to a single version.
+- **`esbuild: "$esbuild"`** dedupes vite's nested esbuild to the top-level `^0.28.1`. Without it npm may resolve vite's `^0.28.0` to the vulnerable 0.28.0 (advisory fixed in 0.28.1).
 
 ---
 
