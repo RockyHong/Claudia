@@ -1,15 +1,20 @@
 # .claude/skills/.catalog
 # Managed by /resolve-claude-config. Records served skills + rationale.
 # Do not edit manually — run /resolve-claude-config to update.
-# Device-wide skills (commit, merge, release, resolve-claude-config, sp-bootstrap)
+# Device-wide skills (commit, merge, release, resolve-claude-config, super-bootstrap)
 # live in ~/.claude/skills/ — NOT duplicated here.
 
 ## Must-have (auto-included)
-todo
-rename-refactor
-user-journey-simulation
+journey-simulation        # renamed from user-journey-simulation
 check-docs-consistency
-frontend-soc-scan
+discuss
 
 ## Project picks
-javascript-pro        # Primary language (Node.js + Svelte)
+frontend-soc-scan         # Svelte frontend — SoC violation scan
+
+## Served rules (.claude/rules/)
+config-overlay            # must-have — runtime wiring / overlay authoring
+
+## Served hooks (.claude/hooks/)
+workflow-model            # must-have — model-tiering on Workflow/Task (pre+post)
+agent-model               # must-have — model-tiering on Agent dispatch (pre)

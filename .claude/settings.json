@@ -3,11 +3,16 @@
     "superpowers@claude-plugins-official": true,
     "andrej-karpathy-skills@karpathy-skills": true,
     "fullstack-dev-skills@fullstack-dev-skills": false,
-    "rust-analyzer-lsp@claude-plugins-official": false
+    "rust-analyzer-lsp@claude-plugins-official": false,
+    "super-bootstrap@super-bootstrap": true,
+    "axioms@axioms-protocol": true
   },
   "extraKnownMarketplaces": {
     "karpathy-skills": {
-      "source": { "source": "github", "repo": "forrestchang/andrej-karpathy-skills" }
+      "source": {
+        "source": "github",
+        "repo": "forrestchang/andrej-karpathy-skills"
+      }
     }
   },
   "hooks": {
@@ -20,6 +25,35 @@
             "command": "node -e \"const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));const f=d.tool_input?.file_path;if(f&&/\\\\.(js|ts|svelte|json|css|html)$/.test(f)){const{execSync}=require('child_process');try{execSync('npx @biomejs/biome check --fix --no-errors-on-unmatched '+JSON.stringify(f),{stdio:'ignore',cwd:d.cwd})}catch{}}\"",
             "timeout": 10,
             "statusMessage": "Formatting..."
+          }
+        ]
+      },
+      {
+        "matcher": "Workflow",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/workflow-model-posttool.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Workflow",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/workflow-model-pretool.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/agent-model-pretool.sh"
           }
         ]
       }

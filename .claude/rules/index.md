@@ -7,6 +7,7 @@
 ## Active rules
 
 - `svelte.md` — `packages/web/src/**/*.svelte` — Svelte 5 component, styling, tooltip conventions
+- `config-overlay.md` — `.claude/settings.json`, `.claude/hooks/**`, `.mcp.json` — runtime-wiring / overlay authoring (served, managed by `/resolve-claude-config`)
 
 ## Adding a new rule
 

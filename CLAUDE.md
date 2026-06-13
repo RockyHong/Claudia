@@ -42,6 +42,8 @@ Before every commit, scan `docs/` for files describing behavior touched by the d
 2. Resolve together — update or acknowledge it's still accurate
 3. Never silently fix. Never silently skip. Stale docs are worse than missing ones.
 
+Change-time doc-impact scan (which doc each diff touches): [`.claude/guidelines/work-discipline/doc-impact-mirror.md`](.claude/guidelines/work-discipline/doc-impact-mirror.md).
+
 **Temporal cleanup:** work completing a feature branch deletes its spec + plan from `docs/superpowers/`. Once merged, they're noise.
 **Roadmap cleanup:** work shipping a feature in `docs/overview.md` § Roadmap removes that line — it now belongs to the product narrative.
 **Backlog cleanup:** work resolving a `BUG-###` / `DEBT-###` / `GAP-###` deletes that row from `docs/backlog.md`. Git history is the archive.
@@ -52,9 +54,9 @@ Before writing, reviewing, or refactoring code, invoke the `karpathy-guidelines`
 
 ## Edit Discipline — Renames & Replace-All
 
-Rename preference order: LSP rename → per-occurrence Edit → `sed` (unique 8+ char literals) → `replace_all` (long unique literals only).
+Rename preference order: LSP rename → per-occurrence Edit → `sed` (unique 8+ char literals) → `replace_all` (long unique literals only). `replace_all` on a short/common identifier silently corrupts unrelated code — grep the term first; >5 hits or <8 chars or English word → per-occurrence.
 
-Banned-terms list + pre-flight checklist + recovery protocol: [`docs/techstack.md` § Edit Discipline](docs/techstack.md#edit-discipline).
+Full rationale + banned-terms + recovery: [`.claude/guidelines/work-discipline/edit-discipline.md`](.claude/guidelines/work-discipline/edit-discipline.md). Banned-terms list + pre-flight checklist: [`docs/techstack.md` § Edit Discipline](docs/techstack.md#edit-discipline).
 
 ## Context Hygiene
 
@@ -107,6 +109,9 @@ Names are documentation. `getSessionDisplayName(cwd)` not `getName(s)`. Booleans
 - **`rules/svelte.md`** — fires on `packages/web/src/**/*.svelte`
   • Svelte 5 runes only; props down, events up; one component, one concern
   • Hand-written scoped CSS per `design-system.html`; `<Tooltip>` not `title`
+- **`rules/config-overlay.md`** — fires on `.claude/settings.json`, `.claude/hooks/**`, `.mcp.json`
+  • Trust upstream canonical wiring; prove it fails before adding an overlay
+  • Place ambient config at the layer every target runtime loads
 
 ## Coding Standards
 
