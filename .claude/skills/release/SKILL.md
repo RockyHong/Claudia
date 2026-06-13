@@ -92,7 +92,7 @@ Then sync `src-tauri/Cargo.lock`'s `claudia` self-version entry (it does not tra
 cargo update -p claudia --manifest-path src-tauri/Cargo.toml
 ```
 
-This rewrites only the `claudia` package version in the lock — no other deps move. If `cargo` is unavailable, note that the lock reconciles at next build; do not hand-edit it.
+This rewrites only the `claudia` package version in the lock — no other deps move. If `cargo` is unavailable, note that the lock reconciles at the next build and stage it then.
 
 **Step 4 — Generate release notes** from commits since last tag:
 
