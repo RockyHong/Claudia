@@ -42,7 +42,6 @@ let dotClass = $derived(
   .status-bar.immersive {
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
     border-top-color: rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.6);
   }

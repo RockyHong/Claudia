@@ -681,7 +681,6 @@ function updateFavicon(state) {
   .app.bg-mode :global(.modal) {
     background: rgba(20, 17, 16, 0.85);
     backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
     border-color: rgba(255, 255, 255, 0.1);
   }
 

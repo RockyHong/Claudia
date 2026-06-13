@@ -32,10 +32,3 @@ The claim is write-once — captured at the richest-context moment, read cold by
 ## Open
 
 *(seeded as items are surfaced during reviews, audits, or development)*
-
-### BUG-001 — Glass/blur visual effect not rendering on web or Tauri desktop build
-
-**Logged:** 2026-06-13 · **Source:** v0.5.0 session, confirmed by project owner (Windows 11)
-**Problem:** CSS frosted-glass / backdrop-filter effect absent in both the web build and the Tauri desktop build (claudia.exe + MSI/NSIS installers). Initially suspected Tauri-specific; reporter confirmed web build is equally broken.
-**Area:** `packages/web` UI components — likely CSS `backdrop-filter` usage or a missing background/layering condition the effect depends on
-**Prior:** Effect may require an opaque or semi-transparent backing layer behind the blurred element; missing stacking context or background color could silently disable backdrop-filter in both runtimes

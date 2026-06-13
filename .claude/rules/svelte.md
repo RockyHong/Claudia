@@ -15,6 +15,7 @@ description: "Svelte 5 component & styling conventions for Claudia's web UI"
 ## Styling
 
 - Hand-written CSS in component `<style>` blocks — scoped by default. No CSS framework.
+- Author unprefixed CSS properties only (`backdrop-filter`, not `-webkit-backdrop-filter`) — the Vite build emits prefixes. Hand-writing both makes the minifier drop the standard property, leaving prefix-only CSS that Chromium/WebView2 ignore.
 - `docs/design-system.html` is canonical: element catalog (buttons, inputs, toggles), modal system (shell, confirm, gate), color palette, spacing rhythm, border-radius scale, visual hierarchy. Every component follows it.
 - `docs/product-mock.html` for assembled layout + immersive mode — composition decisions, not component rules.
 

@@ -64,7 +64,6 @@ let sorted = $derived(
   .sessions-panel.immersive {
     background: rgba(0, 0, 0, 0.35);
     backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     border-radius: var(--radius-xl);
     border: 1px solid rgba(255, 255, 255, 0.08);
     padding: var(--space-4);
