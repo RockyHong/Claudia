@@ -8,10 +8,10 @@ if [ -z "$STAGED" ]; then
 fi
 
 # Auto-fix staged files in place
-echo "$STAGED" | xargs npx biome check --write --unsafe
+echo "$STAGED" | xargs npx biome check --write --unsafe --no-errors-on-unmatched
 
 # Re-stage the fixed files
 echo "$STAGED" | xargs git add
 
 # Final lint check — block commit if unfixable errors remain
-echo "$STAGED" | xargs npx biome check
+echo "$STAGED" | xargs npx biome check --no-errors-on-unmatched
