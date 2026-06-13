@@ -86,6 +86,14 @@ Edit `src-tauri/Cargo.toml`: change `version = "{current_version}"` → `version
 
 Use the Edit tool for each file. Only change version fields.
 
+Then sync `src-tauri/Cargo.lock`'s `claudia` self-version entry (it does not track `Cargo.toml` automatically):
+
+```bash
+cargo update -p claudia --manifest-path src-tauri/Cargo.toml
+```
+
+This rewrites only the `claudia` package version in the lock — no other deps move. If `cargo` is unavailable, note that the lock reconciles at next build; do not hand-edit it.
+
 **Step 4 — Generate release notes** from commits since last tag:
 
 ```
@@ -104,10 +112,12 @@ Omit empty sections. Show to user for approval.
 **Step 5 — Commit and tag:**
 
 ```bash
-git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml
+git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock
 git commit -m "chore: release v{version}"
 git tag -a v{version} -m "<release notes>"
 ```
+
+`Cargo.lock` is staged alongside the manifests so the release commit carries the synced self-version — without it the working tree stays dirty after the next build.
 
 Use annotated tag. Pass message via HEREDOC.
 
