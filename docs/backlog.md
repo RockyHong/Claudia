@@ -12,7 +12,7 @@ New rows route through `/super-bootstrap:log` — one funnel for classification,
 
 No phase prescription per category — when an item rolls into a session, the harness phase-gate triage decides which superpowers phases run. Surface "clear fix" can become design work after evidence; pre-routing biases that judgment.
 
-**ID high-water mark:** `BUG-001` · `DEBT-000` · `GAP-000` — last consumed ID per category. Next ID = max+1 from this line, bumped in the same write. Resolved rows are deleted but their IDs stay consumed (history = `git log --grep="<id>"`); never re-derive IDs from open rows.
+**ID high-water mark:** `BUG-001` · `DEBT-001` · `GAP-000` — last consumed ID per category. Next ID = max+1 from this line, bumped in the same write. Resolved rows are deleted but their IDs stay consumed (history = `git log --grep="<id>"`); never re-derive IDs from open rows.
 
 **Row shape** — stable ID + frozen claim, newest at top. When resolved, **delete the row** — git history is the archive.
 
@@ -30,5 +30,12 @@ The claim is write-once — captured at the richest-context moment, read cold by
 ---
 
 ## Open
+
+### DEBT-001 — pre-commit hook blocks on all-dotfile-JSON staged sets
+
+**Logged:** 2026-06-13 · **Source:** BUG-001 fix session — committing `.mcp.json` alone required `git commit --no-verify`
+**Problem:** `.githooks/pre-commit` globs `*.json` to build the Biome staged-file list; Biome ignores dotfiles by default, so a staged set composed entirely of dotfile JSONs produces "No files were processed" and Biome exits non-zero, blocking the commit.
+**Area:** `.githooks/pre-commit`
+**Prior:** Exclude dotfile JSONs from the staged glob before passing to Biome, or filter the list through Biome's resolution so an all-ignored set passes cleanly instead of erroring.
 
 *(seeded as items are surfaced during reviews, audits, or development)*
