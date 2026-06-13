@@ -18,6 +18,9 @@ jobs:
         with:
           node-version: "22"
       - uses: dtolnay/rust-toolchain@stable
+      # Pin npm 11 to match the lockfile generator; npm 10 prunes optional
+      # platform deps differently and rejects the cross-platform lock (npm/cli#4828).
+      - run: npm install -g npm@11
       - run: npm ci
       - run: npm run build:sea && npx tauri build --no-bundle
       - uses: actions/upload-artifact@v4
@@ -34,6 +37,9 @@ jobs:
         with:
           node-version: "22"
       - uses: dtolnay/rust-toolchain@stable
+      # Pin npm 11 to match the lockfile generator; npm 10 prunes optional
+      # platform deps differently and rejects the cross-platform lock (npm/cli#4828).
+      - run: npm install -g npm@11
       - run: npm ci
       - run: npm run build:tauri
       - uses: actions/upload-artifact@v4
