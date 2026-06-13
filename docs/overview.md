@@ -1,5 +1,9 @@
 # Claudia — Project Overview
 
+<!-- harness-meta: read by /super-bootstrap:resolve-plugins. Keep YAML shape; list values in [...].
+external-tools: [github]
+-->
+
 Local session monitor for Claude Code. Just hooks, state tracking, and a dashboard.
 
 ---
@@ -17,6 +21,10 @@ Template-based personality messages. Pure event-driven state tracking.
 ## User
 
 Solo developer or power user running 2+ Claude Code sessions simultaneously. Already has Node.js (required by Claude Code).
+
+## Current State
+
+Active development — v0.5.0, shipping on npx + Tauri. ~9 commits/30 days.
 
 ## User Flow
 
@@ -39,6 +47,12 @@ Hooks fail silently when the server is down — Claude Code keeps working normal
 - **Spawning & focus** — launch sessions, terminal linking, window focus with flash ([spec](specs/spawning.md))
 
 See [docs/specs/](specs/index.md) for product-level behavior, design decisions, and cross-module flows.
+
+## Roadmap
+
+> Forward feature list — ordered name + one-liner. Single pillar for "what product will become." `/super-bootstrap:todo` reads this: first unstarted entry (no matching spec slug under `docs/superpowers/specs/` or `docs/specs/`) surfaces as the next `Brainstorm:` row. Remove a line when its feature ships into the narrative above.
+
+*(empty — add features as they're conceived)*
 
 ---
 

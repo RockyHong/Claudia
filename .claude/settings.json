@@ -1,8 +1,14 @@
 {
   "enabledPlugins": {
     "superpowers@claude-plugins-official": true,
+    "andrej-karpathy-skills@karpathy-skills": true,
     "fullstack-dev-skills@fullstack-dev-skills": false,
     "rust-analyzer-lsp@claude-plugins-official": false
+  },
+  "extraKnownMarketplaces": {
+    "karpathy-skills": {
+      "source": { "source": "github", "repo": "forrestchang/andrej-karpathy-skills" }
+    }
   },
   "hooks": {
     "PostToolUse": [
