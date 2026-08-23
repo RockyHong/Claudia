@@ -46,6 +46,20 @@ Look for entries pointing to `localhost:48901/hook/`. If missing, stop and resta
 
 ## Standalone
 
+### macOS: "Claudia is damaged and can't be opened"
+
+The app is fine. Claudia's releases aren't signed with an Apple Developer certificate, so macOS quarantines the download and shows this misleading message instead of the usual "unidentified developer" prompt.
+
+Drag `Claudia.app` to Applications, then clear the quarantine flag:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Claudia.app
+```
+
+Open it normally afterwards. You only need this once per install.
+
+Right-click → Open does **not** work for this message — macOS offers that escape hatch only for the "unidentified developer" prompt, not for a quarantined unsigned bundle.
+
 ### Server disconnected
 
 Close the app completely and reopen it. If the window is stuck:

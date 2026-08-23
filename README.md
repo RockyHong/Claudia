@@ -33,6 +33,8 @@ Prefer a standalone window? Grab the latest from [Releases](https://github.com/R
 - **Windows** — `Claudia-Windows.zip` (extract and run)
 - **macOS** — `Claudia.dmg` (drag to Applications)
 
+> macOS says "Claudia is damaged"? The builds aren't Apple-signed, so macOS quarantines them. Run `xattr -dr com.apple.quarantine /Applications/Claudia.app` once — see [troubleshooting](docs/help/troubleshooting.md#macos-claudia-is-damaged-and-cant-be-opened).
+
 ## How It Works
 
 ```
