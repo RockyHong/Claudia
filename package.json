@@ -1,6 +1,6 @@
 {
   "name": "@rockyhong/claudia",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "A personal receptionist for all your Claude Code agents",
   "type": "module",
   "workspaces": [
