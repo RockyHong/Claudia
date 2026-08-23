@@ -123,6 +123,23 @@ Artifacts attached to the release:
 
 Manual trigger: Actions tab > "Build Distribution Artifacts" > Run workflow.
 
+### macOS code signing (optional)
+
+By default the macOS job produces an **unsigned** bundle. macOS quarantines unsigned downloads and reports them as "damaged" — users have to clear the flag by hand (see [troubleshooting](help/troubleshooting.md#macos-claudia-is-damaged-and-cant-be-opened)).
+
+To sign and notarize instead, add these repository secrets. The workflow detects them and enables signing automatically; with any of the first two missing it builds unsigned exactly as before and logs a warning.
+
+| Secret | What it is |
+|---|---|
+| `APPLE_CERTIFICATE` | Base64 of the exported Developer ID Application `.p12` |
+| `APPLE_CERTIFICATE_PASSWORD` | Password set when exporting that `.p12` |
+| `APPLE_SIGNING_IDENTITY` | Full identity name, e.g. `Developer ID Application: Name (TEAMID)` |
+| `APPLE_ID` | Apple account email (notarization) |
+| `APPLE_PASSWORD` | App-specific password, not the account password (notarization) |
+| `APPLE_TEAM_ID` | Team ID from the Apple Developer membership page |
+
+Requires a paid Apple Developer Program membership. The embedded SEA server binary needs no separate handling — it lives inside the Rust executable via `include_bytes!` and is already ad-hoc signed by `scripts/build-sea.js` after postject injection, so notarization does not see it as a nested executable.
+
 ---
 
 ## Architecture at a glance

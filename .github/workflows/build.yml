@@ -35,6 +35,33 @@ jobs:
           node-version: "22"
       - uses: dtolnay/rust-toolchain@stable
       - run: npm ci
+
+      # Tauri signs and notarizes only when these variables exist. Exporting
+      # them conditionally keeps unsigned builds byte-identical to before —
+      # an empty APPLE_SIGNING_IDENTITY would make Tauri attempt to sign with
+      # an empty identity rather than skip signing.
+      - name: Enable signing when Apple secrets are present
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -z "$APPLE_SIGNING_IDENTITY" ] || [ -z "$APPLE_CERTIFICATE" ]; then
+            echo "::warning::Apple signing secrets absent — building an unsigned bundle. macOS users must clear the quarantine flag manually (see docs/help/troubleshooting.md)."
+            exit 0
+          fi
+          for var in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            {
+              echo "$var<<__TAURI_ENV__"
+              printf '%s\n' "${!var}"
+              echo "__TAURI_ENV__"
+            } >> "$GITHUB_ENV"
+          done
+          echo "Signing enabled — the bundle will be signed and notarized."
+
       - run: npm run build:tauri
       - uses: actions/upload-artifact@v4
         with:
