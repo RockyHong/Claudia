@@ -55,7 +55,7 @@
     "session-monitor"
   ],
   "dependencies": {
-    "adm-zip": "^0.5.16",
+    "adm-zip": "^0.6.0",
     "express": "^5.2.1"
   },
   "devDependencies": {
