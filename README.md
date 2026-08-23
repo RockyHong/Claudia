@@ -30,8 +30,8 @@ First run prompts you to install hooks. That's it — run your Claude sessions a
 
 Prefer a standalone window? Grab the latest from [Releases](https://github.com/RockyHong/Claudia/releases) — no Node.js required.
 
-- **Windows** — `Claudia-Windows.zip` (extract and run)
-- **macOS** — `Claudia.dmg` (drag to Applications)
+- **Windows** — `claudia.exe` (run it directly, no install)
+- **macOS** — `Claudia_<version>_aarch64.dmg` (drag to Applications) — Apple Silicon only
 
 > macOS says "Claudia is damaged"? The builds aren't Apple-signed, so macOS quarantines them. Run `xattr -dr com.apple.quarantine /Applications/Claudia.app` once — see [troubleshooting](docs/help/troubleshooting.md#macos-claudia-is-damaged-and-cant-be-opened).
 

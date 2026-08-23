@@ -23,7 +23,7 @@ That's it. No build step beyond the web UI.
 
 ## 2. Standalone Desktop App
 
-**What you get:** `Claudia-Windows.zip` (extract and run) or `Claudia.dmg` (drag to Applications). Native window, no Node.js required. Single instance — launching again focuses the existing window. Close window = stop server.
+**What you get:** `claudia.exe` (run directly) or `Claudia_<version>_aarch64.dmg` (drag to Applications, Apple Silicon only). Native window, no Node.js required. Single instance — launching again focuses the existing window. Close window = stop server.
 
 **How it works:** Tauri provides the native window shell (~5 MB). Inside it, a Node SEA (Single Executable Application) runs the server. Tauri's webview loads `localhost:48901`. No installer — just the exe.
 
@@ -50,8 +50,8 @@ This runs three things in sequence:
 3. **`npx tauri build`** -- builds the native window shell
 
 Output:
-- Windows: `src-tauri/target/release/Claudia.exe` + sidecar — zip them together
-- macOS: `src-tauri/target/release/bundle/dmg/Claudia.dmg`
+- Windows: `src-tauri/target/release/claudia.exe` — self-contained; the SEA server is compiled in via `include_bytes!`, so nothing ships alongside it
+- macOS: `src-tauri/target/release/bundle/dmg/Claudia_<version>_aarch64.dmg` (and the unpacked `bundle/macos/Claudia.app`)
 
 ### What's inside the SEA
 
@@ -111,17 +111,20 @@ git push origin v0.1.0
 The workflow (`.github/workflows/build.yml`) runs:
 
 ```
-build-sea-x64 (Windows) --> build-standalone-win (zip) --+
-                                                          +--> release
-                                                          +--> GitHub Release
-build-standalone-mac -----> Claudia.dmg -----------------+    with all artifacts
+audit          (npm audit, non-blocking)
+
+build-windows  --> claudia.exe                --+
+                                                 +--> release --> GitHub Release
+build-macos    --> Claudia_<ver>_aarch64.dmg  --+   (tags only)
 ```
 
-Artifacts attached to the release:
-- `Claudia-Windows.zip` -- portable exe (extract and run)
-- `Claudia.dmg` -- macOS disk image (drag to Applications)
+`release` runs only when the ref is a `v*` tag, so `workflow_dispatch` produces artifacts without publishing. It waits on both build jobs; `audit` reports independently and never blocks.
 
-Manual trigger: Actions tab > "Build Distribution Artifacts" > Run workflow.
+Artifacts attached to the release:
+- `claudia.exe` -- portable Windows executable, run directly
+- `Claudia_<version>_aarch64.dmg` -- macOS disk image, Apple Silicon only
+
+Manual trigger: Actions tab > "Build & Release" > Run workflow.
 
 ### macOS code signing (optional)
 
