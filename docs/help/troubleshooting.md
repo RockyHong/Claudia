@@ -56,7 +56,7 @@ Drag `Claudia.app` to Applications, then clear the quarantine flag:
 xattr -dr com.apple.quarantine /Applications/Claudia.app
 ```
 
-Open it normally afterwards. You only need this once per install.
+Open it normally afterwards. Every new download needs this again — macOS attaches the flag to the downloaded file, not to Claudia, so upgrading to a later version brings it back.
 
 Right-click → Open does **not** work for this message — macOS offers that escape hatch only for the "unidentified developer" prompt, not for a quarantined unsigned bundle.
 
