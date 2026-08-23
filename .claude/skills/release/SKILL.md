@@ -16,7 +16,7 @@ Prepare a version release. No arguments — reads git state and decides what to 
 ## Project Config
 
 - **Type:** tauri
-- **Version files** — all three must end up identical; read the current value from the files, never from this list:
+- **Version files** — all three must end up identical; read the current value from the files:
   - `package.json` → `version`
   - `src-tauri/tauri.conf.json` → `version`
   - `src-tauri/Cargo.toml` → `version`
@@ -111,17 +111,17 @@ Omit empty sections. Show to user for approval.
 
 **Step 5 — Commit and tag:**
 
-Write the approved release notes to a file, then:
+Write the approved release notes to `{notes-file}` — a path **outside the working tree** (the session scratchpad, or any temp dir). Inside the repo it dirties the tree and trips Step 1's clean-tree gate on the next release.
 
 ```bash
 git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock
 git commit -m "chore: release v{version}"
-git tag -a v{version} -F <notes-file>
+git tag -a v{version} -F {notes-file}
 ```
 
 `Cargo.lock` is staged alongside the manifests so the release commit carries the synced self-version — without it the working tree stays dirty after the next build.
 
-Tags are annotated. Feed the message with `-F <file>` rather than a heredoc — the notes are multi-line and contain backticks and quotes, which a heredoc leaves at the mercy of the shell.
+Tags are annotated. Feed the message with `-F {notes-file}` rather than a heredoc — a heredoc parses only in bash, so it breaks the moment the release runs from another shell.
 
 **Step 6 — Report + offer push:**
 
