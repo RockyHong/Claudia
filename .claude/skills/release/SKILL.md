@@ -16,10 +16,10 @@ Prepare a version release. No arguments — reads git state and decides what to 
 ## Project Config
 
 - **Type:** tauri
-- **Version files:**
-  - `package.json` → `version` (current: 0.4.1)
-  - `src-tauri/tauri.conf.json` → `version` (current: 0.4.1)
-  - `src-tauri/Cargo.toml` → `version` (current: 0.4.1)
+- **Version files** — all three must end up identical; read the current value from the files, never from this list:
+  - `package.json` → `version`
+  - `src-tauri/tauri.conf.json` → `version`
+  - `src-tauri/Cargo.toml` → `version`
 - **Platforms:** none (single-platform)
 - **Main branch:** main
 
@@ -111,15 +111,17 @@ Omit empty sections. Show to user for approval.
 
 **Step 5 — Commit and tag:**
 
+Write the approved release notes to a file, then:
+
 ```bash
 git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock
 git commit -m "chore: release v{version}"
-git tag -a v{version} -m "<release notes>"
+git tag -a v{version} -F <notes-file>
 ```
 
 `Cargo.lock` is staged alongside the manifests so the release commit carries the synced self-version — without it the working tree stays dirty after the next build.
 
-Use annotated tag. Pass message via HEREDOC.
+Tags are annotated. Feed the message with `-F <file>` rather than a heredoc — the notes are multi-line and contain backticks and quotes, which a heredoc leaves at the mercy of the shell.
 
 **Step 6 — Report + offer push:**
 
