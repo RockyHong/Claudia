@@ -9,18 +9,37 @@ permissions:
   contents: write
 
 jobs:
+  # Reports advisories without blocking the build. `--omit=dev` is deliberately
+  # not used: Vite compiles packages/web's devDependencies into dist/, which
+  # ships inside the published package, so "devDependency" does not mean
+  # "absent from the artifact" here.
+  audit:
+    name: Audit dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - run: npm ci
+      - name: npm audit
+        run: |
+          if ! npm audit --audit-level=high; then
+            echo "::warning::npm audit reports high-severity advisories — review before publishing this build."
+          fi
+
   build-windows:
     name: Build (Windows)
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - uses: dtolnay/rust-toolchain@stable
       - run: npm ci
       - run: npm run build:sea && npx tauri build --no-bundle
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows-exe
           path: src-tauri/target/release/claudia.exe
@@ -29,8 +48,8 @@ jobs:
     name: Build (macOS)
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - uses: dtolnay/rust-toolchain@stable
@@ -63,7 +82,7 @@ jobs:
           echo "Signing enabled — the bundle will be signed and notarized."
 
       - run: npm run build:tauri
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: macos-dmg
           path: src-tauri/target/release/bundle/dmg/*.dmg
@@ -74,7 +93,7 @@ jobs:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Extract tag message
@@ -84,7 +103,7 @@ jobs:
           MSG=$(git tag -l --format='%(contents)' "$TAG")
           # Write to file for multiline support
           echo "$MSG" > release_notes.md
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           path: artifacts/
       - uses: softprops/action-gh-release@v2

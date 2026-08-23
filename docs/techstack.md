@@ -20,7 +20,9 @@ Ground rules for technology choices, patterns, and architecture.
 
 ## Production Dependency
 
-**Two: `express` and `adm-zip`.** Everything else is hand-rolled or dev-only. This is intentional — don't add dependencies without a strong reason.
+**Two: `express` and `adm-zip`.** Everything else is hand-rolled or build-time. This is intentional — don't add dependencies without a strong reason.
+
+`packages/web` is `private` and never published; the root package ships its compiled `dist/` instead. So its `devDependencies` — `svelte`, `dompurify`, `marked`, `highlight.js`, `lucide-svelte` — are correctly classified for npm (users never install them) yet Vite compiles them into the artifact users receive. **Audit with plain `npm audit`, never `--omit=dev`**, which hides exactly this class. The `audit` job in `.github/workflows/build.yml` enforces that.
 
 Hand-rolled instead of libraries:
 - SSE broadcast (`res.write()` loop in `index.js`)
