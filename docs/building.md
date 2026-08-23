@@ -126,7 +126,11 @@ Artifacts attached to the release:
 
 Manual trigger: Actions tab > "Build & Release" > Run workflow.
 
-### macOS code signing (optional)
+### macOS code signing (deliberately off)
+
+Claudia ships unsigned by choice, not by omission. The releases exist so the author can install Claudia on their own machines; there is no wider audience to protect from the "damaged" message, and the `xattr` one-liner costs its single user a few seconds per install. The same reasoning covers the unsigned Windows executable and the absence of an Intel macOS build. Revisit only if Claudia acquires users who are not the author — then signing pays for itself immediately, because "damaged" reads as a broken download to anyone who does not know better.
+
+The wiring below is already in place and stays inert until the secrets exist, so enabling it later is a settings change rather than a CI rewrite.
 
 By default the macOS job produces an **unsigned** bundle. macOS quarantines unsigned downloads and reports them as "damaged" — users have to clear the flag by hand (see [troubleshooting](help/troubleshooting.md#macos-claudia-is-damaged-and-cant-be-opened)).
 
