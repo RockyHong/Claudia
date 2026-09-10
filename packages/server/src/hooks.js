@@ -137,6 +137,77 @@ export function removeHooks(settings) {
 	return cleaned;
 }
 
+// A full re-sync: strip every Claudia entry the file holds, then write back the
+// entries Claudia currently ships. `mergeHooks` alone walks CLAUDIA_HOOKS, so an
+// entry left behind by a hook type Claudia has since retired outlives it;
+// `removeHooks` is the only path that walks every event in the file.
+export function resyncHooks(settings) {
+	return mergeHooks(removeHooks(settings));
+}
+
+// Claudia's own entries, keyed by event. Everything else in the file — other
+// tools' hooks, events Claudia never touches — is invisible here, which is what
+// makes the comparison safe to run on a file Claudia does not own.
+function claudiaEntriesByEvent(settings) {
+	const hooks = settings?.hooks;
+	if (!hooks || typeof hooks !== "object") return {};
+
+	const byEvent = {};
+	for (const [event, hookList] of Object.entries(hooks)) {
+		if (!Array.isArray(hookList)) continue;
+		const claudiaEntries = hookList.filter(isClaudiaHook);
+		if (claudiaEntries.length > 0) byEvent[event] = claudiaEntries;
+	}
+	return byEvent;
+}
+
+function sortKeysDeep(value) {
+	if (Array.isArray(value)) return value.map(sortKeysDeep);
+	if (value && typeof value === "object") {
+		return Object.fromEntries(
+			Object.keys(value)
+				.sort()
+				.map((key) => [key, sortKeysDeep(value[key])]),
+		);
+	}
+	return value;
+}
+
+// Content fingerprint of Claudia's entries — order-insensitive on both the
+// events and the entries within an event, so a settings file where Claudia's
+// hooks sit interleaved with another tool's does not read as changed purely
+// from where `resyncHooks` re-appends them.
+function fingerprintClaudiaHooks(settings) {
+	const byEvent = claudiaEntriesByEvent(settings);
+	return Object.keys(byEvent)
+		.sort()
+		.map((event) => {
+			const entries = byEvent[event]
+				.map((entry) => JSON.stringify(sortKeysDeep(entry)))
+				.sort()
+				.join(",");
+			return `${event}:[${entries}]`;
+		})
+		.join("\n");
+}
+
+// Do the Claudia entries in the file match what CLAUDIA_HOOKS currently says
+// they should be? Content-compared against a re-derivation — no version stamp,
+// so no Claudia-owned key lands in a file Claudia does not own. A retired hook
+// type counts as stale: the re-sync is what garbage-collects it. Total by
+// construction — an absent, empty or malformed file answers without throwing.
+export function claudiaHooksAreStale(settings) {
+	try {
+		const current = settings && typeof settings === "object" ? settings : {};
+		return (
+			fingerprintClaudiaHooks(current) !==
+			fingerprintClaudiaHooks(resyncHooks(current))
+		);
+	} catch {
+		return false;
+	}
+}
+
 export function getSettingsPath() {
 	return SETTINGS_PATH;
 }

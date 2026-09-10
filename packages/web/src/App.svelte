@@ -6,6 +6,7 @@ import { createAmbienceController } from "./lib/ambience.js";
 import ClaudeStatus from "./lib/ClaudeStatus.svelte";
 import DisconnectCover from "./lib/DisconnectCover.svelte";
 import HookGate from "./lib/HookGate.svelte";
+import HookUpdatePrompt from "./lib/HookUpdatePrompt.svelte";
 import SessionList from "./lib/SessionList.svelte";
 import SettingsModal from "./lib/SettingsModal.svelte";
 import SpawnPopover from "./lib/SpawnPopover.svelte";
@@ -278,6 +279,9 @@ function updateFavicon(state) {
   }} />
 
   <main>
+    {#if hooksPassed}
+      <HookUpdatePrompt />
+    {/if}
     <SessionList {sessions} {showSpawn} {usage} {usageMonitoring} immersive={bgMode} onusagemonitoringchange={setUsageMonitoring} ontogglespawn={() => showSpawn = !showSpawn} />
   </main>
 

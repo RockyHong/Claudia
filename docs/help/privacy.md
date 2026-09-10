@@ -22,7 +22,7 @@ These are the only two outbound calls. Everything else stays on localhost.
 
 | File | When | Why |
 |------|------|-----|
-| `~/.claude/settings.json` | Always | Claudia registers its hooks here so running Claude Code sessions report their state to the local server. On install it adds entries to `hooks`; on uninstall it removes only entries containing `127.0.0.1:48901/hook`. |
+| `~/.claude/settings.json` | On your confirmation | Claudia registers its hooks here so running Claude Code sessions report their state to the local server. On install it adds entries to `hooks`; on uninstall it removes only entries containing `127.0.0.1:48901/hook`. A newer Claudia can detect that the installed entries are out of date and offer to refresh them — it reads the file to compare, but never rewrites it unless you confirm, and only its own entries are replaced. |
 | `~/.claude/.credentials.json` | Opt-in (usage monitoring) | See Usage API above. |
 | Markdown files in your projects | Always | Lists and reads `.md` files from each session's working directory (`git ls-files` + `fs.readFile`) to display project docs on the dashboard. Only `.md` files — nothing else. If your markdown contains sensitive content, be aware it's served over localhost. |
 

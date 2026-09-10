@@ -53,7 +53,10 @@ vi.mock("./avatar-storage.js", () => ({
 vi.mock("./hooks.js", () => ({
 	readSettings: vi.fn(),
 	hasClaudiaHooks: vi.fn(),
+	claudiaHooksAreStale: vi.fn(),
 	mergeHooks: vi.fn(),
+	resyncHooks: vi.fn(),
+	removeHooks: vi.fn(),
 	writeSettings: vi.fn(),
 }));
 vi.mock("./preferences.js", () => ({
@@ -73,9 +76,10 @@ import {
 } from "./avatar-storage.js";
 import { focusTerminal } from "./focus.js";
 import {
+	claudiaHooksAreStale,
 	hasClaudiaHooks,
-	mergeHooks,
 	readSettings,
+	resyncHooks,
 	writeSettings,
 } from "./hooks.js";
 import { buildMdTree, readMdFile } from "./md-files.js";
@@ -494,21 +498,36 @@ describe("GET /api/hooks/status", () => {
 		};
 		readSettings.mockResolvedValue(settings);
 		hasClaudiaHooks.mockReturnValue(true);
+		claudiaHooksAreStale.mockReturnValue(false);
 
 		const res = await request(server, "GET", "/api/hooks/status");
 
 		expect(res.status).toBe(200);
-		expect(res.body).toEqual({ installed: true });
+		expect(res.body).toEqual({ installed: true, stale: false });
 	});
 
 	it("returns installed: false when hooks are missing", async () => {
 		readSettings.mockResolvedValue({});
 		hasClaudiaHooks.mockReturnValue(false);
+		claudiaHooksAreStale.mockReturnValue(true);
 
 		const res = await request(server, "GET", "/api/hooks/status");
 
 		expect(res.status).toBe(200);
-		expect(res.body).toEqual({ installed: false });
+		expect(res.body).toEqual({ installed: false, stale: true });
+	});
+
+	it("reports stale: true for an install holding older hook text", async () => {
+		const settings = { hooks: { PreToolUse: [] } };
+		readSettings.mockResolvedValue(settings);
+		hasClaudiaHooks.mockReturnValue(true);
+		claudiaHooksAreStale.mockReturnValue(true);
+
+		const res = await request(server, "GET", "/api/hooks/status");
+
+		expect(res.status).toBe(200);
+		expect(res.body).toEqual({ installed: true, stale: true });
+		expect(claudiaHooksAreStale).toHaveBeenCalledWith(settings);
 	});
 
 	it("returns 500 on settings read error", async () => {
@@ -540,20 +559,21 @@ describe("POST /api/hooks/install", () => {
 			},
 		};
 		readSettings.mockResolvedValue(settings);
-		mergeHooks.mockReturnValue(merged);
+		resyncHooks.mockReturnValue(merged);
 		writeSettings.mockResolvedValue(undefined);
 
 		const res = await request(server, "POST", "/api/hooks/install");
 
 		expect(res.status).toBe(200);
 		expect(res.body).toEqual({ success: true });
-		expect(mergeHooks).toHaveBeenCalledWith(settings);
+		// Re-sync, not a bare merge — a retired hook type must be collected.
+		expect(resyncHooks).toHaveBeenCalledWith(settings);
 		expect(writeSettings).toHaveBeenCalledWith(merged);
 	});
 
 	it("returns success: false on write error", async () => {
 		readSettings.mockResolvedValue({});
-		mergeHooks.mockReturnValue({});
+		resyncHooks.mockReturnValue({});
 		writeSettings.mockRejectedValue(new Error("Permission denied"));
 
 		const res = await request(server, "POST", "/api/hooks/install");

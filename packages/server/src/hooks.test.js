@@ -1,10 +1,22 @@
 import { describe, expect, it } from "vitest";
 import {
 	CLAUDIA_MARKER,
+	claudiaHooksAreStale,
 	hasClaudiaHooks,
 	mergeHooks,
 	removeHooks,
+	resyncHooks,
 } from "./hooks.js";
+
+// A hook entry belonging to another tool — must stay invisible to the
+// staleness predicate and untouched by a re-sync.
+function foreignEntry(command = "echo other-tool") {
+	return { matcher: "", hooks: [{ type: "command", command }] };
+}
+
+function claudiaEntry(command) {
+	return { matcher: ".*", hooks: [{ type: "command", command }] };
+}
 
 describe("hasClaudiaHooks", () => {
 	it("returns false for empty settings", () => {
@@ -314,5 +326,118 @@ describe("removeHooks", () => {
 		};
 		const result = removeHooks(settings);
 		expect(result.theme).toBe("dark");
+	});
+});
+
+describe("claudiaHooksAreStale", () => {
+	it("is false for a file holding the current hook text", () => {
+		expect(claudiaHooksAreStale(mergeHooks({}))).toBe(false);
+	});
+
+	it("is true when the file holds older Claudia hook text", () => {
+		const settings = mergeHooks({});
+		settings.hooks.PreToolUse = [
+			claudiaEntry(`curl -s http://${CLAUDIA_MARKER}/PreToolUse`),
+		];
+		expect(claudiaHooksAreStale(settings)).toBe(true);
+	});
+
+	it("is true when a Claudia entry survives for a retired hook type", () => {
+		const settings = mergeHooks({});
+		settings.hooks.Notification = [
+			claudiaEntry(`curl -s http://${CLAUDIA_MARKER}/Notification`),
+		];
+		expect(claudiaHooksAreStale(settings)).toBe(true);
+	});
+
+	it("ignores another tool's hooks", () => {
+		const settings = mergeHooks({});
+		settings.hooks.PreToolUse.push(foreignEntry());
+		settings.hooks.Notification = [foreignEntry("echo notify")];
+		expect(claudiaHooksAreStale(settings)).toBe(false);
+	});
+
+	it("is order-insensitive on Claudia's own entries", () => {
+		const settings = mergeHooks({});
+		// Claudia's entry sits *before* the other tool's — a pure reordering
+		// relative to what mergeHooks re-appends, not a content change.
+		settings.hooks.PreToolUse = [settings.hooks.PreToolUse[0], foreignEntry()];
+		expect(claudiaHooksAreStale(settings)).toBe(false);
+	});
+
+	it("compares by content, not by key order inside an entry", () => {
+		const settings = mergeHooks({});
+		const entry = settings.hooks.PreToolUse[0];
+		settings.hooks.PreToolUse = [
+			{
+				hooks: [{ command: entry.hooks[0].command, type: "command" }],
+				matcher: entry.matcher,
+			},
+		];
+		expect(claudiaHooksAreStale(settings)).toBe(false);
+	});
+
+	it("does not throw on absent, empty or malformed settings", () => {
+		expect(() => claudiaHooksAreStale({})).not.toThrow();
+		expect(() => claudiaHooksAreStale(undefined)).not.toThrow();
+		expect(() => claudiaHooksAreStale(null)).not.toThrow();
+		expect(() => claudiaHooksAreStale("nonsense")).not.toThrow();
+		expect(() => claudiaHooksAreStale({ hooks: "nonsense" })).not.toThrow();
+		expect(() =>
+			claudiaHooksAreStale({ hooks: { PreToolUse: 42 } }),
+		).not.toThrow();
+		expect(typeof claudiaHooksAreStale({})).toBe("boolean");
+	});
+});
+
+describe("resyncHooks", () => {
+	it("installs the current hook text into empty settings", () => {
+		const result = resyncHooks({});
+		expect(result).toEqual(mergeHooks({}));
+		expect(claudiaHooksAreStale(result)).toBe(false);
+	});
+
+	it("garbage-collects a Claudia entry for a retired hook type", () => {
+		const settings = mergeHooks({});
+		settings.hooks.Notification = [
+			claudiaEntry(`curl -s http://${CLAUDIA_MARKER}/Notification`),
+		];
+		const result = resyncHooks(settings);
+		expect(result.hooks.Notification).toBeUndefined();
+		expect(claudiaHooksAreStale(result)).toBe(false);
+	});
+
+	it("refreshes stale Claudia hook text", () => {
+		const settings = mergeHooks({});
+		settings.hooks.PreToolUse = [
+			claudiaEntry(`curl -s http://${CLAUDIA_MARKER}/PreToolUse`),
+		];
+		const result = resyncHooks(settings);
+		expect(result.hooks.PreToolUse).toHaveLength(1);
+		expect(result.hooks.PreToolUse[0]).toEqual(
+			mergeHooks({}).hooks.PreToolUse[0],
+		);
+	});
+
+	it("leaves another tool's hooks untouched", () => {
+		const settings = mergeHooks({});
+		settings.hooks.PreToolUse.unshift(foreignEntry());
+		settings.hooks.Notification = [foreignEntry("echo notify")];
+		const result = resyncHooks(settings);
+		expect(result.hooks.PreToolUse[0]).toEqual(foreignEntry());
+		expect(result.hooks.Notification).toEqual([foreignEntry("echo notify")]);
+	});
+
+	it("preserves non-hook settings and does not mutate the original", () => {
+		const settings = { theme: "dark", hooks: { PreToolUse: [foreignEntry()] } };
+		const original = JSON.parse(JSON.stringify(settings));
+		const result = resyncHooks(settings);
+		expect(result.theme).toBe("dark");
+		expect(settings).toEqual(original);
+	});
+
+	it("is idempotent", () => {
+		const once = resyncHooks({ hooks: { PreToolUse: [foreignEntry()] } });
+		expect(resyncHooks(once)).toEqual(once);
 	});
 });

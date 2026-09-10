@@ -23,10 +23,11 @@ import {
 import { getCachedStatus } from "./claude-status.js";
 import { focusTerminal } from "./focus.js";
 import {
+	claudiaHooksAreStale,
 	hasClaudiaHooks,
-	mergeHooks,
 	readSettings,
 	removeHooks,
+	resyncHooks,
 	writeSettings,
 } from "./hooks.js";
 import { buildMdTree, readMdFile } from "./md-files.js";
@@ -96,7 +97,10 @@ export function registerApiRoutes(app, tracker, options = {}) {
 		try {
 			const settings = await readSettings();
 			const installed = hasClaudiaHooks(settings);
-			res.json({ installed });
+			// `stale` is a pure content compare — installed text vs what this
+			// version ships. Consumers gate the update prompt on installed && stale.
+			const stale = claudiaHooksAreStale(settings);
+			res.json({ installed, stale });
 		} catch (err) {
 			res.status(500).json({ error: err.message });
 		}
@@ -105,8 +109,10 @@ export function registerApiRoutes(app, tracker, options = {}) {
 	app.post("/api/hooks/install", async (_req, res) => {
 		try {
 			const settings = await readSettings();
-			const merged = mergeHooks(settings);
-			await writeSettings(merged);
+			// Re-sync, not a bare merge: the manual "Reinstall hooks" path
+			// garbage-collects entries from retired hook types too.
+			const resynced = resyncHooks(settings);
+			await writeSettings(resynced);
 			res.json({ success: true });
 		} catch (err) {
 			res.json({ success: false, error: err.message });

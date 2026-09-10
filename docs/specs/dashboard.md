@@ -21,7 +21,7 @@ Single page. Modals and popovers overlay this layout.
 
 1. Load preferences → apply theme, sound settings
 2. Connect SSE → start receiving state updates
-3. Check hooks → show HookGate if hooks are missing (blocks everything else)
+3. Check hooks → show HookGate if hooks are missing (blocks everything else); if they are installed but behind the running version, show the non-blocking update banner above the session list instead ([Hooks § Installation Flow](hooks.md#installation-flow))
 4. Initialize SFX + ambience controllers
 5. Initialize Tauri bridge (standalone mode only)
 

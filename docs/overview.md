@@ -133,6 +133,7 @@ After `npm i -g @rockyhong/claudia` (or via `npx @rockyhong/claudia ...`):
 | `lib/SettingsModal.svelte` | Settings modal with tabs |
 | `lib/SpawnPopover.svelte` | Launch new Claude Code session |
 | `lib/HookGate.svelte` | First-run gate: prompts hook installation |
+| `lib/HookUpdatePrompt.svelte` | Non-blocking banner when installed hooks fall behind the running version |
 | `lib/UsageRings.svelte` | API usage/cost ring visualization |
 | `lib/ClaudeStatus.svelte` | Platform status indicator dot |
 | `lib/DropZone.svelte` | Drag-and-drop file upload |
