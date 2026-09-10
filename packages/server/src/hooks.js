@@ -38,70 +38,21 @@ function hookEntry(
 	};
 }
 
-// PowerShell preamble that resolves the terminal HWND from the process tree,
-// counting `claude` processes crossed along the way. Shared by SessionStart
-// and UserPromptSubmit hooks — both need the HWND for auto-linking
-// (SessionStart for fresh sessions, UserPromptSubmit for sessions that
-// pre-existed before Claudia started).
+// The hook resolves nothing: it hands the server the Windows pid of the shell
+// running it, and the server walks that pid to the terminal window
+// (`resolveTerminalWindow` in pid-ancestry.js). Shared by SessionStart and
+// UserPromptSubmit — the two auto-linking hooks (SessionStart for fresh
+// sessions, UserPromptSubmit for sessions that pre-existed the server).
 //
-// A top-level session's walk crosses exactly one `claude` process (its own)
-// before reaching the terminal; a session nested inside another Claude
-// session (dispatched / headless / SDK) crosses its own plus at least one
-// ancestor's. The script emits "hwnd|title@@claudeCount" on one line so the
-// two facts travel together through a single powershell invocation, then
-// bash splits them back apart — X-Hook-Window keeps its plain "hwnd|title"
-// shape, unaware of the count riding alongside it.
-const HWND_PREAMBLE = [
-	"HWND_RAW=$(powershell -NoProfile -Command '",
-	'$names = @("WindowsTerminal","cmd","powershell","pwsh","ConEmuC64","ConEmuC","mintty","Alacritty","kitty","Hyper","Tabby","WezTerm")',
-	"$cur = $PID",
-	"$claudeCount = 0",
-	"for ($i = 0; $i -lt 20; $i++) {",
-	'  $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $cur" -ErrorAction SilentlyContinue',
-	"  if (-not $proc) { break }",
-	'  $pname = $proc.Name -replace "\\.exe$",""',
-	'  if ($pname -eq "claude") { $claudeCount++ }',
-	"  if ($names -contains $pname) {",
-	"    $gp = Get-Process -Id $cur -ErrorAction SilentlyContinue",
-	"    if ($gp -and $gp.MainWindowHandle -ne 0) {",
-	'      "$($gp.MainWindowHandle)|$($gp.MainWindowTitle)@@$claudeCount"',
-	"      exit",
-	"    }",
-	"  }",
-	"  $cur = $proc.ParentProcessId",
-	"  if ($cur -eq 0) { break }",
-	"}",
-	"' 2>/dev/null)",
-	// biome-ignore lint/suspicious/noTemplateCurlyInString: literal POSIX shell parameter expansion, not a JS template
-	'HWND_INFO="${HWND_RAW%%@@*}"',
-	// biome-ignore lint/suspicious/noTemplateCurlyInString: literal POSIX shell parameter expansion, not a JS template
-	'HWND_NESTED="${HWND_RAW##*@@}"',
-].join("; ");
-
-function hookCommandWithWindow(hookType) {
-	return `${HWND_PREAMBLE}; curl -sfS -X POST -H "Content-Type: application/json" -H "X-Hook-Window: $HWND_INFO" -H "X-Hook-Nested: $HWND_NESTED" -d @- http://127.0.0.1:48901/hook/${hookType} 2>/dev/null || true`;
-}
+// `$$` is load-bearing: `/proc/self/winpid` names the forked `cat`, whose pid
+// is dead before the server reads it. Off MSYS (or off Windows) `/proc` is
+// absent, the substitution is empty, and the header goes out empty — the
+// intended degrade, handled server-side as "no pid, use the legacy headers".
+const PID_HEADER = ' -H "X-Hook-Pid: $(cat /proc/$$/winpid 2>/dev/null)"';
 
 const CLAUDIA_HOOKS = {
-	SessionStart: [
-		{
-			matcher: ".*",
-			hooks: [
-				{ type: "command", command: hookCommandWithWindow("SessionStart") },
-			],
-		},
-	],
-	UserPromptSubmit: [
-		{
-			matcher: ".*",
-			hooks: [
-				{
-					type: "command",
-					command: hookCommandWithWindow("UserPromptSubmit"),
-				},
-			],
-		},
-	],
+	SessionStart: [hookEntry("SessionStart", ".*", false, PID_HEADER)],
+	UserPromptSubmit: [hookEntry("UserPromptSubmit", ".*", false, PID_HEADER)],
 	PreToolUse: [hookEntry("PreToolUse")],
 	PostToolUse: [hookEntry("PostToolUse")],
 	PermissionRequest: [hookEntry("PermissionRequest")],

@@ -99,7 +99,8 @@ After `npm i -g @rockyhong/claudia` (or via `npx @rockyhong/claudia ...`):
 | `transcript-scan.js` | Count pending Agent invocations from a session's transcript JSONL — drives subagent gating |
 | `hooks.js` | Read/write `~/.claude/settings.json` hook config |
 | `personality.js` | Status message templates per state transition |
-| `focus.js` | Terminal focus, flash, window enumeration — platform shell commands |
+| `focus.js` | Terminal focus, flash, dead-window checks — platform shell commands |
+| `pid-ancestry.js` | Resolve a session's own terminal window + `claude` process from a hook-supplied pid (Windows) |
 | `spawner.js` | Launch Claude Code sessions, folder browsing, open folder/terminal/URL |
 | `terminal-title.js` | Opaque terminal title generation for HWND discovery |
 | `avatar-storage.js` | Avatar set CRUD (`~/.claudia/avatars/`) |

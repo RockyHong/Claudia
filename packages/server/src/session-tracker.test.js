@@ -514,15 +514,23 @@ describe("session-tracker", () => {
 			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
 			const result = tracker.linkSessionById("s1", 123);
 			expect(result.displayName).toMatch(/^proj [0-9a-f]{4}$/);
-			expect(result.renamed).toBe(true);
 			expect(tracker.getSessions()[0].displayName).toBe(result.displayName);
+		});
+
+		it("linkSessionById hands back no rename instruction — a handle names a window, not a session, so the terminal title is never rewritten", () => {
+			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
+			const generated = tracker.linkSessionById("s1", 123);
+			expect(generated).not.toHaveProperty("renamed");
+
+			tracker.handleEvent({ session: "s2", state: "idle", cwd: "/other" });
+			const reused = tracker.linkSessionById("s2", 124, "other 7f3a");
+			expect(reused).not.toHaveProperty("renamed");
 		});
 
 		it("linkSessionById reuses valid window title instead of generating new hex", () => {
 			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
 			const result = tracker.linkSessionById("s1", 123, "proj 7f3a");
 			expect(result.displayName).toBe("proj 7f3a");
-			expect(result.renamed).toBe(false);
 			expect(tracker.getSessions()[0].displayName).toBe("proj 7f3a");
 		});
 
@@ -530,7 +538,6 @@ describe("session-tracker", () => {
 			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
 			const result = tracker.linkSessionById("s1", 123, "Command Prompt");
 			expect(result.displayName).toMatch(/^proj [0-9a-f]{4}$/);
-			expect(result.renamed).toBe(true);
 		});
 
 		it("linkSessionById generates new hex when reused title is taken by another session", () => {
@@ -543,7 +550,6 @@ describe("session-tracker", () => {
 			// Should generate new hex, not append " 2"
 			expect(result.displayName).toMatch(/^proj [0-9a-f]{4}$/);
 			expect(result.displayName).not.toBe("proj 7f3a");
-			expect(result.renamed).toBe(true);
 		});
 
 		it("linkSessionById returns null for unknown session", () => {
@@ -562,6 +568,17 @@ describe("session-tracker", () => {
 			expect(tracker.getSessions()[0].id).toBe("s1");
 		});
 
+		it("keeps a linked session carrying a claudePid past the stale timeout — liveness is the process sweep's call, not this one's", () => {
+			tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
+			tracker.linkSessionById("s1", 12345, "", 8842);
+
+			vi.advanceTimersByTime(STALE_SESSION_TIMEOUT_MS + 1);
+			tracker.pruneStale();
+
+			expect(tracker.getSessions()).toHaveLength(1);
+			expect(tracker.getSessions()[0].claudePid).toBe(8842);
+		});
+
 		it("notifies when sessions are pruned", () => {
 			tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
 
@@ -571,6 +588,56 @@ describe("session-tracker", () => {
 
 			expect(stateChanges).toHaveLength(1);
 			expect(stateChanges[0].sessions).toHaveLength(0);
+		});
+	});
+
+	describe("window handle sharing", () => {
+		it("two sessions may hold the same windowHandle — a window hosts N tabs", () => {
+			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/a" });
+			tracker.handleEvent({ session: "s2", state: "idle", cwd: "/b" });
+
+			const first = tracker.linkSessionById("s1", 555);
+			const second = tracker.linkSessionById("s2", 555);
+
+			expect(first).not.toBeNull();
+			expect(second).not.toBeNull();
+			const byId = Object.fromEntries(
+				tracker.getSessions().map((s) => [s.id, s]),
+			);
+			expect(byId.s1.windowHandle).toBe(555);
+			expect(byId.s2.windowHandle).toBe(555);
+			expect(tracker.getLinkedHandles()).toEqual(new Set([555]));
+		});
+
+		it("storeWindowHandle keeps its pendingLink when an UNRELATED cwd's session holds the same handle", () => {
+			// A sibling tab in the same window is not evidence that this spawn's
+			// link was consumed — sharing a handle is legal.
+			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/other" });
+			tracker.linkSessionById("s1", 777);
+
+			tracker.storeWindowHandle("/proj", 777, "proj 7f3a");
+
+			tracker.handleEvent({ session: "s2", state: "idle", cwd: "/proj" });
+			const s2 = tracker.getSessions().find((s) => s.id === "s2");
+			expect(s2.windowHandle).toBe(777);
+			expect(s2.displayName).toBe("proj 7f3a");
+		});
+	});
+
+	describe("session claude pid", () => {
+		it("linkSessionById stores the session's own claude pid alongside the handle", () => {
+			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
+			tracker.linkSessionById("s1", 123, "", 8842);
+
+			expect(tracker.getSession("s1").claudePid).toBe(8842);
+			expect(tracker.getSessions()[0].claudePid).toBe(8842);
+		});
+
+		it("defaults claudePid to null when linking carries no pid (legacy header install)", () => {
+			tracker.handleEvent({ session: "s1", state: "idle", cwd: "/proj" });
+			tracker.linkSessionById("s1", 123);
+
+			expect(tracker.getSession("s1").claudePid).toBeNull();
 		});
 	});
 

@@ -12,6 +12,8 @@ Claude Code → stdin JSON → curl POST /hook/:type → hook-transform.js → s
 
 **Critical detail**: data comes via **stdin JSON** (the `--data @-` flag pipes stdin to the POST body).
 
+`SessionStart` and `UserPromptSubmit` carry one extra header, `X-Hook-Pid` — the hook shell's own Windows pid, read from `/proc/$$/winpid`. The hook computes nothing else: the server walks that pid to find the session's terminal window and its nesting depth ([Sessions § Window linking](sessions.md#window-linking)), which keeps the resolution logic out of the user's `settings.json`, where it could only be updated by reinstalling hooks.
+
 ## Hook Types
 
 | Hook | State | Purpose |
@@ -35,6 +37,6 @@ Claude Code → stdin JSON → curl POST /hook/:type → hook-transform.js → s
 
 ## Design Decisions
 
-- **Hardcoded port 48901** — no discovery needed, hooks are static strings
+- **Hardcoded port 48901** — no discovery needed, hooks are static strings; the only shell work a hook does is reading its own pid
 - **Unidirectional by design** — hooks push to server, server pushes to browser via SSE. Two one-way pipes.
 - **Legacy `/event` endpoint** — accepts pre-formatted events for backwards compatibility; all hooks use `/hook/:type`

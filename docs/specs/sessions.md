@@ -30,7 +30,7 @@ This prevents the dashboard from flashing idle/busy/idle as subagents finish one
 
 Session cards show `{displayName}`:
 
-- **Linked sessions** — `{projectName} {4-char hex}` (e.g. `Claudia 7f3a`). Matches the terminal tab title. Locked via `--suppressApplicationTitle` (spawned) or `SetWindowText` (auto-linked).
+- **Linked sessions** — `{projectName} {4-char hex}` (e.g. `Claudia 7f3a`). A spawned session's terminal title matches, locked via `--suppressApplicationTitle`; an auto-linked session's terminal keeps whatever title it already had, since the [handle names a window rather than a session](#window-linking).
 - **Unlinked sessions** — project folder name from `cwd`, deduped (`my-app`, `my-app 2`).
 
 ### Window linking
@@ -38,9 +38,11 @@ Session cards show `{displayName}`:
 Sessions can be linked to a terminal window via `windowHandle` (HWND). Two paths:
 
 - **Spawned by Claudia** — terminal title is set to `{projectName} {hex}` at spawn time. HWND discovered by polling for that title. Both HWND and displayName are stored.
-- **Auto-linked** — on `SessionStart`, the hook command runs an inline PowerShell process tree walk to resolve the terminal HWND. Sent via `X-Hook-Window: HWND|title` header. The server stores the HWND, generates a `{projectName} {hex}` displayName, and renames the terminal tab to match. Windows-only; other platforms send an empty header.
+- **Auto-linked** — the hook sends only its shell's Windows pid (`X-Hook-Pid`, read from `/proc/$$/winpid`); the server walks it in `pid-ancestry.js` and resolves the window itself, before it answers the hook. The server stores the HWND and generates a `{projectName} {hex}` displayName. It does **not** rename the terminal — the handle names a window, and a window can host several sessions. Windows-only; other platforms send an empty header.
 
-The same walk counts the `claude` processes it crosses and reports the total in an `X-Hook-Nested` header, which gates admission (see Lifecycle below). A handle may legitimately be shared by several sessions — one terminal process can host many windows and tabs, and the walk resolves that process's main window — so linking never treats a handle as exclusive.
+Resolution never reads a process's `MainWindowHandle`: that property is per-process, and one `WindowsTerminal.exe` hosts every window on the machine, so it returns whichever window is frontmost. Instead the walk anchors on the ancestor that owns a `PseudoConsoleWindow` — the console window belonging to this session's own terminal tab — and takes that window's parent. A handle may still legitimately be shared by several sessions, since one window can host several tabs, so linking never treats a handle as exclusive.
+
+The same walk counts the `claude` processes it crosses; two or more gates admission (see Lifecycle below), and the first one found is the session's own process, stored as `claudePid` for liveness. An install whose hooks predate server-side resolution keeps sending the pre-resolved `X-Hook-Window` / `X-Hook-Nested` pair, which the server still accepts; those sessions carry no `claudePid`.
 
 ### Alert gating
 
@@ -48,11 +50,11 @@ Notifications (`onPendingAlert`, `onIdleAlert`) only fire for linked sessions �
 
 ## Lifecycle
 
-- **Creation**: on first hook event for an unknown `session_id`. On Windows the event must also come from a hook that carries the window headers (`SessionStart` / `UserPromptSubmit`) and must not be nested — `X-Hook-Nested` of 2 or more means the session runs inside another Claude session (dispatched, headless, SDK), and it gets no card. Refusal needs that positive evidence: the walk can return nothing for reasons unrelated to nesting, so an empty header still admits, leaving the session unlinked and reachable by stale pruning. A refused `session_id` never appears, since no other hook type creates one.
+- **Creation**: on first hook event for an unknown `session_id`. On Windows the event must also come from one of the two window-carrying hooks (`SessionStart` / `UserPromptSubmit`) and must not be nested — a claude-process count of 2 or more means the session runs inside another Claude session (dispatched, headless, SDK), and it gets no card. The count is resolved before the hook is answered, so a nested session never flashes a card the verdict then takes away. Refusal needs that positive evidence: resolution can come back empty for reasons unrelated to nesting, so an empty result still admits, leaving the session unlinked and reachable by stale pruning. A refused `session_id` never appears, since no other hook type creates one.
 - **Ghost prevention**: late `PermissionRequest` for an ended session is dropped — only live sessions accept events
 - **Permission queue**: multiple `PermissionRequest` hooks per session are queued FIFO on the server. The card displays the head one at a time; when the user decides, the server resolves that held hook response and the next queued permission becomes the new head. Held responses are released with plain `{ok: true}` only when the session ends — never silently overwritten, since Claude Code treats a missing decision as "hook abstained" and falls back to its terminal prompt.
 - **Stale pruning**: sessions inactive for 10 minutes are removed. Pruned every 60s.
-- **Window pruning**: linked sessions (any with `windowHandle`) are checked every 5s. If the terminal window is closed, the session is removed. Unlinked sessions are excluded.
+- **Liveness pruning**: linked sessions (any with `windowHandle`) are checked every 5s. A session carrying a `claudePid` is judged on that process — gone means removed — since a live window is not evidence of a live session. One without a pid falls back to the window check: window closed means removed. Unlinked sessions are excluded from both, and stale pruning reaches them instead.
 - **Git metadata**: fetched async on creation, cwd change, and idle transition. Card renders immediately, git info fills in when ready.
 
 ## SSE Contract

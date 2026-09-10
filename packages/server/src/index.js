@@ -6,15 +6,11 @@ import { fileURLToPath } from "node:url";
 import express from "express";
 import { ensureDefaults } from "./avatar-storage.js";
 import { startStatusPolling, stopStatusPolling } from "./claude-status.js";
-import {
-	findDeadWindows,
-	focusTerminal,
-	isWindowsHost,
-	renameTerminal,
-} from "./focus.js";
+import { findDeadWindows, focusTerminal, isWindowsHost } from "./focus.js";
 import { getGitStatus } from "./git-status.js";
 import { transformHookPayload, VALID_HOOK_TYPES } from "./hook-transform.js";
 import { getStatusMessage } from "./personality.js";
+import { resolveTerminalWindow } from "./pid-ancestry.js";
 import { getPreferences } from "./preferences.js";
 import { trackProject } from "./project-storage.js";
 import { registerApiRoutes } from "./routes-api.js";
@@ -183,67 +179,69 @@ function parseWindowHeader(header) {
 	return { hwnd, windowTitle: header.slice(sep + 1) };
 }
 
-// Parses the X-Hook-Nested header — the count of `claude` processes HWND_PREAMBLE
-// crossed while walking ancestors to the first terminal-class process. Two or
-// more means this session is nested inside another Claude session (dispatched /
-// headless / SDK): its own claude process plus at least one ancestor's. Missing,
-// empty, or non-numeric degrades to "not nested" rather than erroring.
+// Parses the X-Hook-Nested header — the count of `claude` processes the hook's
+// own ancestor walk crossed before reaching the first terminal-class process.
+// Two or more means this session is nested inside another Claude session
+// (dispatched / headless / SDK): its own claude process plus at least one
+// ancestor's. Missing, empty, or non-numeric degrades to "not nested" rather
+// than erroring.
 function isNestedHeader(header) {
 	const n = parseInt(header, 10);
 	return Number.isFinite(n) && n >= 2;
 }
 
-// Receive raw Claude Code stdin JSON — server-side transform, no node cold start
-app.post("/hook/:type", (req, res) => {
-	const { type } = req.params;
-	if (!VALID_HOOK_TYPES.has(type)) {
-		return res.status(400).json({ error: "Unknown hook type" });
-	}
+// Both acquisition channels normalize to one { nested, link } signal, so
+// admission and auto-link below never learn which one produced it.
+//
+// Legacy channel — an install predating the server-side resolver keeps sending
+// the pre-resolved X-Hook-Window / X-Hook-Nested pair until its hooks are
+// reinstalled (docs/work/GAP-001.md), so this path stays live and unchanged.
+// It carries no pid, so a session linked this way falls back to window-death
+// pruning (see pruneDeadLinkedSessions).
+function windowSignalFromHeaders(req) {
+	const link = parseWindowHeader(req.headers["x-hook-window"] || "");
+	return {
+		nested: isNestedHeader(req.headers["x-hook-nested"] || ""),
+		link: link ? { ...link, claudePid: null } : null,
+	};
+}
 
-	const event = transformHookPayload(type, req.body);
-	if (!event) {
-		return res.status(400).json({ error: "Invalid payload" });
-	}
+// Current channel — the hook sends only its shell's Windows pid and the server
+// walks it (pid-ancestry.js). A null resolution is the same degrade an empty
+// X-Hook-Window carries: admitted, just unlinked.
+function windowSignalFromResolution(resolved) {
+	if (!resolved) return { nested: false, link: null };
+	return {
+		nested: resolved.claudeCount >= 2,
+		link: {
+			hwnd: resolved.hwnd,
+			windowTitle: resolved.title,
+			claudePid: resolved.claudePid ?? null,
+		},
+	};
+}
 
-	// Stop and SubagentStop are the points where idle gating decisions happen.
-	// Derive pending Agent invocations from the transcript — authoritative,
-	// survives dropped hooks and server downtime.
-	if (type === "Stop" || type === "SubagentStop") {
-		event.pendingAgents = countPendingAgentInvocations(
-			req.body.transcript_path,
-		);
-	}
-
-	if (
-		event.state !== "stopped" &&
-		!tracker.getSession(event.session) &&
-		tracker.getSessions().length >= MAX_SESSIONS
-	) {
-		return res.status(429).json({ error: "Too many sessions" });
-	}
-
+// Everything downstream of window acquisition: admission, tracker update,
+// auto-link, permission queueing. Called synchronously for hook types that need
+// no resolution, and from the resolver's continuation for the two that do.
+function completeHookEvent(res, type, event, windowSignal) {
 	// Nesting-only admission, Windows only: a registry entry is created for a
-	// SessionStart/UserPromptSubmit hook unless X-Hook-Nested carries positive
-	// evidence of nesting (>= 2 claude processes crossed). An empty or
-	// unparseable X-Hook-Window is NOT refusal grounds — HWND_PREAMBLE's
-	// ancestor walk can return empty for reasons unrelated to nesting (an
-	// intermediate pid reaped mid-walk), and failing closed on that would
-	// erase a live interactive session's card with no diagnostic. Failing
-	// open instead costs at most the ~10-minute unlinked residency pruneStale
+	// SessionStart/UserPromptSubmit hook unless the window signal carries
+	// positive evidence of nesting (>= 2 claude processes crossed). A signal
+	// with no window is NOT refusal grounds — acquisition can come back empty
+	// for reasons unrelated to nesting, and failing closed on that would erase
+	// a live interactive session's card with no diagnostic. Failing open
+	// instead costs at most the ~10-minute unlinked residency pruneStale
 	// already reaches (docs/work/BUG-002.md Amendment — pre-commit live
 	// verification). Every other hook type updates an existing session only —
 	// it never creates one, so a refused id simply never appears and its
 	// later PreToolUse/Stop events find nothing to create. Off-Windows,
-	// admission stays unconditional — HWND resolution is a Windows-only
-	// capability (hooks.js's preamble yields nothing elsewhere).
-	const windowHeader = req.headers["x-hook-window"] || "";
-	const nestedHeader = req.headers["x-hook-nested"] || "";
+	// admission stays unconditional — window resolution is Windows-only.
 	let allowCreate = true;
 	let refusalReason = null;
 	if (isWindowsHost()) {
 		if (type === "SessionStart" || type === "UserPromptSubmit") {
-			const nested = isNestedHeader(nestedHeader);
-			allowCreate = !nested;
+			allowCreate = !windowSignal.nested;
 			if (!allowCreate) refusalReason = "nested";
 		} else {
 			allowCreate = false;
@@ -262,33 +260,32 @@ app.post("/hook/:type", (req, res) => {
 		broadcastSfx("send");
 	}
 
-	// Auto-link: SessionStart and UserPromptSubmit hooks resolve the terminal
-	// HWND via inline PowerShell and send it as X-Hook-Window header.
-	// SessionStart handles fresh sessions; UserPromptSubmit handles sessions
-	// that pre-existed before Claudia started (server restart pickup).
+	// Auto-link: SessionStart and UserPromptSubmit are the two hooks that carry
+	// a window signal. SessionStart handles fresh sessions; UserPromptSubmit
+	// handles sessions that pre-existed before Claudia started (server restart
+	// pickup).
 	if (type === "SessionStart" || type === "UserPromptSubmit") {
 		const session = tracker.getSession(event.session);
-		if (type === "SessionStart" || (windowHeader && !session?.windowHandle)) {
+		const { link } = windowSignal;
+		if (type === "SessionStart" || (link && !session?.windowHandle)) {
 			console.log(
-				`[auto-link] window="${windowHeader}" session=${session?.displayName || "null"} hwnd=${session?.windowHandle}`,
+				`[auto-link] window="${link ? `${link.hwnd}|${link.windowTitle}` : ""}" session=${session?.displayName || "null"} hwnd=${session?.windowHandle}`,
 			);
 		}
-		if (session && !session.windowHandle && windowHeader) {
-			const parsedHeader = parseWindowHeader(windowHeader);
-			if (parsedHeader) {
-				const { hwnd, windowTitle } = parsedHeader;
-				const result = tracker.linkSessionById(
-					event.session,
-					hwnd,
-					windowTitle,
-				);
-				if (result?.renamed) {
-					renameTerminal(hwnd, result.displayName);
-				}
-				console.log(
-					`[auto-link] linked session=${result?.displayName} hwnd=${hwnd} renamed=${result?.renamed}`,
-				);
-			}
+		if (session && !session.windowHandle && link) {
+			// Link only — the terminal title is never rewritten here. A handle
+			// names a window that may host other sessions' tabs, so renaming it
+			// would retitle theirs (docs/work/BUG-003.md). The dashboard card
+			// carries the generated name instead.
+			const result = tracker.linkSessionById(
+				event.session,
+				link.hwnd,
+				link.windowTitle,
+				link.claudePid,
+			);
+			console.log(
+				`[auto-link] linked session=${result?.displayName} hwnd=${link.hwnd} claudePid=${link.claudePid ?? "none"}`,
+			);
 		}
 	}
 
@@ -344,6 +341,68 @@ app.post("/hook/:type", (req, res) => {
 	}
 
 	res.json({ ok: true });
+}
+
+// Receive raw Claude Code stdin JSON — server-side transform, no node cold start
+app.post("/hook/:type", (req, res) => {
+	const { type } = req.params;
+	if (!VALID_HOOK_TYPES.has(type)) {
+		return res.status(400).json({ error: "Unknown hook type" });
+	}
+
+	const event = transformHookPayload(type, req.body);
+	if (!event) {
+		return res.status(400).json({ error: "Invalid payload" });
+	}
+
+	// Stop and SubagentStop are the points where idle gating decisions happen.
+	// Derive pending Agent invocations from the transcript — authoritative,
+	// survives dropped hooks and server downtime.
+	if (type === "Stop" || type === "SubagentStop") {
+		event.pendingAgents = countPendingAgentInvocations(
+			req.body.transcript_path,
+		);
+	}
+
+	if (
+		event.state !== "stopped" &&
+		!tracker.getSession(event.session) &&
+		tracker.getSessions().length >= MAX_SESSIONS
+	) {
+		return res.status(429).json({ error: "Too many sessions" });
+	}
+
+	// Window acquisition, when the hook sent a pid to walk from. It has to
+	// finish BEFORE admission: the walk's claudeCount decides whether a nested
+	// session gets a card at all, so admitting first would flash a card the
+	// nesting verdict then takes away. Every other hook type keeps the plain
+	// synchronous path. A session already holding a handle skips the walk
+	// entirely — that is the point of the move: UserPromptSubmit on a linked
+	// session costs nothing.
+	const hookPid = String(req.headers["x-hook-pid"] || "").trim();
+	if ((type === "SessionStart" || type === "UserPromptSubmit") && hookPid) {
+		if (tracker.getSession(event.session)?.windowHandle) {
+			completeHookEvent(res, type, event, windowSignalFromResolution(null));
+			return;
+		}
+		resolveTerminalWindow(hookPid)
+			.then((resolved) =>
+				completeHookEvent(
+					res,
+					type,
+					event,
+					windowSignalFromResolution(resolved),
+				),
+			)
+			// resolveTerminalWindow never rejects; if it ever did, the request is
+			// still answered — unlinked — rather than left hanging.
+			.catch(() =>
+				completeHookEvent(res, type, event, windowSignalFromResolution(null)),
+			);
+		return;
+	}
+
+	completeHookEvent(res, type, event, windowSignalFromHeaders(req));
 });
 
 // Decision endpoint — resolves the head of the session's permission queue
@@ -447,15 +506,47 @@ app.use(express.static(WEB_DIST));
 const WINDOW_CHECK_INTERVAL_MS = 5_000;
 let windowCheckRunning = false;
 
-async function pruneDeadLinkedSessions() {
+// Liveness probe for a session's own `claude.exe`. Signal 0 delivers nothing —
+// it only asks whether the pid exists. ESRCH is the single "gone" answer;
+// EPERM means the process is there and merely out of reach, which is alive, and
+// any other failure is treated the same way so a probe fault never removes a
+// live session's card.
+function isProcessAlive(pid) {
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch (err) {
+		return err?.code !== "ESRCH";
+	}
+}
+
+// Two liveness sources, one sweep. A session that carries its own claude pid is
+// judged on that process — exact, where "window alive" was only a proxy: a
+// window handle names a window that outlives any one of the sessions sharing it
+// (docs/work/BUG-003.md). A session linked through the legacy pre-resolved
+// header carries no pid (docs/work/GAP-001.md) and keeps the window-death
+// check. Both kinds can be present at once.
+export async function pruneDeadLinkedSessions() {
 	if (windowCheckRunning) return;
 	windowCheckRunning = true;
 	try {
 		const linked = tracker.getSessions().filter((s) => s.windowHandle);
 		if (linked.length === 0) return;
 
-		const dead = await findDeadWindows(linked.map((s) => s.windowHandle));
-		for (const session of linked) {
+		const byProcess = linked.filter((s) => s.claudePid != null);
+		const byWindow = linked.filter((s) => s.claudePid == null);
+
+		for (const session of byProcess) {
+			if (isProcessAlive(session.claudePid)) continue;
+			console.log(
+				`[prune] claude process gone for "${session.displayName}" (pid=${session.claudePid})`,
+			);
+			tracker.handleEvent({ session: session.id, state: "stopped" });
+		}
+
+		if (byWindow.length === 0) return;
+		const dead = await findDeadWindows(byWindow.map((s) => s.windowHandle));
+		for (const session of byWindow) {
 			if (dead.has(session.windowHandle)) {
 				console.log(
 					`[prune] window closed for "${session.displayName}" (hwnd=${session.windowHandle})`,

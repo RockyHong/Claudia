@@ -3,6 +3,7 @@ import {
 	afterAll,
 	afterEach,
 	beforeAll,
+	beforeEach,
 	describe,
 	expect,
 	it,
@@ -52,16 +53,23 @@ vi.mock("./preferences.js", () => ({
 	getPreferences: vi.fn().mockResolvedValue({}),
 }));
 
+// Window resolution shells out to PowerShell — never from a unit test.
+vi.mock("./pid-ancestry.js", () => ({
+	resolveTerminalWindow: vi.fn().mockResolvedValue(null),
+}));
+
 // Imported after the mock above — resolves to the same vi.fn() reference,
 // so tests can flip the platform branch without touching process.platform.
-import { isWindowsHost } from "./focus.js";
+import { findDeadWindows, isWindowsHost, renameTerminal } from "./focus.js";
+import { resolveTerminalWindow } from "./pid-ancestry.js";
 
-let app, tracker, server, baseUrl;
+let app, tracker, server, baseUrl, pruneDeadLinkedSessions;
 
 beforeAll(async () => {
 	const mod = await import("./index.js");
 	app = mod.app;
 	tracker = mod.tracker;
+	pruneDeadLinkedSessions = mod.pruneDeadLinkedSessions;
 
 	server = await new Promise((resolve) => {
 		const s = app.listen(0, "127.0.0.1", () => resolve(s));
@@ -319,6 +327,317 @@ describe("POST /hook/:type — nesting-only admission (Windows only)", () => {
 		});
 		expect(res.status).toBe(200);
 		expect(tracker.getSession("admit-legacy-event")).not.toBeNull();
+	});
+});
+
+describe("POST /hook/:type — server-side window resolution (X-Hook-Pid)", () => {
+	afterEach(() => {
+		isWindowsHost.mockReturnValue(false);
+		resolveTerminalWindow.mockReset();
+		resolveTerminalWindow.mockResolvedValue(null);
+	});
+
+	it("resolves from the pid the hook sent and links with what comes back", async () => {
+		isWindowsHost.mockReturnValue(true);
+		resolveTerminalWindow.mockResolvedValue({
+			hwnd: 4242,
+			title: "proj-pid ab12",
+			claudeCount: 1,
+		});
+		const res = await request(
+			"POST",
+			"/hook/SessionStart",
+			{ session_id: "pid-link", cwd: "/proj-pid" },
+			{ "X-Hook-Pid": "31337" },
+		);
+		expect(res.status).toBe(200);
+		expect(resolveTerminalWindow).toHaveBeenCalledWith("31337");
+		const session = tracker.getSession("pid-link");
+		expect(session.windowHandle).toBe(4242);
+		// The resolver's title reaches linkSessionById, which reuses a
+		// Claudia-shaped one verbatim rather than generating a fresh hex.
+		expect(session.displayName).toBe("proj-pid ab12");
+	});
+
+	it("gates nesting on the resolver's claudeCount — the card is never created", async () => {
+		isWindowsHost.mockReturnValue(true);
+		resolveTerminalWindow.mockResolvedValue({
+			hwnd: 4243,
+			title: "Term",
+			claudeCount: 2,
+		});
+		const res = await request(
+			"POST",
+			"/hook/SessionStart",
+			{ session_id: "pid-nested", cwd: "/proj-pid-nested" },
+			{ "X-Hook-Pid": "31338" },
+		);
+		expect(res.status).toBe(200);
+		expect(tracker.getSession("pid-nested")).toBeNull();
+	});
+
+	it("admits the session unlinked when resolution returns null", async () => {
+		isWindowsHost.mockReturnValue(true);
+		resolveTerminalWindow.mockResolvedValue(null);
+		const res = await request(
+			"POST",
+			"/hook/SessionStart",
+			{ session_id: "pid-unresolved", cwd: "/proj-pid-unresolved" },
+			{ "X-Hook-Pid": "31339" },
+		);
+		expect(res.status).toBe(200);
+		const session = tracker.getSession("pid-unresolved");
+		expect(session).not.toBeNull();
+		expect(session.windowHandle).toBeNull();
+	});
+
+	it("skips resolution entirely for a session that already holds a window handle", async () => {
+		isWindowsHost.mockReturnValue(true);
+		resolveTerminalWindow.mockResolvedValue({
+			hwnd: 4244,
+			title: "Term",
+			claudeCount: 1,
+		});
+		await request(
+			"POST",
+			"/hook/SessionStart",
+			{ session_id: "pid-linked", cwd: "/proj-pid-linked" },
+			{ "X-Hook-Pid": "31340" },
+		);
+		expect(tracker.getSession("pid-linked").windowHandle).toBe(4244);
+
+		resolveTerminalWindow.mockClear();
+		const res = await request(
+			"POST",
+			"/hook/UserPromptSubmit",
+			{ session_id: "pid-linked", cwd: "/proj-pid-linked" },
+			{ "X-Hook-Pid": "31340" },
+		);
+		expect(res.status).toBe(200);
+		expect(resolveTerminalWindow).not.toHaveBeenCalled();
+		expect(tracker.getSession("pid-linked").windowHandle).toBe(4244);
+	});
+
+	it("answers the request even when resolution rejects", async () => {
+		isWindowsHost.mockReturnValue(true);
+		resolveTerminalWindow.mockRejectedValue(new Error("boom"));
+		const res = await request(
+			"POST",
+			"/hook/SessionStart",
+			{ session_id: "pid-rejected", cwd: "/proj-pid-rejected" },
+			{ "X-Hook-Pid": "31341" },
+		);
+		expect(res.status).toBe(200);
+		expect(res.body.ok).toBe(true);
+		expect(tracker.getSession("pid-rejected")).not.toBeNull();
+	});
+
+	it("legacy install: no pid header keeps the X-Hook-Window path, resolver untouched", async () => {
+		isWindowsHost.mockReturnValue(true);
+		const res = await request(
+			"POST",
+			"/hook/SessionStart",
+			{ session_id: "pid-legacy", cwd: "/proj-pid-legacy" },
+			{ "X-Hook-Window": "606|Term", "X-Hook-Nested": "1" },
+		);
+		expect(res.status).toBe(200);
+		expect(resolveTerminalWindow).not.toHaveBeenCalled();
+		expect(tracker.getSession("pid-legacy").windowHandle).toBe(606);
+	});
+
+	it("legacy install: an empty pid header falls back to the legacy headers", async () => {
+		isWindowsHost.mockReturnValue(true);
+		const res = await request(
+			"POST",
+			"/hook/SessionStart",
+			{ session_id: "pid-empty", cwd: "/proj-pid-empty" },
+			{ "X-Hook-Pid": "", "X-Hook-Window": "607|Term" },
+		);
+		expect(res.status).toBe(200);
+		expect(resolveTerminalWindow).not.toHaveBeenCalled();
+		expect(tracker.getSession("pid-empty").windowHandle).toBe(607);
+	});
+});
+
+describe("auto-link never renames the terminal", () => {
+	afterEach(() => {
+		isWindowsHost.mockReturnValue(false);
+		resolveTerminalWindow.mockReset();
+		resolveTerminalWindow.mockResolvedValue(null);
+	});
+
+	it("leaves the window title alone when it generates a fresh display name", async () => {
+		isWindowsHost.mockReturnValue(true);
+		renameTerminal.mockClear();
+		resolveTerminalWindow.mockResolvedValue({
+			hwnd: 5150,
+			title: "Windows Terminal",
+			claudeCount: 1,
+			claudePid: 4001,
+		});
+		await request(
+			"POST",
+			"/hook/SessionStart",
+			{ session_id: "no-rename-generated", cwd: "/proj-nr" },
+			{ "X-Hook-Pid": "41000" },
+		);
+		const session = tracker.getSession("no-rename-generated");
+		expect(session.windowHandle).toBe(5150);
+		// The card still gets its own generated name...
+		expect(session.displayName).toMatch(/^proj-nr [0-9a-f]{4}$/);
+		// ...but the window, which may host other sessions' tabs, is untouched.
+		expect(renameTerminal).not.toHaveBeenCalled();
+	});
+
+	it("leaves the window title alone on the legacy header path too", async () => {
+		isWindowsHost.mockReturnValue(true);
+		renameTerminal.mockClear();
+		await request(
+			"POST",
+			"/hook/SessionStart",
+			{ session_id: "no-rename-legacy", cwd: "/proj-nrl" },
+			{ "X-Hook-Window": "5151|Windows Terminal", "X-Hook-Nested": "1" },
+		);
+		expect(tracker.getSession("no-rename-legacy").windowHandle).toBe(5151);
+		expect(renameTerminal).not.toHaveBeenCalled();
+	});
+
+	it("still adopts a spawned terminal's locked Claudia title on reconnect", async () => {
+		isWindowsHost.mockReturnValue(true);
+		renameTerminal.mockClear();
+		resolveTerminalWindow.mockResolvedValue({
+			hwnd: 5152,
+			title: "proj-sp 7f3a",
+			claudeCount: 1,
+			claudePid: 4002,
+		});
+		await request(
+			"POST",
+			"/hook/SessionStart",
+			{ session_id: "reuse-spawn-title", cwd: "/proj-sp" },
+			{ "X-Hook-Pid": "41001" },
+		);
+		expect(tracker.getSession("reuse-spawn-title").displayName).toBe(
+			"proj-sp 7f3a",
+		);
+		expect(renameTerminal).not.toHaveBeenCalled();
+	});
+});
+
+describe("pruneDeadLinkedSessions — liveness from the session's own process", () => {
+	let killSpy;
+
+	beforeEach(() => {
+		killSpy = vi.spyOn(process, "kill").mockImplementation(() => true);
+	});
+
+	afterEach(() => {
+		killSpy.mockRestore();
+		isWindowsHost.mockReturnValue(false);
+		resolveTerminalWindow.mockReset();
+		resolveTerminalWindow.mockResolvedValue(null);
+		findDeadWindows.mockClear();
+		findDeadWindows.mockResolvedValue(new Set());
+	});
+
+	async function linkViaPid(sessionId, cwd, hwnd, claudePid, hookPid) {
+		isWindowsHost.mockReturnValue(true);
+		resolveTerminalWindow.mockResolvedValue({
+			hwnd,
+			title: "Windows Terminal",
+			claudeCount: 1,
+			claudePid,
+		});
+		await request(
+			"POST",
+			"/hook/SessionStart",
+			{ session_id: sessionId, cwd },
+			{ "X-Hook-Pid": hookPid },
+		);
+	}
+
+	function killThrows(code) {
+		killSpy.mockImplementation(() => {
+			const err = new Error(code);
+			err.code = code;
+			throw err;
+		});
+	}
+
+	it("removes a linked session whose own claude process is gone (ESRCH)", async () => {
+		await linkViaPid("prune-dead-proc", "/p-dead", 6001, 7001, "42001");
+		expect(tracker.getSession("prune-dead-proc").windowHandle).toBe(6001);
+
+		killThrows("ESRCH");
+		await pruneDeadLinkedSessions();
+
+		expect(tracker.getSession("prune-dead-proc")).toBeNull();
+		expect(killSpy).toHaveBeenCalledWith(7001, 0);
+	});
+
+	it("keeps a linked session whose claude process is alive, even when its window reads dead", async () => {
+		await linkViaPid("prune-live-proc", "/p-live", 6002, 7002, "42002");
+		findDeadWindows.mockResolvedValue(new Set([6002]));
+
+		await pruneDeadLinkedSessions();
+
+		expect(tracker.getSession("prune-live-proc")).not.toBeNull();
+		// The window sweep is never even asked about a pid-carrying session.
+		const asked = findDeadWindows.mock.calls.at(-1)?.[0] ?? [];
+		expect(asked).not.toContain(6002);
+	});
+
+	it("counts EPERM as alive — the process exists, we just cannot signal it", async () => {
+		await linkViaPid("prune-eperm", "/p-eperm", 6003, 7003, "42003");
+
+		killThrows("EPERM");
+		await pruneDeadLinkedSessions();
+
+		expect(tracker.getSession("prune-eperm")).not.toBeNull();
+	});
+
+	it("never lets an unexpected probe failure escape the sweep", async () => {
+		await linkViaPid("prune-weird", "/p-weird", 6005, 7005, "42005");
+
+		killSpy.mockImplementation(() => {
+			throw new Error("something unexpected");
+		});
+		await expect(pruneDeadLinkedSessions()).resolves.toBeUndefined();
+		expect(tracker.getSession("prune-weird")).not.toBeNull();
+	});
+
+	it("legacy session with no claudePid still prunes on window death", async () => {
+		isWindowsHost.mockReturnValue(true);
+		await request(
+			"POST",
+			"/hook/SessionStart",
+			{ session_id: "prune-legacy", cwd: "/p-legacy" },
+			{ "X-Hook-Window": "6004|Term", "X-Hook-Nested": "1" },
+		);
+		expect(tracker.getSession("prune-legacy").windowHandle).toBe(6004);
+		expect(tracker.getSession("prune-legacy").claudePid).toBeNull();
+
+		findDeadWindows.mockResolvedValue(new Set([6004]));
+		await pruneDeadLinkedSessions();
+
+		expect(tracker.getSession("prune-legacy")).toBeNull();
+	});
+
+	it("sweeps process-checked and window-checked sessions together", async () => {
+		await linkViaPid("prune-mixed-proc", "/p-mixed-a", 6006, 7006, "42006");
+		isWindowsHost.mockReturnValue(true);
+		await request(
+			"POST",
+			"/hook/SessionStart",
+			{ session_id: "prune-mixed-win", cwd: "/p-mixed-b" },
+			{ "X-Hook-Window": "6007|Term", "X-Hook-Nested": "1" },
+		);
+
+		findDeadWindows.mockResolvedValue(new Set([6007]));
+		await pruneDeadLinkedSessions();
+
+		expect(tracker.getSession("prune-mixed-proc")).not.toBeNull();
+		expect(tracker.getSession("prune-mixed-win")).toBeNull();
 	});
 });
 

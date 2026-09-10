@@ -40,6 +40,7 @@ function createSession(id, cwd) {
 		pendingMessage: null,
 		permissionRequest: null,
 		windowHandle: null,
+		claudePid: null,
 		git: null,
 		subagentActivity: 0,
 		turnComplete: false,
@@ -274,6 +275,7 @@ export function createSessionTracker({
 			pendingMessage: s.pendingMessage,
 			permissionRequest: s.permissionRequest,
 			windowHandle: s.windowHandle,
+			claudePid: s.claudePid,
 			git: s.git,
 			subagentActivity: s.subagentActivity,
 		}));
@@ -341,23 +343,40 @@ export function createSessionTracker({
 			pendingLinks.delete(normalized);
 			notify();
 		} else {
-			// No unlinked session found. If this HWND is already assigned
-			// (auto-link won the race), the pendingLink is stale — delete it
-			// to prevent contaminating the next session with this cwd.
-			const hwndTaken = Array.from(sessions.values()).some(
-				(s) => s.windowHandle === windowHandle,
+			// No unlinked session found. The entry is stale only when a session
+			// for THIS cwd already holds this handle — auto-link won the race and
+			// consumed the spawn's link, so leaving the entry would contaminate
+			// the next session with this cwd. A handle held by some unrelated
+			// session is not evidence of anything: one window hosts N tabs, and
+			// linking never treats a handle as exclusive (docs/specs/sessions.md
+			// § Window linking).
+			const consumedByAutoLink = Array.from(sessions.values()).some(
+				(s) =>
+					s.windowHandle === windowHandle &&
+					(s.cwd ? s.cwd.replace(/\\/g, "/") : null) === normalized,
 			);
-			if (hwndTaken) {
+			if (consumedByAutoLink) {
 				pendingLinks.delete(normalized);
 			}
 		}
 	}
 
-	function linkSessionById(sessionId, windowHandle, windowTitle = "") {
+	// Sharing is legal by design: a windowHandle names a *window*, and one
+	// terminal window hosts many tabs, so N sessions may hold the same handle.
+	// The window title is READ (a spawned terminal's locked Claudia title is
+	// adopted verbatim on reconnect) but never written — retitling a shared
+	// window would rename other sessions' tabs (docs/work/BUG-003.md).
+	function linkSessionById(
+		sessionId,
+		windowHandle,
+		windowTitle = "",
+		claudePid = null,
+	) {
 		const session = sessions.get(sessionId);
 		if (!session) return null;
 
 		session.windowHandle = windowHandle;
+		session.claudePid = claudePid ?? null;
 
 		const baseName = extractDisplayName(session.cwd);
 		// If the terminal already has a valid Claudia title, reuse it
@@ -370,7 +389,7 @@ export function createSessionTracker({
 			if (deduped === windowTitle) {
 				session.displayName = windowTitle;
 				notify();
-				return { displayName: session.displayName, renamed: false };
+				return { displayName: session.displayName };
 			}
 			// Name taken by another session — fall through to generate new hex
 		}
@@ -378,7 +397,7 @@ export function createSessionTracker({
 		const hex = randomBytes(2).toString("hex");
 		session.displayName = deduplicateDisplayName(`${baseName} ${hex}`);
 		notify();
-		return { displayName: session.displayName, renamed: true };
+		return { displayName: session.displayName };
 	}
 
 	function getSession(id) {
@@ -395,6 +414,7 @@ export function createSessionTracker({
 			pendingMessage: s.pendingMessage,
 			permissionRequest: s.permissionRequest,
 			windowHandle: s.windowHandle,
+			claudePid: s.claudePid,
 			git: s.git,
 			subagentActivity: s.subagentActivity,
 		};

@@ -165,48 +165,37 @@ describe("mergeHooks", () => {
 		expect(result.permissions).toEqual({ allow: ["Read"] });
 	});
 
-	it("SessionStart and UserPromptSubmit resolve terminal HWND inline and send as header", () => {
+	it("SessionStart and UserPromptSubmit send the shell's own Windows pid, resolving nothing themselves", () => {
 		const result = mergeHooks({});
 		for (const hookType of ["SessionStart", "UserPromptSubmit"]) {
 			const cmd = result.hooks[hookType][0].hooks[0].command;
-			expect(cmd).toContain("X-Hook-Window:");
-			expect(cmd).toContain("powershell");
-			expect(cmd).toContain("MainWindowHandle");
+			// `$$` is load-bearing — /proc/self/winpid names the forked `cat`,
+			// which is already dead by the time the server reads the pid.
+			expect(cmd).toContain(
+				'-H "X-Hook-Pid: $(cat /proc/$$/winpid 2>/dev/null)"',
+			);
+			// Resolution moved into the server — no child process per hook.
+			expect(cmd).not.toContain("powershell");
+			expect(cmd).not.toContain("MainWindowHandle");
+			expect(cmd).not.toContain("X-Hook-Window");
+			expect(cmd).not.toContain("X-Hook-Nested");
+			// The install-detection marker is untouched by the thinning.
+			expect(cmd).toContain(CLAUDIA_MARKER);
 		}
 
-		// Other hooks should NOT have the window header
+		// Other hooks carry no pid header
 		const preToolCmd = result.hooks.PreToolUse[0].hooks[0].command;
-		expect(preToolCmd).not.toContain("X-Hook-Window");
+		expect(preToolCmd).not.toContain("X-Hook-Pid");
 	});
 
-	it("SessionStart and UserPromptSubmit also count nested claude processes and send X-Hook-Nested", () => {
+	it("the pid substitution survives the JSON round-trip into settings.json verbatim", () => {
 		const result = mergeHooks({});
+		const roundTripped = JSON.parse(JSON.stringify(result));
 		for (const hookType of ["SessionStart", "UserPromptSubmit"]) {
-			const cmd = result.hooks[hookType][0].hooks[0].command;
-			expect(cmd).toContain("X-Hook-Nested:");
-			// Counts every ancestor named "claude" crossed before the terminal —
-			// two or more means this session is nested inside another one.
-			expect(cmd).toContain('$pname -eq "claude"');
-			expect(cmd).toContain("$claudeCount++");
-			// The count rides the same powershell line as the window info, then
-			// bash splits the two back apart — X-Hook-Window's shape stays plain.
-			expect(cmd).toContain("@@$claudeCount");
-			// biome-ignore lint/suspicious/noTemplateCurlyInString: literal POSIX shell parameter expansion, not a JS template
-			expect(cmd).toContain('HWND_INFO="${HWND_RAW%%@@*}"');
-			// biome-ignore lint/suspicious/noTemplateCurlyInString: literal POSIX shell parameter expansion, not a JS template
-			expect(cmd).toContain('HWND_NESTED="${HWND_RAW##*@@}"');
+			const cmd = roundTripped.hooks[hookType][0].hooks[0].command;
+			expect(cmd).toBe(result.hooks[hookType][0].hooks[0].command);
+			expect(cmd).toContain("$(cat /proc/$$/winpid 2>/dev/null)");
 		}
-
-		// Other hooks should NOT have the nested header either
-		const preToolCmd = result.hooks.PreToolUse[0].hooks[0].command;
-		expect(preToolCmd).not.toContain("X-Hook-Nested");
-	});
-
-	it("keeps the ancestor walk's 20-hop bound and SilentlyContinue error handling", () => {
-		const result = mergeHooks({});
-		const cmd = result.hooks.SessionStart[0].hooks[0].command;
-		expect(cmd).toContain("$i -lt 20");
-		expect(cmd).toContain("-ErrorAction SilentlyContinue");
 	});
 });
 
