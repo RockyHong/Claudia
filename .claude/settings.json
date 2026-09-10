@@ -1,6 +1,5 @@
 {
   "enabledPlugins": {
-    "superpowers@claude-plugins-official": true,
     "fullstack-dev-skills@fullstack-dev-skills": false,
     "rust-analyzer-lsp@claude-plugins-official": false,
     "super-bootstrap@super-bootstrap": true,

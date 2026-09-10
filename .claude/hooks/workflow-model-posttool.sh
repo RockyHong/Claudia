@@ -37,7 +37,18 @@ AGENT_CALLS="${AGENT_CALLS:-0}"; MODEL_MARKS="${MODEL_MARKS:-0}"   # guard empty
 # Run-id + workflow name for the TaskStop/resume recipe — verified tool_response fields.
 RUN_ID="$(jq -r '.tool_response.runId // empty' <<< "$PAYLOAD")"
 WF_NAME="$(jq -r '.tool_response.workflowName // empty' <<< "$PAYLOAD")"
-CTX="Model-tiering self-heal: the launched workflow has ${AGENT_CALLS} agent() call(s) but only ${MODEL_MARKS} model designation(s) — untiered calls inherit the main-loop model across the fan-out. The launch already returned; agents are spawning now. To retier before the bulk spawns: (1) TaskStop the run${RUN_ID:+ ($RUN_ID)}; (2) edit the persisted script ${SCRIPT_PATH} — add model: to each untiered agent() (small='haiku' retrieve, mid='sonnet' judge; inherit only for main-loop-grade reasoning, annotated // model: inherit — <why>); (3) resume with resumeFromRunId; (4) save the tiered script to .claude/workflows/${WF_NAME:-<name>}.js so future launches go via scriptPath and audit pre-flight. Ref: .claude/guidelines/work-discipline/model-tiering.md"
+
+# Original launch args — resume rebinds args fresh: omitting drops them, and the
+# retiered agent() calls are edited (live, not cached), so they read args. Hand the
+# exact value back so the resume re-passes it verbatim.
+# Lore: .claude/guidelines/claude-shape/workflow-tool-response.md § Resume.
+ARGS_JSON="$(jq -c '.tool_input.args // empty' <<< "$PAYLOAD")"
+if [ -n "$ARGS_JSON" ]; then
+  RESUME_STEP="resume with resumeFromRunId, re-passing args: ${ARGS_JSON} verbatim (resume drops args otherwise)"
+else
+  RESUME_STEP="resume with resumeFromRunId"
+fi
+CTX="Model-tiering self-heal: launched workflow has ${AGENT_CALLS} agent() call(s), ${MODEL_MARKS} model designation(s) — untiered calls inherit the main-loop model across the fan-out. Launch returned; agents spawning now. Retier before the bulk spawns: (1) TaskStop the run${RUN_ID:+ ($RUN_ID)}; (2) edit ${SCRIPT_PATH} — add model: (haiku|sonnet|opus) to each untiered agent(), choosing tiers per .claude/guidelines/work-discipline/model-tiering.md; (3) ${RESUME_STEP}; (4) save tiered script to .claude/workflows/${WF_NAME:-<name>}.js."
 
 jq -n --arg c "$CTX" \
   '{hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: $c}}'

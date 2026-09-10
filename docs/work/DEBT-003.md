@@ -1,0 +1,6 @@
+# DEBT-003 — adm-zip moderate advisory needs a breaking downgrade
+
+**Logged:** 2026-09-10 · **Source:** `npm audit` during the harness migration session
+**Problem:** `adm-zip >=0.5.9` carries a moderate-severity advisory. `npm audit fix` cannot resolve it — the only offered remedy is `npm audit fix --force`, which installs `adm-zip@0.5.8`, a *downgrade* and a declared breaking change. `adm-zip` is one of this repo's two production dependencies (`docs/techstack.md` § Key Dependencies), so the blast reaches shipped behavior, not just the dev tree.
+**Area:** `package.json` (`dependencies.adm-zip`), avatar set import/export — the upload/extract path (`packages/server/src/avatar-storage.js`, `multipart.js`)
+**Prior:** Three routes worth weighing at pickup: (a) take the 0.5.8 downgrade and verify the avatar import/export round-trip by hand, (b) wait for an upstream fix above 0.5.9, (c) drop the dep — one upload endpoint already uses a hand-rolled multipart parser, so the zip surface may be small enough to hand-roll or replace. Route (a) needs a real extract/repack test before it lands; the advisory's actual exploitability against this repo's usage (local, user-supplied avatar zips) has not been assessed.

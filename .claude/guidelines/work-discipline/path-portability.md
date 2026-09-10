@@ -15,7 +15,7 @@ The generalized template — a consumer's onboarding / env-setup doc instantiate
 | Absolute repo root (unavoidable) | a `<repo-root>` token | clone location is the one irreducibly machine-variable value |
 | OS / setup one-off (install cmd) | concrete + "(this machine — see <env-setup doc>)" | a literal command run once; lightest touch |
 
-The one concrete machine value — the actual repo-root path on this device — lives only in that env-setup block, nowhere else (SSoT: one truth, one owner — see [`../axiom-principles/single-source-of-truth.md`](../axiom-principles/single-source-of-truth.md)).
+The one concrete machine value — the actual repo-root path on this device — lives only in that env-setup block, nowhere else (SSoT: one truth, one owner).
 
 ## Carve-out
 

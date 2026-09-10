@@ -119,6 +119,12 @@ Surface a real fork to the user as an MCQ with the recommended path badged `(rec
 - **`rules/config-overlay.md`** — fires on `.claude/settings.json`, `.claude/settings.local.json`, `.claude/hooks/**`, `.mcp.json`
   • Trust upstream canonical wiring; prove it fails before adding an overlay
   • Place ambient config at the layer every target runtime loads
+- **`rules/ssot-doc-link.md`** — fires on `docs/**/*.md`, `README.md`
+  • Link each concept to its SSOT home on the asserting line, as you write — not back-filled
+  • One link per concept per doc; a home that contradicts the line is linked as a declared supersession
+- **`rules/dimension-discipline.md`** — fires on `docs/**/*.md`, `README.md`
+  • Classify the doc's dimension — state (true now) vs history (dated chronicle) — before editing, and author to it
+  • History declares `dimension: history` in frontmatter; a doc already mixing dimensions is a stop-and-surface tripwire
 
 If rule body needs more context than its summary provides during planning, read the rule file directly before designing — `Read .claude/rules/<name>.md`.
 

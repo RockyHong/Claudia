@@ -65,6 +65,8 @@ At startup the SEA extracts web assets to a temp dir and starts Express on port 
 
 ### Manual step-by-step (if you need control)
 
+Script→output mapping is stated once in [`docs/techstack.md` § Build & Distribution](techstack.md#build--distribution); the arrows below are procedural context for the order.
+
 ```bash
 # 1. Bundle server code
 npm run bundle:server          # -> dist/server-bundle.js

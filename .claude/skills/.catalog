@@ -5,15 +5,18 @@
 # live in ~/.claude/skills/ — NOT duplicated here.
 
 ## Must-have (auto-included)
-journey-simulation        # renamed from user-journey-simulation
-check-docs-consistency
-discuss
+journey-simulation
 
 ## Project picks
-frontend-soc-scan         # Svelte frontend — SoC violation scan
+frontend-soc-scan         # Svelte frontend — SoC violation scan (bundles agent: frontend-soc-scan)
+
+## Orphaned — served, source removed from storehouse catalog
+discuss                   # pending operator call: remove, or adopt as project-native
 
 ## Served rules (.claude/rules/)
 config-overlay            # must-have — runtime wiring / overlay authoring
+ssot-doc-link             # must-have — link concepts to their SSOT home at authoring time
+dimension-discipline      # must-have — classify state vs history before editing a prose doc
 
 ## Served hooks (.claude/hooks/)
 workflow-model            # must-have — model-tiering on Workflow/Task (pre+post)

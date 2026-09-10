@@ -85,11 +85,12 @@ Dispatching {N} subagent(s):
    Drive: {goal or trigger}
    Sandbox: {state count} states, entry = {first state}
    Tools: ["Write"]
+   Model: sonnet
 
 Output: docs/walkthroughs/{batch-folder}/
 Go?
 ```
-The `Tools: ["Write"]` line is mandatory and must appear verbatim. If it is missing or different, caller should refuse confirmation. Wait for caller confirmation before invoking Agent tool.
+The `Tools: ["Write"]` and `Model: sonnet` lines are mandatory and must appear verbatim — pass both `tools: ["Write"]` and `model: "sonnet"` on the Agent call (persona walkthrough → mid tier per `.claude/guidelines/work-discipline/model-tiering.md`). If either line is missing or different, caller should refuse confirmation. Wait for caller confirmation before invoking Agent tool.
 
 ## Phase 4 — Multi-runner default
 
@@ -199,7 +200,8 @@ If any of these appear, **stop and return to Phase 0**:
 - Subagent prompt mentions caller's hypothesis or success criterion
 - Subagent prompt asks for scores / ratings / rankings / recommendations
 - Agent tool invoked without an explicit `tools=["Write"]` argument (default / null / extra tools all forbidden)
-- Confirmation checkpoint shown to caller without the verbatim `Tools: ["Write"]` line
+- Agent tool invoked without an explicit `model="sonnet"` argument (raw ad-hoc dispatch has no frontmatter tier home → trips the model-designation guard)
+- Confirmation checkpoint shown to caller without the verbatim `Tools: ["Write"]` and `Model: sonnet` lines
 - Phase 0 skipped because "caller's request was clear"
 - Phase 0 step 6 collapsed to single-stage (only curated shown, stripped not shown)
 - Single runner dispatched for a generalization claim **without** caller-acknowledged anecdote-reframe
