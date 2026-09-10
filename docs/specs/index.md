@@ -2,7 +2,7 @@
 
 Source of truth for what Claudia does and why. Each spec covers product-level behavior — intent, user flows, cross-module interactions, and design decisions.
 
-**Permanent source of truth.** Superpowers specs (`docs/superpowers/specs/`) are work orders deleted after merge. These specs describe what exists and why — updated as features evolve.
+**Permanent source of truth.** Working design and step sequence live as `## Design` / `## Plan` blocks on the owning card's thread in [`docs/work/`](../work/README.md) and die with it. These specs describe what exists and why — updated as features evolve.
 
 **Product-level, code-light.** Implementation details, API tables, and module internals live in the code. Specs focus on the "why" and the product logic that connects modules.
 

@@ -1,6 +1,7 @@
 # Claudia — Project Overview
 
-<!-- harness-meta: read by /super-bootstrap:resolve-plugins. Keep YAML shape; list values in [...].
+<!-- harness-meta: read by /super-bootstrap:resolve-plugins (tier-2 curation). Keep YAML shape; list values in [...].
+Default [github]; add any of: notion, linear, jira, slack, trello, clickup, other.
 external-tools: [github]
 -->
 
@@ -48,13 +49,6 @@ Hooks fail silently when the server is down — Claude Code keeps working normal
 
 See [docs/specs/](specs/index.md) for product-level behavior, design decisions, and cross-module flows.
 
-## Roadmap
-
-> Forward feature list — ordered name + one-liner. Single pillar for "what product will become." `/super-bootstrap:todo` reads this: first unstarted entry (no matching spec slug under `docs/superpowers/specs/` or `docs/specs/`) surfaces as the next `Brainstorm:` row. Remove a line when its feature ships into the narrative above.
-
-*(empty — add features as they're conceived)*
-
----
 
 ## Data Flow
 
@@ -161,3 +155,7 @@ After `npm i -g @rockyhong/claudia` (or via `npx @rockyhong/claudia ...`):
 | `docs/building.md` | Build instructions for both distributions |
 | `docs/specs/` | Feature specs — source of truth per feature |
 | `packages/server/assets/` | Default avatar videos (`avatar/`), app icon |
+
+## Key Boundaries
+
+> Grows via doc-sync as API contracts, internal interfaces, and external dependencies stabilize.

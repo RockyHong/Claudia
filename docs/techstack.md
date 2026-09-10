@@ -1,15 +1,15 @@
 # Tech Stack
 
-Ground rules for technology choices, patterns, and architecture.
+> Living doc — **state dimension only** (what the stack *is* now). Skeleton sections (Runtime / Framework / Key Dependencies / Build & Distribution / Packages; Edit Discipline, fixed prose). Grown sections (Architecture Rules / Coding Patterns / Storage Locations) grow via doc-sync — every commit that touches a relevant area triggers a sync proposal, admitted per § Doc Sync. Rejected stack directions are history, not state → [`docs/decisions.md`](decisions.md), never a section here. See `CLAUDE.md` Doc Sync.
 
----
+## Runtime
 
-## Stack
+Node.js 20.19+ (or 22.12+), ES modules — `"type": "module"` in every `package.json`. Package manager: npm with workspaces, root `package.json` → `packages/*`.
+
+## Framework
 
 | Layer | Choice | Config/Entry |
 |---|---|---|
-| Runtime | Node.js 20.19+ (or 22.12+), ES modules | `"type": "module"` in all package.json |
-| Package manager | npm, workspaces | Root `package.json` → `packages/*` |
 | Server | Express 5 | `packages/server/src/index.js` |
 | Real-time | SSE (Server-Sent Events) | `res.write()` on held response, `GET /events` |
 | Frontend | Svelte 5, Vite | `packages/web/`, runes syntax |
@@ -18,9 +18,9 @@ Ground rules for technology choices, patterns, and architecture.
 | Desktop | Tauri (Rust shell) | `src-tauri/` |
 | Standalone binary | Node SEA (Single Executable App) | `scripts/build-sea.js` |
 
-## Production Dependency
+## Key Dependencies
 
-**Two: `express` and `adm-zip`.** Everything else is hand-rolled or build-time. This is intentional — don't add dependencies without a strong reason.
+**Two production deps: `express` and `adm-zip`.** Everything else is hand-rolled or build-time. This is intentional — don't add dependencies without a strong reason.
 
 `packages/web` is `private` and never published; the root package ships its compiled `dist/` instead. So its `devDependencies` — `svelte`, `dompurify`, `marked`, `highlight.js`, `lucide-svelte` — are correctly classified for npm (users never install them) yet Vite compiles them into the artifact users receive. **Audit with plain `npm audit`, never `--omit=dev`**, which hides exactly this class. The `audit` job in `.github/workflows/build.yml` enforces that.
 
@@ -30,9 +30,38 @@ Hand-rolled instead of libraries:
 - SFX synthesis (Web Audio API in `sfx.js`)
 - Hook config management (`hooks.js`)
 
----
+## Build & Distribution
+
+| Script | Output | Notes |
+|---|---|---|
+| `npm run dev` | Dev server with watch | |
+| `npm run build` | `packages/web/dist/` | Vite production build |
+| `npm run bundle:server` | `dist/server-bundle.js` | esbuild, express kept external |
+| `npm run build:sea:x64` | `dist/claudia-server-x64.exe` | Node SEA 64-bit |
+| `npm run build:tauri` | Tauri app + SEA sidecar | Needs Rust toolchain |
+
+CI: `.github/workflows/build.yml` — triggered by version tag push. CI installs with `npm ci` (exact lockfile, no resolution drift) on Linux, Windows + macOS.
+
+### Lockfile contract (vite 8 / rolldown)
+
+Vite 8 is rolldown-based. rolldown ships native bindings as `optionalDependencies` per platform. Two rules keep `package-lock.json` valid for `npm ci` across platforms — break either and CI fails:
+
+1. **Never delete the lock before regenerating; reconcile in place.** Deleting `package-lock.json` then `npm install` rebuilds it for the *current* platform only, stripping every other platform's `@rolldown/binding-*` node — macOS/Linux `npm ci` then can't find its binding at build time (npm/cli#4828). Always run `npm install` *over* the existing complete lock so all platform binding nodes survive. After any regen, verify `npm ci` on a clean checkout (the lock must also contain the `@emnapi/*` package nodes — a strict `npm ci` walks them; some npm minors prune them, producing a lock that fails elsewhere, so verify with a current npm, not just whatever happens to be local).
+2. **`overrides`** (`package.json`), load-bearing — do not remove without re-verifying `npm ci` on a clean checkout:
+   - **`@emnapi/core` / `@emnapi/runtime` / `@emnapi/wasi-threads`** pinned to one version. The `@rolldown/binding-wasm32-wasi` optional dep pins `@emnapi/*` *exactly* while its own `@napi-rs/wasm-runtime` floats them (`^1.7.1`); that conflict lives inside a wasm binding never installed on a real platform, so npm can't serialize a stable lock. Pinning collapses it to one version.
+   - **`esbuild: "$esbuild"`** dedupes vite's nested esbuild to the top-level `^0.28.1`. Without it npm may resolve vite's `^0.28.0` to the vulnerable 0.28.0 (advisory fixed in 0.28.1).
+
+## Packages
+
+| Package | Path | Role | Build command |
+|---|---|---|---|
+| `@rockyhong/claudia` | `.` (root) | CLI entry + published artifact | `npm run build` |
+| server | `packages/server` | Express + SSE + state machine | no build — shipped as source, or bundled via `npm run bundle:server` |
+| web | `packages/web` | Svelte 5 dashboard (`private`, never published) | `npm run build --workspace=packages/web` |
 
 ## Architecture Rules
+
+> Grows via doc-sync as patterns crystallize. Module boundaries, data flow direction, dependency philosophy, layering rules.
 
 ### Data flow is unidirectional
 
@@ -55,36 +84,30 @@ Each module owns one thing. Don't cross boundaries. See `docs/overview.md` → M
 
 If you're importing across these in unexpected directions, the boundary is wrong.
 
-### Module size ceiling
+### Ownership
 
-~200 lines per file. If a module grows past this, split by responsibility.
+- Each package owns its dependencies
+- Server↔Web contract = the SSE event protocol ([`docs/specs/sessions.md`](specs/sessions.md))
+- Claude Code↔Claudia contract = the hook protocol ([`docs/specs/hooks.md`](specs/hooks.md))
+- Platform-specific code lives exclusively in `focus.js` and `job-object.js`
 
-### Function style
+### Visual design system
 
-- Functions do one thing
-- `const` by default, `let` only for reassignment, never `var`
-- Async/await over raw promises
-- Classes only when instance state is clearly needed
-- Error handling at boundaries, keep inner logic clean
+[`docs/design-system.html`](design-system.html) is canonical for UI components (element catalog, modal system, palette, spacing/radius scale). [`docs/product-mock.html`](product-mock.html) for assembled layout + immersive mode. Component-level enforcement fires via `.claude/rules/svelte.md` on component reads.
 
-### Naming
+## Coding Patterns
 
-Self-documenting. `getSessionDisplayName(cwd)` not `getName(s)`. Booleans as natural language: `isStale`, `hasActiveSession`.
+> Grows via doc-sync as patterns crystallize — **descriptive reference**: how this code is actually written, read on demand, safe to be cold. A convention that binds — imperative, obeyed at every code touch — is recorded in [`CODING_STANDARDS.md`](../CODING_STANDARDS.md).
 
----
+### Frontend
 
-## Frontend Patterns
+Component conventions bind path-scoped — `.claude/rules/svelte.md` fires on `packages/web/src/**/*.svelte` and carries them in full. Descriptive-only here:
 
-- **Svelte 5 runes**: `$state`, `$derived`, `$effect` — no legacy reactive syntax
-- **Props down, events up** — components don't reach into parents
-- **One component, one concern** — small, focused files
-- **Hand-written CSS** — component `<style>` blocks, scoped by default
 - **Video**: HTML `<video>` with `loop` attribute for avatars
 - **Audio**: Web Audio API for synth tones, `<audio>` for MP3 fallback
 
-## Server Patterns
+### Server
 
-- **ES modules only** — `import`/`export`, never `require()`
 - **Flat module structure** — all server modules in `packages/server/src/`, no nested dirs
 - **Co-located tests** — `foo.js` and `foo.test.js` side by side
 - **Platform code isolated** — OS-specific logic only in `focus.js` and `job-object.js`
@@ -104,57 +127,17 @@ Self-documenting. `getSessionDisplayName(cwd)` not `getName(s)`. Booleans as nat
 
 For details on each feature's data and API surface, see [docs/specs/](specs/index.md).
 
----
-
-## Build & Distribution
-
-| Script | Output | Notes |
-|---|---|---|
-| `npm run dev` | Dev server with watch | |
-| `npm run build` | `packages/web/dist/` | Vite production build |
-| `npm run bundle:server` | `dist/server-bundle.js` | esbuild, express kept external |
-| `npm run build:sea:x64` | `dist/claudia-server-x64.exe` | Node SEA 64-bit |
-| `npm run build:tauri` | Tauri app + SEA sidecar | Needs Rust toolchain |
-
-CI: `.github/workflows/build.yml` — triggered by version tag push. CI installs with `npm ci` (exact lockfile, no resolution drift) on Windows + macOS.
-
-### Lockfile contract (vite 8 / rolldown)
-
-Vite 8 is rolldown-based. rolldown ships native bindings as `optionalDependencies` per platform. Two rules keep `package-lock.json` valid for `npm ci` across platforms — break either and CI fails:
-
-1. **Never delete the lock before regenerating; reconcile in place.** Deleting `package-lock.json` then `npm install` rebuilds it for the *current* platform only, stripping every other platform's `@rolldown/binding-*` node — macOS/Linux `npm ci` then can't find its binding at build time (npm/cli#4828). Always run `npm install` *over* the existing complete lock so all platform binding nodes survive. After any regen, verify `npm ci` on a clean checkout (the lock must also contain the `@emnapi/*` package nodes — a strict `npm ci` walks them; some npm minors prune them, producing a lock that fails elsewhere, so verify with a current npm, not just whatever happens to be local).
-2. **`overrides`** (`package.json`), load-bearing — do not remove without re-verifying `npm ci` on a clean checkout:
-   - **`@emnapi/core` / `@emnapi/runtime` / `@emnapi/wasi-threads`** pinned to one version. The `@rolldown/binding-wasm32-wasi` optional dep pins `@emnapi/*` *exactly* while its own `@napi-rs/wasm-runtime` floats them (`^1.7.1`); that conflict lives inside a wasm binding never installed on a real platform, so npm can't serialize a stable lock. Pinning collapses it to one version.
-   - **`esbuild: "$esbuild"`** dedupes vite's nested esbuild to the top-level `^0.28.1`. Without it npm may resolve vite's `^0.28.0` to the vulnerable 0.28.0 (advisory fixed in 0.28.1).
-
----
-
-## Rejected Alternatives
-
-| What | Why not |
-|---|---|
-| WebSocket / socket.io | Data flow is unidirectional, SSE is sufficient |
-| React | Runtime overhead unnecessary, Svelte compiles away |
-| Electron | ~150 MB for a simple dashboard |
-| pnpm / yarn | npm ships with Node, no gain |
-| Turborepo / Nx | Overkill for 2 packages |
-| node-gyp / native addons | Shell commands already installed on every platform |
-| ESLint + Prettier | Biome does both |
-| multer / busboy | One upload endpoint, hand-rolled parser is simpler |
-| howler.js | Web Audio API + `<audio>` covers it |
-
----
-
 ## Edit Discipline
+
+Two edit-tool failure families: bulk replace corrupting on common identifiers (preference order + checklist below), and edits issued against stale file state (§ Stale-state edits).
 
 `Edit replace_all: true` is naive whole-file string replace — no AST, no scope, no token boundaries. Running on common identifiers silently corrupts unrelated code (`state` → `swipe` rewrites `SwipeState` to `SwipeSwipe`, import paths, comments, CSS selectors). The trap is invisible until the next type-check.
 
 **Preference order:**
 
-1. **LSP rename** — symbol-aware, scope-respecting. Best for typed languages (TS, Rust, Go, Java, Python with pyright, C#).
-2. **Per-occurrence Edit with unique surrounding context** — when LSP unavailable. Grep call sites; each Edit's `old_string` includes enough context to be unique to that call.
-3. **`sed` / scripted bulk replace** — only when term is **8+ chars and unique to the domain** (`Conversation`, `MerchandiseInventory`). Always case-preserving pair: `s/OldName/NewName/g; s/oldName/newName/g; s/OLD_NAME/NEW_NAME/g`. Run build/test cycle immediately.
-4. **`Edit replace_all: true`** — only on unique long string literals (URLs, full sentences, hash IDs). Never on identifiers <8 chars. Never on common English words.
+1. **Per-occurrence Edit with unique surrounding context** — enumerate call sites first (LSP `findReferences` where a server is configured, Grep otherwise); each Edit's `old_string` includes enough context to be unique to that call.
+2. **`sed` / scripted bulk replace** — only when term is **8+ chars and unique to the domain** (`Conversation`, `MerchandiseInventory`). Always case-preserving pair: `s/OldName/NewName/g; s/oldName/newName/g; s/OLD_NAME/NEW_NAME/g`. Run build/test cycle immediately.
+3. **`Edit replace_all: true`** — only on unique long string literals (URLs, full sentences, hash IDs). Never on identifiers <8 chars. Never on common English words.
 
 **Pre-flight checklist (any bulk replace):**
 
@@ -165,6 +148,16 @@ Vite 8 is rolldown-based. rolldown ships native bindings as `optionalDependencie
 
 **Banned terms for `replace_all`** (always per-occurrence):
 `state`, `name`, `data`, `value`, `item`, `key`, `id`, `type`, `props`, `node`, `text`, `link`, `error`, `result`, `body`, `head`, `main`, `time`, `path`, `file`, `index`, `count`, `child`, `style`, `class`, `tag`, `event`, `target`, `source`, `from`, `to`, `next`, `prev`, `init`, `done`.
+
+**Stale-state edits — Read before first Edit, re-Read after mutation:**
+
+An Edit failing `"File has not been read yet"` or `"File has been modified since read"` is a state-tracking failure, not a content failure — retrying the same Edit against the same stale state cannot succeed. Read first; on those errors, re-Read:
+
+- **Read before the first Edit of a file each session** — `Write` always requires a prior Read; `Edit`'s guard is relaxed for newer models (CC 2.1.208+) but reading first remains the discipline — an unread edit is a blind edit.
+- **Re-Read after either error class above** before the next Edit of that file.
+- **Re-Read after any save that lands behind your read-tracker** — formatter hook, linter-on-commit (prettier / lint-staged repos mutate on every commit), and any file-writing subagent that returned (a skill may have dispatched it): it wrote in its own context, invisible to yours.
+- **`git diff` output is not a Read** — after reviewing another agent's edits via diff, Read the file itself before editing it.
+- **Two consecutive same-file Edit failures = mandatory re-Read**, no exceptions — the loop is unwinnable without fresh state.
 
 **When a `replace_all` slips through:**
 

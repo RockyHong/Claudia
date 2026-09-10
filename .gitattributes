@@ -13,6 +13,8 @@
 *.yaml text eol=lf
 *.yml text eol=lf
 *.toml text eol=lf
+# Shell scripts must stay LF — bash chokes on CR in a CRLF checkout
+*.sh text eol=lf
 # Windows batch files need CRLF
 *.bat text eol=crlf
 # Binary assets — do not diff, do not normalize

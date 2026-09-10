@@ -1,149 +1,138 @@
 # Claudia
 
-Local session monitor for Claude Code — hook-driven per-session state, live dashboard for 2+ concurrent sessions.
-
 ## Development Workflow
 
-Every session runs under the superpowers frame. Routing = **which phases this work needs**, judged on evidence — not file count. Triage phases, propose route, **user confirms** before work starts.
+Work enters by picking up a card — a `docs/work/` card file (`/super-bootstrap:todo` pickup or a prose ID) — or grounding a new one via `/super-bootstrap:log`. The card is the grounding artifact (root-cause claim for a bug, problem statement for a feature) and the unit/anchor/boundary/SSOT of the change. Fresh work and resumed work use the same door.
 
-### Phase Gates
+### The envelope
 
-| Phase | Run when | Skip when |
+`ground → route → implement → verify → doc-sync → commit`. Red and verify are structurally empty — no ceremony — on a diff with no test/runtime surface (docs-only). Commit = `/super-bootstrap:commit`.
+
+**Ambient laws inside implement:**
+
+- **Test-first** — where a test surface exists, a failing test precedes the implementation.
+- **Verify before claiming** — evidence before "done / fixed / passing": run the check, read the output, then claim.
+- **Review received, not absorbed** — check a review claim against the code before implementing it; disagree with grounds rather than complying performatively. Judgment-grade findings: `review-intake` first (§ Dispatch).
+
+### Cluster routing
+
+Recognize the card's shape, then take that row's discipline; a repo that installs a process harness maps its entries onto these shapes.
+
+| # | Cluster | Route |
 |---|---|---|
-| **Brainstorm** | Intent fuzzy, design space unexplored, multiple viable shapes | Intent + approach obvious from repo context or user direction |
-| **Spec** | Persistent design surface — behavior worth pinning for future sessions | One-time tactical change, no behavior contract |
-| **Plan** | Multi-step, ordering matters, half-done risk | Single atomic edit obvious from context |
-| **Execute (TDD + verify)** | Touching code | Always-on when code changes — never skip discipline |
-| **Doc sync** | Pre-commit | Always-on — never skip |
-| **Commit (`/super-bootstrap:commit`)** | Work done | Always-on — terminal step |
+| 1 | Bug / broken behavior | root cause before fix — reproduce, trace to the mechanism, then change |
+| 2 | Fuzzy feature / new capability | settle the design with the user before building |
+| 3 | Design-intact multi-step | write the step sequence down before touching code |
+| 4 | Refactor | ground the card; multi-step → cluster 3, atomic → envelope only |
+| 5 | Config / taste / bounded tweak | inline; taste that iterates or drifts → card it |
+| 6 | Docs / prose | envelope only |
+| 7 | Harness edit (CLAUDE.md, rules, skills, agents) | git log + `.claude/rules/index.md` pre-edit; verify pass post-edit |
+| 8 | Triage / investigation-only | card → `/super-bootstrap:triage {ID}` (verdict phase appending a Verdict block to the card); ad-hoc question → inline reads + dispatched probes |
 
-### Triage output
+### Framing + Route — state, don't gate
 
-Propose phase composition + justify each skip with repo-grounded evidence:
+State the card's **problem-aim** before routing — premise / problem / scenario only, synthesized self-coherent (hold back the card's Prior; restate rather than paste index-quotes) — then state cluster + route. Both scale together: resolvable from the card/SSOT → post in one line and proceed (framing line + route line); stop for the user's explicit OK only on a genuine fork — ambiguous cluster, a conflict with a closed fork in [`docs/decisions.md`](docs/decisions.md), high blast radius, or card-claim ambiguity / suspected mis-aim. Hold the aligned aim as the check on everything machinery returns: a verdict or solution that re-aims the problem is surfaced, not absorbed (`aligned ≠ correct` — the user confirms the target, not the answer). The line re-fires on a mid-flight route change, not only at pickup: an absorbed verdict or solution that changes the route — a settle that turns into a build, a read that turns into an experiment — gets the aim restated and the new route sized before any build step.
 
-```
-Phases: brainstorm → plan → execute → doc-sync → commit
-Skipped: spec (no persistent design surface — internal helper, no behavior contract)
-Evidence: BUG-001 has clean repro, fix touches CSS layering in one component
-OK to proceed?
-```
+### Sizing — scale ceremony to the work's shape
 
-If the user pushes back → re-evaluate the gate that triggered the disagreement, not the whole route. User can add or drop phases — **user instructions override Superpowers defaults.**
+Route defaults assume worst-case — fuzzy-new work, a cold executor, every task equally central. Scale each down to the shape in hand; § Dispatch's closure valves scale dispatch grade the same way.
 
-Spec/plan locations: `docs/superpowers/specs/` + `docs/superpowers/plans/` (temporal). Persistent feature specs (kept after merge) → `docs/specs/`.
+- **Route depth keys on shape-familiarity, not cluster alone** — a known-shape repeat (the Nth same-shape artifact) routes lighter than its nominal cluster, skipping the discovery ceremony (design settling, a full written plan) a first-of-shape needs.
+- **Task boundary = logical-change-unit, not surface-group** — one change narrated across N file clusters is one task + one commit, not N. Batch same-logical-change surfaces.
+- **Per-task verify depth scales to surface centrality** — an ambient-loaded harness surface (CLAUDE.md, a rule, an agent) earns a full cold verify pass whatever the change size; an isolated low-centrality surface (a README line, a manifest field, a docs paragraph) earns a light pass.
+- **Same-session author == executor → reference, don't embed** — a plan written for a cold executor embeds full file bodies; when the authoring session also executes, reference draft bodies by section instead of re-embedding full file text.
+
+Settled design and step sequence land as `## Design` / `## Plan` blocks on the card's own thread ([`docs/work/`](docs/work/README.md)).
+
+## Dispatch — who holds each phase
+
+The gateway orchestrates; it does not build. Inline lane = orchestration, reads, bounded live tweaks (aesthetic / config value, applied + checked in-app). Everything carrying a **propagation closure** — the edit plus every truth it must keep in sync — dispatches to a clean subagent. Judge by closure, not diff size: a one-line config tweak owns no closure → inline; a one-line fix that chains triage + multi-file reads + doc-sync has a closure → dispatch.
+
+- **Build** (within Implement) → dispatch per phase, gateway integrates + verifies between. Build is never a live tweak. **Every build-dispatch prompt carries the commit convention up front** — finish, report the work as built with the file list, do not `git commit`; the gateway fires `/super-bootstrap:commit`.
+- **Transcription is not a build** — when the exact content is already in hand (a plan supplies verbatim old/new text, or the gateway already holds the final text) with no runtime to derive against, applying it carries zero closure: inline it, even mid-dispatch-regime. Reserve dispatch for content a container must derive: reads, integration, judgment.
+- **Review findings are claims, not instructions** — a judgment-grade review finding routes through the cold `review-intake` judge before any implementer sees it: claims pass numbered + verbatim with their cited surfaces (pointer-less ones marked `(no surface citation)`), minus fix preferences and dispatcher theories; per-claim `confirmed | falsified | needs-evidence` + a coverage line return to the gateway. Confirmed → dispatch at fix grade; falsified → stops at the gateway; needs-evidence → run or delegate the named check. A transcription-grade patch skips intake only when the gateway itself verified the cited text.
+- **Subagent commits route through the commit door** — a dispatched implementer implements + tests + reports (built + file list); the gateway commits via `/super-bootstrap:commit`. A fix→re-review loop scales to fix grade — a transcription-grade fix (shape fully supplied) → dispatcher verifies against the diff, no re-review dispatch; a judgment-grade fix (shape left to the implementer) → re-review dispatches. For free per-implementer commits, use the drain-worktree path — isolated commits, doc-sync deferred to the merge boundary.
+- **Doc-sync** (envelope step) → gateway-inline, judgment included — the gateway judges the mechanically enumerated scope warm in its own context; the cold `doc-sync-scan` agent dispatches only when the scope outgrows the commit door's inline ceiling (mechanism: § Doc Sync); resolving writes land inline or dispatched by closure.
+- **Parallel within a phase, not across it** — N build sub-goals or N doc surfaces fan out together; build → doc-sync stays ordered (doc-sync needs the finished diff).
+- **Writer run mode keys on path overlap, not writer class** — a backgrounded file-writing subagent returns behind the caller's read-tracker: the session's next Edit on a shared path carries a pre-write `old_string` the writer may have removed. A writer touching paths the session will keep editing dispatches foreground (`run_in_background: false`); a writer touching only paths the session is done with — new files included — backgrounds cleanly, and long build-class dispatches with no overlap stay background. Narrow exception: under a paired PreToolUse(Write) context-injector hook that is **not subagent-gated** — it still emits when the payload carries `agent_type` — a backgrounded subagent's new-file Write can stall before writing (platform defect); with such a hook wired, new-file writers dispatch foreground. Conformance is read off the wired hook in `settings.json`: a gated or unpaired injector leaves background dispatch free.
 
 ## Doc Sync (non-negotiable)
 
-Named pipeline step — every route includes it between user review and commit.
+**The guarantee is retrieval-shaped:** any restated fact a reader lands on reaches its SSOT home in one hop — a markdown link on the asserting line, authored when the line is written. Structure carries the guarantee; the commit door maintains the structure rather than re-deriving the whole doc surface per commit.
 
-Before every commit, scan `docs/` for files describing behavior touched by the diff (specs, overview, techstack, building, backlog). If any doc looks stale:
+Named pipeline step — every route includes it between user review and commit. The commit door (`/super-bootstrap:commit`) runs gateway-inline and maintains the guarantee in three layers:
 
-1. Report it — doc path, what looks outdated, relevant diff context
-2. Resolve together — update or acknowledge it's still accurate
-3. Never silently fix. Never silently skip. Stale docs are worse than missing ones.
+1. **Link integrity (mechanical, every non-deferred commit)** — broken path/anchor surfaces with the commit; fix or acknowledge, never silently skip.
+2. **Touched-truth propagation (mechanical enumeration, warm judgment)** — term-grep, reverse-citer lookup, and forward link-target extraction enumerate who narrates, cites, or is cited by what the diff changed; the gateway judges the enumerated scope warm-inline against the diff — holding the change intent and its session reads beside it — with the cold `doc-sync-scan` agent as the scope-overload valve; stale candidates resolve with the user before the commit lands.
+3. **New-assertion residual (diff-scoped judgment)** — the same judgment pass checks the diff's new asserting lines only: a linked line is read against its link target, an unlinked one against any existing doc answering the same question.
 
-Change-time doc-impact scan (which doc each diff touches): [`.claude/guidelines/work-discipline/doc-impact-mirror.md`](.claude/guidelines/work-discipline/doc-impact-mirror.md).
+Doc surface: `docs/` (specs, overview, techstack, the [`docs/work/`](docs/work/README.md) card set) **plus behavior-narrating prose outside `docs/`: the root `README`, any plugin README the repo ships (`plugins/*/README.md`), and any manifest/description field the diff's behavior changes**. Refinements — card-lifecycle skip, history-dimension skip (`dimension: history` frontmatter), consumed-card-link skip (a card thread linking a resolved sibling), premise-closure lane — live in the commit door's skill body. Coverage backstop: `/super-bootstrap:check-docs-consistency` (on-demand — the one remaining whole-surface pass).
 
-**Temporal cleanup:** work completing a feature branch deletes its spec + plan from `docs/superpowers/`. Once merged, they're noise.
-**Roadmap cleanup:** work shipping a feature in `docs/overview.md` § Roadmap removes that line — it now belongs to the product narrative.
-**Backlog cleanup:** work resolving a `BUG-###` / `DEBT-###` / `GAP-###` deletes that row from `docs/backlog.md`. Git history is the archive.
+**Admission — a line earns the doc surface when it lets a reader skip opening a file:** a rule spanning surfaces no single file owns, a decision / constraint / number not derivable from the code, or an index pointer that shortens the search. Single-file mechanism stays in that file's own header or comment; a fix whose existing doc line was already right adds none.
+
+Stale candidates resolve together: report path + what looks outdated + relevant diff context; update or acknowledge still-accurate — never silently fix or skip. Every doc the gate enumerates gets an outcome marker (updated, or read-and-confirmed-unchanged).
+
+**Write boundary** — doc-sync writes narrative docs only: `docs/`, the root `README`, and plugin READMEs (`plugins/*/README.md`). All harness — `CLAUDE.md`, `.claude/rules/`, skills, agents, release-owned manifests — is **read-only within this step**: flag the drift and route the fix to its owner (a deliberate harness edit carrying its own verify pass; the project's release step for manifests).
+
+**Dimension routing (state XOR history — decide before writing any `docs/` file):**
+
+State docs (`overview.md`, `techstack.md`, specs) hold what is **true now** — never timestamp precedent into them. Route by dimension:
+
+- Decision still **binding** current work → present-tense constraint in the state doc it governs, stripped of when/why-decided. ("Refinement deferred behind the port" — not "on <date> we decided to defer refinement because…").
+- Committed change history (what changed / when / why-of-a-change) → **git log + commit messages**. Don't hand-chronicle it into a doc.
+- A direction evaluated and **closed** that left no diff (road-not-taken, wall foreseen) and would otherwise be re-proposed → [`docs/decisions.md`](docs/decisions.md).
+
+**Card resolution:** if work resolves a `BUG-###` / `DEBT-###` / `GAP-###`, delete `docs/work/{ID}.md` — including a shipped feature-`GAP`, which now belongs to the product narrative (Problem / Current State / Module Index). Git history is the archive.
 
 ## Coding Principles
 
-Before writing, reviewing, or refactoring code, invoke the `karpathy-guidelines` skill (think-before-coding, simplicity-first, surgical-changes, goal-driven-execution). Skill body is upstream — don't paraphrase. Pin: `.claude/settings.json` → `andrej-karpathy-skills@karpathy-skills`.
+Before writing, reviewing, or refactoring code, read [`CODING_STANDARDS.md`](CODING_STANDARDS.md) at the repo root — the repo's binding conventions; a filled section governs its concern.
 
-## Edit Discipline — Renames & Replace-All
+## Edit Discipline — Renames, Replace-All & Stale State
 
-Rename preference order: LSP rename → per-occurrence Edit → `sed` (unique 8+ char literals) → `replace_all` (long unique literals only). `replace_all` on a short/common identifier silently corrupts unrelated code — grep the term first; >5 hits or <8 chars or English word → per-occurrence.
+Rename preference order: per-occurrence Edit (call sites from LSP `findReferences` or Grep) → `sed` (unique 8+ char literals) → `replace_all` (long unique literals only).
 
-Full rationale + banned-terms + recovery: [`.claude/guidelines/work-discipline/edit-discipline.md`](.claude/guidelines/work-discipline/edit-discipline.md). Banned-terms list + pre-flight checklist: [`docs/techstack.md` § Edit Discipline](docs/techstack.md#edit-discipline).
+Stale-state family: Read a file before its first Edit; re-Read after a stale/unread Edit error, or after any write that landed behind your read-tracker (formatter hook, a returned file-writing subagent — `git diff` is not a Read). Two consecutive same-file Edit failures = mandatory re-Read.
+
+Banned-terms list + pre-flight checklist + recovery protocol + stale-state predicate + re-Read triggers: [`docs/techstack.md` § Edit Discipline](docs/techstack.md#edit-discipline).
 
 ## Context Hygiene
 
-When context heavy: subagent first (clean window), compact while warm, clear on topic shift. Park mid-implementation state to docs before `/clear`.
+Subagent-first is the default container for build phases (§ Dispatch); context weight is an additional dispatch trigger, not the only one. Compact while warm, clear on topic shift. Park mid-implementation state to the card's `## Progress` block before `/clear`.
 
 ## Finding Triage — Log vs Fix Now
 
-Decide on two axes: **context budget** (window heavy?) and **topic distance** (on-goal, or far blast radius?).
+Decide on two axes: **context budget** (is the window heavy?) and **topic distance** (on-goal, or far blast radius?).
 
 - Context heavy **OR** off-topic / far blast → **log** via `/super-bootstrap:log`.
 - On-topic **AND** context clean **AND** fix small + safe → **fix now**.
 
-Real fork → surface as MCQ, recommended path badged. No real fork → act and mention.
-
-## Design Principles
-
-Non-negotiable. Every line of code reflects them.
-
-### First Principles Thinking
-
-Ask "why" before "how." Add a library because the platform lacks it, not because it's popular. SSE over WebSocket: the data flow is unidirectional, so use the unidirectional primitive.
-
-### Separation of Concerns
-
-Each module owns one responsibility. See `docs/overview.md` → Module Index, `docs/techstack.md` for key boundaries. Importing across boundaries in unexpected directions means the design is wrong — fix the boundary.
-
-### Atomic, Small Units
-
-Functions do one thing. Files stay focused (~200 line ceiling). Commits atomic — one logical change.
-
-### Self-Explanatory Naming
-
-Names are documentation. `getSessionDisplayName(cwd)` not `getName(s)`. Booleans read as natural language: `isStale`, `hasActiveSession`.
-
-### Ownership and Boundaries
-
-- Each package owns its dependencies
-- Server↔Web contract = the SSE event protocol (`docs/specs/sessions.md`)
-- Claude Code↔Claudia contract = the hook protocol (`docs/specs/hooks.md`)
-- Platform-specific code lives exclusively in `focus.js` and `job-object.js`
-
-### Visual Design System
-
-`docs/design-system.html` is canonical for UI components (element catalog, modal system, palette, spacing/radius scale). `docs/product-mock.html` for assembled layout + immersive mode. Component-level enforcement fires via `.claude/rules/svelte.md` on component reads.
+Surface a real fork to the user as an MCQ with the recommended path badged `(recommended)`. No real fork (trivial fix or trivial tangent) → act and mention, skip the MCQ.
 
 ## Rules (auto-load on file match)
 
-`.claude/rules/*.md` attach to file reads via `paths:` frontmatter — full body fires at the decision moment, zero ambient cost otherwise.
+`.claude/rules/*.md` files attach to file reads via `paths:` frontmatter — full-body rule fires at the decision moment, zero ambient cost when irrelevant.
 
 - **`rules/svelte.md`** — fires on `packages/web/src/**/*.svelte`
   • Svelte 5 runes only; props down, events up; one component, one concern
   • Hand-written scoped CSS per `design-system.html`; `<Tooltip>` not `title`
-- **`rules/config-overlay.md`** — fires on `.claude/settings.json`, `.claude/hooks/**`, `.mcp.json`
+- **`rules/config-overlay.md`** — fires on `.claude/settings.json`, `.claude/settings.local.json`, `.claude/hooks/**`, `.mcp.json`
   • Trust upstream canonical wiring; prove it fails before adding an overlay
   • Place ambient config at the layer every target runtime loads
 
-## Coding Standards
+If rule body needs more context than its summary provides during planning, read the rule file directly before designing — `Read .claude/rules/<name>.md`.
 
-- **ES modules only** — `import`/`export`, never `require`
-- `const` by default, `let` only for reassignment, never `var`
-- Async/await over raw promises; error handling at boundaries, not deep in logic
-- No classes unless instance state is clearly needed
-- **File org** — one substantial export per file; related small helpers may share a file; index files re-export, no logic
+## Tech Stack
 
-Svelte component specifics: `.claude/rules/svelte.md`. Stack patterns: `docs/techstack.md`.
+Node 20.19+/22.12+ (ESM) + Express 5 + SSE + Svelte 5/Vite, npm workspaces; Tauri shell + Node SEA for desktop and standalone binary.
 
-## Shell Notes
+→ Full stack table, dependency philosophy, architecture rules, observed coding patterns in [`docs/techstack.md`](docs/techstack.md).
 
-- **Never use `cd`** — `git -C <path>` for git; absolute paths everywhere else.
-- **Always use dedicated tools** — `Glob` / `Grep` / `Read`, never `find` / `ls` / `grep` / `cat` / `head` / `tail` via Bash.
+## Monorepo — Cross-Package Build Pre-flight
 
-## Solo Dev Assumptions
+Workspace repo (npm workspaces; packages in [`docs/techstack.md`](docs/techstack.md#packages)). Before committing a change under `packages/` (`server`, `web`), build/typecheck its dependents — a package green on its own can still break its consumers.
 
-Single developer across multiple Claude Code sessions.
-
-- No PR self-review — commit directly to working branch
-- Simple branching — `main` + feature branches, no rebasing
-- No force push — every commit is sacred, no rewriting history
-- Session isolation — each session commits only its own changes
-- Merge conflict → stop and ask
-
-## Git Notes
-
-- Only commit current session's changes — leave unrelated uncommitted work alone
-- Atomic commits — one logical change
-- Conventional commits — `feat:` `fix:` `refactor:` `docs:` `test:` `chore:`
-- No Git LFS
+npm workspaces has no affected-graph filter, so the pre-flight is the full pair: run `npm test && npm run build`, commit only on green. Package boundaries live in `.claude/rules/` path globs (`packages/web/src/**/*.svelte`), not nested CLAUDE.md.
 
 ## Commands
 
@@ -156,14 +145,28 @@ npm run lint:fix     # Auto-fix lint issues
 npm run format       # Auto-format with Biome
 ```
 
+## Shell Notes
+
+- **Never use `cd`** — `git -C <path>` for git; absolute paths everywhere else.
+- **Always use dedicated tools** — `Glob` / `Grep` / `Read`, never `find` / `ls` / `grep` / `cat` / `head` / `tail` via Bash.
+
+## Git Notes
+
+- Only commit current session's changes — leave unrelated uncommitted work alone
+- Atomic commits — one logical change per commit
+- Conventional commits — `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`
+- No PR self-review — commit directly. Main + feature branches. No force push.
+- Merge conflict → stop and ask.
+
 ## Planning
 
-- [`docs/overview.md`](docs/overview.md) — product context, data flow, module index, `## Roadmap` (forward feature list, read by `/super-bootstrap:todo`)
-- [`docs/techstack.md`](docs/techstack.md) — stack, architecture rules, coding patterns, storage, Edit Discipline
-- [`docs/specs/`](docs/specs/) — permanent feature specs, one `.md` per feature (filename + heading is the catalog)
-- [`docs/backlog.md`](docs/backlog.md) — deferred items (`BUG-###` / `DEBT-###` / `GAP-###`), deleted on resolve
-- [`docs/building.md`](docs/building.md) — build instructions (npx, Tauri)
-- `docs/superpowers/specs/` + `docs/superpowers/plans/` — temporal design specs + plans (deleted after merge)
-- `.claude/rules/` — path-scoped rules, full-body fires on file match
+- [`docs/overview.md`](docs/overview.md) — product context, data flow, module index.
+- [`docs/techstack.md`](docs/techstack.md) — stack, architecture rules, observed coding patterns.
+- [`docs/specs/`](docs/specs/index.md) — feature specs, one `.md` per feature; `index.md` holds the catalog table.
+- [`docs/work/`](docs/work/README.md) — open cards (`BUG-###` / `DEBT-###` / `GAP-###` append-only threads), captured via `/super-bootstrap:log`, deleted on resolve; `README.md` holds the thread contract + ID high-water line.
+- [`docs/decisions.md`](docs/decisions.md) — closed forks / rejected directions, all domains (history dimension). See its scope header for admission criteria; checked at triage.
+- [`docs/building.md`](docs/building.md) — build instructions (npx, Tauri).
+- [`docs/help/`](docs/help/troubleshooting.md) — user-facing help (troubleshooting, privacy).
+- `.claude/rules/` — path-scoped rules, full-body fires on file match (see Rules section above)
 
-> **Two kinds of specs:** `docs/specs/` = permanent source of truth. `docs/superpowers/specs/` = temporal work orders.
+> `docs/specs/` = permanent source of truth; working design and plan live as blocks on the owning card's thread.

@@ -1,19 +1,10 @@
 {
   "enabledPlugins": {
     "superpowers@claude-plugins-official": true,
-    "andrej-karpathy-skills@karpathy-skills": true,
     "fullstack-dev-skills@fullstack-dev-skills": false,
     "rust-analyzer-lsp@claude-plugins-official": false,
     "super-bootstrap@super-bootstrap": true,
     "axioms@axioms-protocol": true
-  },
-  "extraKnownMarketplaces": {
-    "karpathy-skills": {
-      "source": {
-        "source": "github",
-        "repo": "forrestchang/andrej-karpathy-skills"
-      }
-    }
   },
   "hooks": {
     "PostToolUse": [
@@ -56,7 +47,55 @@
             "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/agent-model-pretool.sh"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git *)",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/commit-channel.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fp=$(jq -r '.tool_input.file_path // empty'); if echo \"$CLAUDE_PROJECT_DIR\" | grep -qE '[/\\\\]\\.claude[/\\\\]worktrees[/\\\\]'; then exit 0; fi; if echo \"$fp\" | grep -qE '\\.claude[/\\\\]worktrees[/\\\\]'; then echo 'BLOCKED: worktree-internal Read re-injects that worktree CLAUDE.md. Read-around: git show {branch}:<path> / Grep / Glob.' >&2; exit 2; fi"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/consult-check-sessionstart.sh\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/consult-check-check.sh\""
+          }
+        ]
       }
     ]
+  },
+  "extraKnownMarketplaces": {
+    "super-bootstrap": {
+      "source": {
+        "source": "github",
+        "repo": "RockyHong/super-bootstrap"
+      }
+    }
   }
 }

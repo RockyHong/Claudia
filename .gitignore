@@ -54,3 +54,8 @@ packages/web/public/avatar/*.mp4
 
 # Sound effects (user-provided, not shipped)
 packages/server/assets/sfx/
+
+# Harness runtime caches / worktrees
+.claude/.consult-catalog
+.claude/worktrees/
+.drain-status
