@@ -637,3 +637,38 @@ describe("importSet", () => {
 		);
 	});
 });
+
+// GHSA-vwc7-r8mq-g2x9 (adm-zip >=0.5.9): extraction follows destination
+// symlinks, allowing arbitrary file overwrite. These pin the two properties
+// that keep this repo outside the advisory's reach.
+describe("zip extraction safety (GHSA-vwc7-r8mq-g2x9)", () => {
+	it("never delegates extraction to adm-zip", async () => {
+		const source = await fs.readFile(
+			new URL("./avatar-storage.js", import.meta.url),
+			"utf8",
+		);
+		expect(source).not.toMatch(/extractAllTo|extractEntryTo/);
+	});
+
+	it("drops traversal entries instead of writing outside the set dir", async () => {
+		const zip = new AdmZip();
+		zip.addFile("../../evil.webm", fakeFile("evil.webm").data);
+		zip.addFile("idle.webm", fakeFile("idle.webm").data);
+		zip.addFile("busy.webm", fakeFile("busy.webm").data);
+		zip.addFile("pending.webm", fakeFile("pending.webm").data);
+
+		const result = await storage.importSet("traversal", zip.toBuffer());
+
+		const sets = await storage.listSets();
+		const set = sets.find((s) => s.name === result.name);
+		expect(set.files.sort()).toEqual([
+			"busy.webm",
+			"idle.webm",
+			"pending.webm",
+		]);
+
+		// setPath is <tmpDir>/avatars/<name>, so "../../" lands at <tmpDir>
+		const escaped = path.join(tmpDir, "evil.webm");
+		await expect(fs.access(escaped)).rejects.toThrow();
+	});
+});

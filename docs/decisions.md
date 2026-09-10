@@ -22,6 +22,7 @@ dimension: history
 
 | Domain | Rejected direction | Because | Ref |
 |---|---|---|---|
+| tech | adm-zip downgrade to 0.5.8 (`npm audit fix --force`) | GHSA-vwc7-r8mq-g2x9 reaches only adm-zip's own extract-to-disk path; this repo reads entries and writes files itself behind a filename whitelist, so the downgrade trades 10 versions of fixes for a path never taken | `packages/server/src/avatar-storage.test.js` § zip extraction safety |
 | tech | WebSocket / socket.io | Data flow is unidirectional, SSE is sufficient | — |
 | tech | React | Runtime overhead unnecessary, Svelte compiles away | — |
 | tech | Electron | ~150 MB for a simple dashboard | — |

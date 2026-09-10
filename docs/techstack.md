@@ -22,6 +22,8 @@ Node.js 20.19+ (or 22.12+), ES modules — `"type": "module"` in every `package.
 
 **Two production deps: `express` and `adm-zip`.** Everything else is hand-rolled or build-time. This is intentional — don't add dependencies without a strong reason.
 
+`adm-zip` is used for entry reading and buffer building only — never `extractAllTo` / `extractEntryTo`. Avatar imports iterate entries, validate each name against a filename whitelist, and write the files themselves, which is what keeps the extraction advisory on `adm-zip >=0.5.9` out of reach and the version off the downgrade path ([`docs/decisions.md`](decisions.md)). Pinned by `packages/server/src/avatar-storage.test.js` § zip extraction safety.
+
 `packages/web` is `private` and never published; the root package ships its compiled `dist/` instead. So its `devDependencies` — `svelte`, `dompurify`, `marked`, `highlight.js`, `lucide-svelte` — are correctly classified for npm (users never install them) yet Vite compiles them into the artifact users receive. **Audit with plain `npm audit`, never `--omit=dev`**, which hides exactly this class. The `audit` job in `.github/workflows/build.yml` enforces that.
 
 Hand-rolled instead of libraries:
