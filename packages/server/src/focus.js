@@ -254,6 +254,16 @@ function focusFallback() {
 }
 
 /**
+ * True when the server process itself is running on Windows — the platform
+ * HWND resolution (and therefore terminal-only session admission) depends on.
+ * Isolated here with the rest of the platform checks so tests can override it
+ * via module mock instead of mutating `process.platform`.
+ */
+export function isWindowsHost() {
+	return currentPlatform === "win32";
+}
+
+/**
  * Check which window handles from the given array are no longer valid.
  * Returns a Set of handles whose windows have been closed.
  * Only works on win32 — returns empty set on other platforms.

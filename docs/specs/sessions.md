@@ -40,13 +40,15 @@ Sessions can be linked to a terminal window via `windowHandle` (HWND). Two paths
 - **Spawned by Claudia** — terminal title is set to `{projectName} {hex}` at spawn time. HWND discovered by polling for that title. Both HWND and displayName are stored.
 - **Auto-linked** — on `SessionStart`, the hook command runs an inline PowerShell process tree walk to resolve the terminal HWND. Sent via `X-Hook-Window: HWND|title` header. The server stores the HWND, generates a `{projectName} {hex}` displayName, and renames the terminal tab to match. Windows-only; other platforms send an empty header.
 
+The same walk counts the `claude` processes it crosses and reports the total in an `X-Hook-Nested` header, which gates admission (see Lifecycle below). A handle may legitimately be shared by several sessions — one terminal process can host many windows and tabs, and the walk resolves that process's main window — so linking never treats a handle as exclusive.
+
 ### Alert gating
 
 Notifications (`onPendingAlert`, `onIdleAlert`) only fire for linked sessions — those with a non-null `windowHandle`. This prevents alerts for sessions where we can't focus a terminal window.
 
 ## Lifecycle
 
-- **Creation**: on first hook event for an unknown `session_id`
+- **Creation**: on first hook event for an unknown `session_id`. On Windows the event must also come from a hook that carries the window headers (`SessionStart` / `UserPromptSubmit`) and must not be nested — `X-Hook-Nested` of 2 or more means the session runs inside another Claude session (dispatched, headless, SDK), and it gets no card. Refusal needs that positive evidence: the walk can return nothing for reasons unrelated to nesting, so an empty header still admits, leaving the session unlinked and reachable by stale pruning. A refused `session_id` never appears, since no other hook type creates one.
 - **Ghost prevention**: late `PermissionRequest` for an ended session is dropped — only live sessions accept events
 - **Permission queue**: multiple `PermissionRequest` hooks per session are queued FIFO on the server. The card displays the head one at a time; when the user decides, the server resolves that held hook response and the next queued permission becomes the new head. Held responses are released with plain `{ok: true}` only when the session ends — never silently overwritten, since Claude Code treats a missing decision as "hook abstained" and falls back to its terminal prompt.
 - **Stale pruning**: sessions inactive for 10 minutes are removed. Pruned every 60s.

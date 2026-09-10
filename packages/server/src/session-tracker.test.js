@@ -419,6 +419,49 @@ describe("session-tracker", () => {
 		});
 	});
 
+	describe("terminal-only admission (allowCreate)", () => {
+		it("does not create a new session when allowCreate is false", () => {
+			tracker.handleEvent(
+				{ session: "s1", state: "busy", cwd: "/proj" },
+				{ allowCreate: false },
+			);
+			expect(tracker.getSessions()).toHaveLength(0);
+		});
+
+		it("creates a new session when allowCreate is true", () => {
+			tracker.handleEvent(
+				{ session: "s1", state: "busy", cwd: "/proj" },
+				{ allowCreate: true },
+			);
+			expect(tracker.getSessions()).toHaveLength(1);
+		});
+
+		it("defaults to allowCreate true when no options are passed", () => {
+			tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
+			expect(tracker.getSessions()).toHaveLength(1);
+		});
+
+		it("still updates an existing session when allowCreate is false", () => {
+			tracker.handleEvent({ session: "s1", state: "busy", cwd: "/proj" });
+			tracker.handleEvent(
+				{ session: "s1", state: "idle" },
+				{ allowCreate: false },
+			);
+			expect(tracker.getSessions()[0].state).toBe(State.IDLE);
+		});
+
+		it("a matching pendingLinks entry still creates and links even without header admission", () => {
+			tracker.storeWindowHandle("/proj-spawned", 42, "spawned abcd");
+			tracker.handleEvent(
+				{ session: "s1", state: "idle", cwd: "/proj-spawned" },
+				{ allowCreate: true },
+			);
+			const session = tracker.getSessions()[0];
+			expect(session.windowHandle).toBe(42);
+			expect(session.displayName).toBe("spawned abcd");
+		});
+	});
+
 	describe("display name extraction", () => {
 		it("extracts last path segment", () => {
 			expect(

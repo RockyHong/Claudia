@@ -6,7 +6,12 @@ import { fileURLToPath } from "node:url";
 import express from "express";
 import { ensureDefaults } from "./avatar-storage.js";
 import { startStatusPolling, stopStatusPolling } from "./claude-status.js";
-import { findDeadWindows, focusTerminal, renameTerminal } from "./focus.js";
+import {
+	findDeadWindows,
+	focusTerminal,
+	isWindowsHost,
+	renameTerminal,
+} from "./focus.js";
 import { getGitStatus } from "./git-status.js";
 import { transformHookPayload, VALID_HOOK_TYPES } from "./hook-transform.js";
 import { getStatusMessage } from "./personality.js";
@@ -168,6 +173,26 @@ app.post("/event", (req, res) => {
 	res.json({ ok: true });
 });
 
+// Parses the "hwnd|windowTitle" shape of the X-Hook-Window header.
+// Returns null when absent, malformed, or the HWND isn't a positive int.
+function parseWindowHeader(header) {
+	const sep = header.indexOf("|");
+	if (sep === -1) return null;
+	const hwnd = parseInt(header.slice(0, sep), 10);
+	if (!(hwnd > 0)) return null;
+	return { hwnd, windowTitle: header.slice(sep + 1) };
+}
+
+// Parses the X-Hook-Nested header — the count of `claude` processes HWND_PREAMBLE
+// crossed while walking ancestors to the first terminal-class process. Two or
+// more means this session is nested inside another Claude session (dispatched /
+// headless / SDK): its own claude process plus at least one ancestor's. Missing,
+// empty, or non-numeric degrades to "not nested" rather than erroring.
+function isNestedHeader(header) {
+	const n = parseInt(header, 10);
+	return Number.isFinite(n) && n >= 2;
+}
+
 // Receive raw Claude Code stdin JSON — server-side transform, no node cold start
 app.post("/hook/:type", (req, res) => {
 	const { type } = req.params;
@@ -197,7 +222,41 @@ app.post("/hook/:type", (req, res) => {
 		return res.status(429).json({ error: "Too many sessions" });
 	}
 
-	tracker.handleEvent(event);
+	// Nesting-only admission, Windows only: a registry entry is created for a
+	// SessionStart/UserPromptSubmit hook unless X-Hook-Nested carries positive
+	// evidence of nesting (>= 2 claude processes crossed). An empty or
+	// unparseable X-Hook-Window is NOT refusal grounds — HWND_PREAMBLE's
+	// ancestor walk can return empty for reasons unrelated to nesting (an
+	// intermediate pid reaped mid-walk), and failing closed on that would
+	// erase a live interactive session's card with no diagnostic. Failing
+	// open instead costs at most the ~10-minute unlinked residency pruneStale
+	// already reaches (docs/work/BUG-002.md Amendment — pre-commit live
+	// verification). Every other hook type updates an existing session only —
+	// it never creates one, so a refused id simply never appears and its
+	// later PreToolUse/Stop events find nothing to create. Off-Windows,
+	// admission stays unconditional — HWND resolution is a Windows-only
+	// capability (hooks.js's preamble yields nothing elsewhere).
+	const windowHeader = req.headers["x-hook-window"] || "";
+	const nestedHeader = req.headers["x-hook-nested"] || "";
+	let allowCreate = true;
+	let refusalReason = null;
+	if (isWindowsHost()) {
+		if (type === "SessionStart" || type === "UserPromptSubmit") {
+			const nested = isNestedHeader(nestedHeader);
+			allowCreate = !nested;
+			if (!allowCreate) refusalReason = "nested";
+		} else {
+			allowCreate = false;
+			refusalReason = "non-header hook type";
+		}
+		if (!allowCreate && !tracker.getSession(event.session)) {
+			console.log(
+				`[admission] refused type=${type} session=${event.session} cwd=${event.cwd || "null"} reason=${refusalReason}`,
+			);
+		}
+	}
+
+	tracker.handleEvent(event, { allowCreate });
 	if (event.cwd) trackProject(event.cwd);
 	if (type === "UserPromptSubmit") {
 		broadcastSfx("send");
@@ -209,30 +268,26 @@ app.post("/hook/:type", (req, res) => {
 	// that pre-existed before Claudia started (server restart pickup).
 	if (type === "SessionStart" || type === "UserPromptSubmit") {
 		const session = tracker.getSession(event.session);
-		const windowHeader = req.headers["x-hook-window"] || "";
 		if (type === "SessionStart" || (windowHeader && !session?.windowHandle)) {
 			console.log(
 				`[auto-link] window="${windowHeader}" session=${session?.displayName || "null"} hwnd=${session?.windowHandle}`,
 			);
 		}
 		if (session && !session.windowHandle && windowHeader) {
-			const sep = windowHeader.indexOf("|");
-			if (sep !== -1) {
-				const hwnd = parseInt(windowHeader.slice(0, sep), 10);
-				const windowTitle = windowHeader.slice(sep + 1);
-				if (hwnd > 0) {
-					const result = tracker.linkSessionById(
-						event.session,
-						hwnd,
-						windowTitle,
-					);
-					if (result?.renamed) {
-						renameTerminal(hwnd, result.displayName);
-					}
-					console.log(
-						`[auto-link] linked session=${result?.displayName} hwnd=${hwnd} renamed=${result?.renamed}`,
-					);
+			const parsedHeader = parseWindowHeader(windowHeader);
+			if (parsedHeader) {
+				const { hwnd, windowTitle } = parsedHeader;
+				const result = tracker.linkSessionById(
+					event.session,
+					hwnd,
+					windowTitle,
+				);
+				if (result?.renamed) {
+					renameTerminal(hwnd, result.displayName);
 				}
+				console.log(
+					`[auto-link] linked session=${result?.displayName} hwnd=${hwnd} renamed=${result?.renamed}`,
+				);
 			}
 		}
 	}

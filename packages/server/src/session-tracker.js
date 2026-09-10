@@ -96,7 +96,7 @@ export function createSessionTracker({
 		}
 	}
 
-	function handleEvent(event) {
+	function handleEvent(event, { allowCreate = true } = {}) {
 		const {
 			session: sessionId,
 			state,
@@ -123,6 +123,11 @@ export function createSessionTracker({
 
 		// Don't create ghost sessions from late Notifications for ended sessions
 		if (isNew && state === "pending") return;
+
+		// Terminal-only admission: the caller (the /hook/:type route) decides
+		// allowCreate from the hook type + resolved terminal handle. A refused
+		// id simply never appears — its later events find nothing to update.
+		if (isNew && !allowCreate) return;
 
 		if (isNew) {
 			const session = createSession(sessionId, cwd);
@@ -351,6 +356,7 @@ export function createSessionTracker({
 	function linkSessionById(sessionId, windowHandle, windowTitle = "") {
 		const session = sessions.get(sessionId);
 		if (!session) return null;
+
 		session.windowHandle = windowHandle;
 
 		const baseName = extractDisplayName(session.cwd);

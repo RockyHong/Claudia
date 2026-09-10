@@ -1,10 +1,22 @@
 import http from "node:http";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+	afterAll,
+	afterEach,
+	beforeAll,
+	describe,
+	expect,
+	it,
+	vi,
+} from "vitest";
 
 // Mock all side-effectful dependencies BEFORE importing index.js
 vi.mock("./focus.js", () => ({
 	focusTerminal: vi.fn(),
 	findDeadWindows: vi.fn().mockResolvedValue(new Set()),
+	renameTerminal: vi.fn(),
+	// Nesting-only admission is Windows-only; default off so every
+	// pre-existing test here keeps today's unconditional-creation behavior.
+	isWindowsHost: vi.fn(() => false),
 }));
 
 vi.mock("./git-status.js", () => ({
@@ -40,6 +52,10 @@ vi.mock("./preferences.js", () => ({
 	getPreferences: vi.fn().mockResolvedValue({}),
 }));
 
+// Imported after the mock above — resolves to the same vi.fn() reference,
+// so tests can flip the platform branch without touching process.platform.
+import { isWindowsHost } from "./focus.js";
+
 let app, tracker, server, baseUrl;
 
 beforeAll(async () => {
@@ -57,7 +73,7 @@ afterAll(() => {
 	server?.close();
 });
 
-function request(method, path, body) {
+function request(method, path, body, extraHeaders) {
 	return new Promise((resolve, reject) => {
 		const url = new URL(path, baseUrl);
 		const opts = {
@@ -66,7 +82,12 @@ function request(method, path, body) {
 			port: url.port,
 			path: url.pathname,
 		};
-		if (body) opts.headers = { "Content-Type": "application/json" };
+		if (body || extraHeaders) {
+			opts.headers = {
+				...(body ? { "Content-Type": "application/json" } : {}),
+				...extraHeaders,
+			};
+		}
 		const req = http.request(opts, (res) => {
 			let data = "";
 			res.on("data", (c) => (data += c));
@@ -163,6 +184,141 @@ describe("POST /hook/:type validation", () => {
 		});
 		expect(res.status).toBe(200);
 		expect(res.body.ok).toBe(true);
+	});
+});
+
+describe("POST /hook/:type — nesting-only admission (Windows only)", () => {
+	afterEach(() => {
+		isWindowsHost.mockReturnValue(false);
+	});
+
+	it("off-Windows: a hook with no header still creates a session (unchanged)", async () => {
+		isWindowsHost.mockReturnValue(false);
+		await request("POST", "/hook/PreToolUse", {
+			session_id: "admit-off-win",
+			tool_name: "Edit",
+			cwd: "/proj",
+		});
+		expect(tracker.getSession("admit-off-win")).not.toBeNull();
+	});
+
+	it("on Windows: a non-header hook type never creates a new session", async () => {
+		isWindowsHost.mockReturnValue(true);
+		const res = await request("POST", "/hook/PreToolUse", {
+			session_id: "admit-preTool-refused",
+			tool_name: "Edit",
+			cwd: "/proj",
+		});
+		expect(res.status).toBe(200);
+		expect(tracker.getSession("admit-preTool-refused")).toBeNull();
+	});
+
+	it("on Windows: a non-header hook type still updates an existing session", async () => {
+		await request("POST", "/hook/SessionStart", {
+			session_id: "admit-existing",
+			cwd: "/proj",
+		});
+		isWindowsHost.mockReturnValue(true);
+		const res = await request("POST", "/hook/PreToolUse", {
+			session_id: "admit-existing",
+			tool_name: "Edit",
+			cwd: "/proj",
+		});
+		expect(res.status).toBe(200);
+		expect(tracker.getSession("admit-existing").state).toBe("busy");
+	});
+
+	it("on Windows: SessionStart with no header and no pending link is admitted (fail open) — HWND_PREAMBLE's ancestor walk can return empty for reasons unrelated to nesting, and refusing here would erase a real session's card instead of just leaving it unlinked for pruneStale", async () => {
+		isWindowsHost.mockReturnValue(true);
+		const res = await request("POST", "/hook/SessionStart", {
+			session_id: "admit-no-header",
+			cwd: "/proj",
+		});
+		expect(res.status).toBe(200);
+		expect(tracker.getSession("admit-no-header")).not.toBeNull();
+	});
+
+	it("on Windows: SessionStart with a window header creates and links", async () => {
+		isWindowsHost.mockReturnValue(true);
+		const res = await request(
+			"POST",
+			"/hook/SessionStart",
+			{ session_id: "admit-with-header", cwd: "/proj" },
+			{ "X-Hook-Window": "777|My Terminal" },
+		);
+		expect(res.status).toBe(200);
+		const session = tracker.getSession("admit-with-header");
+		expect(session).not.toBeNull();
+		expect(session.windowHandle).toBe(777);
+	});
+
+	it("on Windows: a shared HWND already held by another session is still admitted (not nested) — the collision predicate's regression, now locked down", async () => {
+		isWindowsHost.mockReturnValue(true);
+		await request(
+			"POST",
+			"/hook/SessionStart",
+			{ session_id: "admit-holder", cwd: "/proj-a" },
+			{ "X-Hook-Window": "888|Term" },
+		);
+		const res = await request(
+			"POST",
+			"/hook/SessionStart",
+			{ session_id: "admit-sibling", cwd: "/proj-b" },
+			{ "X-Hook-Window": "888|Term" },
+		);
+		expect(res.status).toBe(200);
+		const sibling = tracker.getSession("admit-sibling");
+		expect(sibling).not.toBeNull();
+		expect(sibling.windowHandle).toBe(888);
+		expect(tracker.getSession("admit-holder").windowHandle).toBe(888);
+	});
+
+	it("on Windows: X-Hook-Nested of 1 (own claude process only) is not nested — still admitted", async () => {
+		isWindowsHost.mockReturnValue(true);
+		const res = await request(
+			"POST",
+			"/hook/SessionStart",
+			{ session_id: "admit-not-nested", cwd: "/proj-nn" },
+			{ "X-Hook-Window": "444|Term", "X-Hook-Nested": "1" },
+		);
+		expect(res.status).toBe(200);
+		expect(tracker.getSession("admit-not-nested")).not.toBeNull();
+	});
+
+	it("on Windows: X-Hook-Nested of 2 or more is refused even with a resolved HWND", async () => {
+		isWindowsHost.mockReturnValue(true);
+		const res = await request(
+			"POST",
+			"/hook/SessionStart",
+			{ session_id: "admit-nested", cwd: "/proj-nested" },
+			{ "X-Hook-Window": "555|Term", "X-Hook-Nested": "2" },
+		);
+		expect(res.status).toBe(200);
+		expect(tracker.getSession("admit-nested")).toBeNull();
+	});
+
+	it("on Windows: a Claudia-spawned cwd (pendingLinks) is admitted without a header", async () => {
+		isWindowsHost.mockReturnValue(true);
+		tracker.storeWindowHandle("/proj-spawned", 999, "spawned abcd");
+		const res = await request("POST", "/hook/SessionStart", {
+			session_id: "admit-pending-link",
+			cwd: "/proj-spawned",
+		});
+		expect(res.status).toBe(200);
+		const session = tracker.getSession("admit-pending-link");
+		expect(session).not.toBeNull();
+		expect(session.windowHandle).toBe(999);
+	});
+
+	it("POST /event keeps unconditional creation regardless of platform", async () => {
+		isWindowsHost.mockReturnValue(true);
+		const res = await request("POST", "/event", {
+			session: "admit-legacy-event",
+			state: "busy",
+			cwd: "/proj",
+		});
+		expect(res.status).toBe(200);
+		expect(tracker.getSession("admit-legacy-event")).not.toBeNull();
 	});
 });
 

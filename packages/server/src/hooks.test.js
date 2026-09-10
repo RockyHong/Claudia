@@ -178,6 +178,36 @@ describe("mergeHooks", () => {
 		const preToolCmd = result.hooks.PreToolUse[0].hooks[0].command;
 		expect(preToolCmd).not.toContain("X-Hook-Window");
 	});
+
+	it("SessionStart and UserPromptSubmit also count nested claude processes and send X-Hook-Nested", () => {
+		const result = mergeHooks({});
+		for (const hookType of ["SessionStart", "UserPromptSubmit"]) {
+			const cmd = result.hooks[hookType][0].hooks[0].command;
+			expect(cmd).toContain("X-Hook-Nested:");
+			// Counts every ancestor named "claude" crossed before the terminal —
+			// two or more means this session is nested inside another one.
+			expect(cmd).toContain('$pname -eq "claude"');
+			expect(cmd).toContain("$claudeCount++");
+			// The count rides the same powershell line as the window info, then
+			// bash splits the two back apart — X-Hook-Window's shape stays plain.
+			expect(cmd).toContain("@@$claudeCount");
+			// biome-ignore lint/suspicious/noTemplateCurlyInString: literal POSIX shell parameter expansion, not a JS template
+			expect(cmd).toContain('HWND_INFO="${HWND_RAW%%@@*}"');
+			// biome-ignore lint/suspicious/noTemplateCurlyInString: literal POSIX shell parameter expansion, not a JS template
+			expect(cmd).toContain('HWND_NESTED="${HWND_RAW##*@@}"');
+		}
+
+		// Other hooks should NOT have the nested header either
+		const preToolCmd = result.hooks.PreToolUse[0].hooks[0].command;
+		expect(preToolCmd).not.toContain("X-Hook-Nested");
+	});
+
+	it("keeps the ancestor walk's 20-hop bound and SilentlyContinue error handling", () => {
+		const result = mergeHooks({});
+		const cmd = result.hooks.SessionStart[0].hooks[0].command;
+		expect(cmd).toContain("$i -lt 20");
+		expect(cmd).toContain("-ErrorAction SilentlyContinue");
+	});
 });
 
 describe("removeHooks", () => {

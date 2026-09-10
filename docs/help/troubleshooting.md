@@ -42,6 +42,8 @@ claude config list hooks
 
 Look for entries pointing to `localhost:48901/hook/`. If missing, stop and restart `npx @rockyhong/claudia` — it re-registers hooks on startup.
 
+Sessions dispatched from inside another Claude Code session — headless runs, SDK sessions, subagent work — get no card on purpose ([why](../specs/sessions.md#lifecycle)). Claudia's board is the set of terminals you can jump to, and those sessions have no terminal of their own; their work shows up as the launching session staying busy.
+
 ---
 
 ## Standalone
