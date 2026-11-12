@@ -33,7 +33,7 @@ All stored under `~/.claudia/`. Nothing is written outside this directory (excep
 | File | Purpose |
 |------|---------|
 | `config.json` | Your preferences: theme, sound effects, immersive mode, usage monitoring, auto-focus. |
-| `projects.json` | Maps session working directories to display names you set. |
+| `projects.json` | Recently used project folders (path, folder name, last-seen time) offered as quick picks when launching a session. Worktree folders and dispatched sub-sessions are not recorded. |
 | `avatars/` | Custom avatar video sets (`.webm`, `.mp4`) uploaded through Settings. |
 | `shutdown-token` | Random token for graceful instance replacement when a new `npx @rockyhong/claudia` starts. |
 
