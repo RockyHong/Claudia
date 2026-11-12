@@ -165,7 +165,11 @@ app.post("/event", (req, res) => {
 	}
 
 	tracker.handleEvent(event);
-	if (event.cwd) trackProject(event.cwd);
+	if (event.cwd && tracker.getSession(event.session)) {
+		Promise.resolve(trackProject(event.cwd)).catch((err) =>
+			console.warn(`[project-storage] track failed: ${err.message}`),
+		);
+	}
 	res.json({ ok: true });
 });
 
@@ -255,7 +259,11 @@ function completeHookEvent(res, type, event, windowSignal) {
 	}
 
 	tracker.handleEvent(event, { allowCreate });
-	if (event.cwd) trackProject(event.cwd);
+	if (event.cwd && tracker.getSession(event.session)) {
+		Promise.resolve(trackProject(event.cwd)).catch((err) =>
+			console.warn(`[project-storage] track failed: ${err.message}`),
+		);
+	}
 	if (type === "UserPromptSubmit") {
 		broadcastSfx("send");
 	}

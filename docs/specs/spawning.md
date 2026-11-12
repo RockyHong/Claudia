@@ -4,7 +4,7 @@ Launching sessions and finding the right terminal window — the receptionist's 
 
 ## Spawn Flow
 
-1. User picks a project folder (from known list or native folder picker)
+1. User picks a project folder (from known list or native folder picker); the known list is recorded from admitted sessions' working folders only, excluding worktrees
 2. Server launches a terminal with `claude` in that directory
 3. On Windows: a temporary opaque title is set for HWND discovery (polled up to 5 seconds)
 4. The HWND is stored in the session tracker, matched to the session when its `SessionStart` hook fires

@@ -62,6 +62,7 @@ vi.mock("./pid-ancestry.js", () => ({
 // so tests can flip the platform branch without touching process.platform.
 import { findDeadWindows, isWindowsHost, renameTerminal } from "./focus.js";
 import { resolveTerminalWindow } from "./pid-ancestry.js";
+import { trackProject } from "./project-storage.js";
 
 let app, tracker, server, baseUrl, pruneDeadLinkedSessions;
 
@@ -316,6 +317,29 @@ describe("POST /hook/:type — nesting-only admission (Windows only)", () => {
 		const session = tracker.getSession("admit-pending-link");
 		expect(session).not.toBeNull();
 		expect(session.windowHandle).toBe(999);
+	});
+
+	it("records the cwd for an admitted session", async () => {
+		isWindowsHost.mockReturnValue(true);
+		trackProject.mockClear();
+		await request("POST", "/hook/SessionStart", {
+			session_id: "track-admitted",
+			cwd: "/proj-track-admitted",
+		});
+		expect(trackProject).toHaveBeenCalledWith("/proj-track-admitted");
+	});
+
+	it("does not record the cwd of a session refused at admission", async () => {
+		isWindowsHost.mockReturnValue(true);
+		trackProject.mockClear();
+		await request(
+			"POST",
+			"/hook/SessionStart",
+			{ session_id: "track-nested", cwd: "/proj-track-nested" },
+			{ "X-Hook-Window": "556|Term", "X-Hook-Nested": "2" },
+		);
+		expect(tracker.getSession("track-nested")).toBeNull();
+		expect(trackProject).not.toHaveBeenCalled();
 	});
 
 	it("POST /event keeps unconditional creation regardless of platform", async () => {
